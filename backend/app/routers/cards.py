@@ -9,6 +9,43 @@ from app.models import Card
 
 router = APIRouter()
 
+# Terre base da normalizzare
+BASIC_LANDS = {
+    'plains': 'Plains',
+    'island': 'Island', 
+    'swamp': 'Swamp',
+    'mountain': 'Mountain',
+    'forest': 'Forest'
+}
+
+def normalize_card_name(name: str) -> str:
+    """
+    Normalizza il nome della carta, specialmente per le terre base.
+    Esempi:
+    - "Mountain v1" -> "Mountain"
+    - "Mountain (V1)" -> "Mountain"
+    - "Forest - Full Art" -> "Forest"
+    - "Plains [Dominaria]" -> "Plains"
+    """
+    if not name:
+        return name
+    
+    name_lower = name.lower().strip()
+    
+    # Controlla se contiene una terra base
+    for basic_land_key, basic_land_name in BASIC_LANDS.items():
+        if basic_land_key in name_lower:
+            # Se il nome inizia con la terra base, normalizzalo
+            if name_lower.startswith(basic_land_key):
+                return basic_land_name
+            # Se contiene la parola completa (non parte di un'altra parola)
+            # es: "Snow-Covered Mountain" non deve diventare "Mountain"
+            words = name_lower.replace('-', ' ').replace('(', ' ').replace(')', ' ').split()
+            if basic_land_key in words:
+                return basic_land_name
+    
+    return name
+
 class ColumnMapping(BaseModel):
     name: str
     quantity: str
@@ -20,18 +57,67 @@ class ColumnMapping(BaseModel):
 @router.post("/analyze/{user_id}")
 async def analyze_file(user_id: str, file: UploadFile = File(...)):
     """Analizza il file e restituisce le colonne disponibili"""
+    print(f"📁 Analisi file: {file.filename}")
+    
     if not file.filename.endswith(('.xlsx', '.csv')):
-        raise HTTPException(status_code=400, detail="Il file deve essere .xlsx o .csv")
+        error_msg = f"Il file deve essere .xlsx o .csv (ricevuto: {file.filename})"
+        print(f"❌ {error_msg}")
+        raise HTTPException(status_code=400, detail=error_msg)
     
     contents = await file.read()
+    print(f"📊 Dimensione file: {len(contents)} bytes")
     
     try:
         if file.filename.endswith('.xlsx'):
             df = pd.read_excel(BytesIO(contents))
         else:
-            df = pd.read_csv(BytesIO(contents))
+            # Decodifica il contenuto e gestisci diversi line endings
+            try:
+                text_content = contents.decode('utf-8')
+            except:
+                text_content = contents.decode('latin-1')
+            
+            # Normalizza line endings
+            text_content = text_content.replace('\r\n', '\n').replace('\r', '\n')
+            
+            # Rimuovi righe di metadati che iniziano con #
+            lines = [line for line in text_content.split('\n') if line.strip() and not line.startswith('#')]
+            text_content = '\n'.join(lines)
+            
+            # Prova diversi metodi per CSV
+            from io import StringIO
+            import csv as csv_module
+            
+            try:
+                # Prima prova: CSV con engine python e escape (per gestire backslash)
+                df = pd.read_csv(StringIO(text_content), engine='python', escapechar='\\')
+            except Exception as e1:
+                print(f"⚠️  Tentativo 1 fallito: {e1}")
+                try:
+                    # Seconda prova: CSV standard
+                    df = pd.read_csv(StringIO(text_content))
+                except Exception as e2:
+                    print(f"⚠️  Tentativo 2 fallito: {e2}")
+                    try:
+                        # Terza prova: CSV con separatore punto e virgola
+                        df = pd.read_csv(StringIO(text_content), sep=';')
+                    except Exception as e3:
+                        print(f"⚠️  Tentativo 3 fallito: {e3}")
+                        # Quarta prova: CSV con quoting NONE
+                        df = pd.read_csv(
+                            StringIO(text_content),
+                            escapechar='\\',
+                            quoting=csv_module.QUOTE_NONE,
+                            on_bad_lines='skip',
+                            engine='python'
+                        )
+        
+        print(f"✅ File letto: {len(df)} righe, {len(df.columns)} colonne")
+        print(f"📋 Colonne: {df.columns.tolist()}")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Errore nella lettura del file: {str(e)}")
+        error_msg = f"Errore nella lettura del file: {str(e)}"
+        print(f"❌ {error_msg}")
+        raise HTTPException(status_code=400, detail=error_msg)
     
     # Pulisci i nomi delle colonne (converti tutto a stringa e rimuovi spazi)
     df.columns = [str(col).strip() for col in df.columns]
@@ -128,7 +214,43 @@ async def upload_cards(
         if file.filename.endswith('.xlsx'):
             df = pd.read_excel(BytesIO(contents))
         else:
-            df = pd.read_csv(BytesIO(contents))
+            # Decodifica il contenuto e gestisci diversi line endings
+            try:
+                text_content = contents.decode('utf-8')
+            except:
+                text_content = contents.decode('latin-1')
+            
+            # Normalizza line endings
+            text_content = text_content.replace('\r\n', '\n').replace('\r', '\n')
+            
+            # Rimuovi righe di metadati che iniziano con #
+            lines = [line for line in text_content.split('\n') if line.strip() and not line.startswith('#')]
+            text_content = '\n'.join(lines)
+            
+            # Prova diversi metodi per CSV
+            from io import StringIO
+            import csv as csv_module
+            
+            try:
+                # Prima prova: CSV con engine python e escape (per gestire backslash)
+                df = pd.read_csv(StringIO(text_content), engine='python', escapechar='\\')
+            except:
+                try:
+                    # Seconda prova: CSV standard
+                    df = pd.read_csv(StringIO(text_content))
+                except:
+                    try:
+                        # Terza prova: CSV con separatore punto e virgola
+                        df = pd.read_csv(StringIO(text_content), sep=';')
+                    except:
+                        # Quarta prova: CSV con quoting NONE
+                        df = pd.read_csv(
+                            StringIO(text_content),
+                            escapechar='\\',
+                            quoting=csv_module.QUOTE_NONE,
+                            on_bad_lines='skip',
+                            engine='python'
+                        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Errore nella lettura del file: {str(e)}")
     
@@ -170,6 +292,9 @@ async def upload_cards(
             
             if not name or name == 'nan' or name.strip() == '':
                 continue
+            
+            # Normalizza il nome (specialmente per le terre base)
+            name = normalize_card_name(name)
             
             quantity_col = column_mapping.get('quantity')
             quantity_raw = row[quantity_col] if quantity_col and quantity_col in df.columns else 1

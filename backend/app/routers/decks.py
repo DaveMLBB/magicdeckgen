@@ -198,14 +198,41 @@ def select_deck_cards(cards: list, archetype: str, target: int) -> list:
 @router.get("/match/{user_id}")
 def match_decks(
     user_id: str, 
-    format: str,  # OBBLIGATORIO - Formato del mazzo
+    format: str = None,  # OPZIONALE - Formato del mazzo
     colors: str = None,  # Colori separati da virgola: "W,U,B"
     min_match: int = 10,  # Percentuale minima di match
     buildable_only: bool = False,  # Solo mazzi costruibili (>=90%)
     db: Session = Depends(get_db)
 ):
-    """Trova mazzi template che puoi costruire con le tue carte - FORMATO OBBLIGATORIO"""
+    """Trova mazzi template che puoi costruire con le tue carte"""
     from app.models import DeckTemplate, DeckTemplateCard
+    
+    # Terre base da normalizzare
+    BASIC_LANDS = {
+        'plains': 'Plains',
+        'island': 'Island', 
+        'swamp': 'Swamp',
+        'mountain': 'Mountain',
+        'forest': 'Forest'
+    }
+    
+    def normalize_card_name(name: str) -> str:
+        """Normalizza il nome della carta, specialmente per le terre base"""
+        if not name:
+            return name
+        
+        name_lower = name.lower().strip()
+        
+        # Controlla se contiene una terra base
+        for basic_land_key, basic_land_name in BASIC_LANDS.items():
+            if basic_land_key in name_lower:
+                if name_lower.startswith(basic_land_key):
+                    return basic_land_name
+                words = name_lower.replace('-', ' ').replace('(', ' ').replace(')', ' ').split()
+                if basic_land_key in words:
+                    return basic_land_name
+        
+        return name
     
     # Carica le carte dell'utente
     user_cards = db.query(Card).filter(Card.user_id == user_id).all()
@@ -213,20 +240,27 @@ def match_decks(
     if not user_cards:
         return {"decks": [], "message": "Nessuna carta trovata. Carica prima un file Excel."}
     
-    # Crea un dizionario delle carte possedute
+    # Crea un dizionario delle carte possedute (con normalizzazione)
     owned_cards = {}
     for card in user_cards:
-        card_name = card.name.lower().strip()
-        owned_cards[card_name] = card.quantity_owned
+        card_name = normalize_card_name(card.name).lower().strip()
+        if card_name in owned_cards:
+            owned_cards[card_name] += card.quantity_owned
+        else:
+            owned_cards[card_name] = card.quantity_owned
     
     print(f"🃏 Carte possedute: {len(owned_cards)}")
     
-    # Costruisci query con filtro formato OBBLIGATORIO
-    query = db.query(DeckTemplate).filter(DeckTemplate.format == format)
-    print(f"🎯 Filtro formato: {format}")
+    # Costruisci query - formato opzionale
+    query = db.query(DeckTemplate)
+    if format:
+        query = query.filter(DeckTemplate.format == format)
+        print(f"🎯 Filtro formato: {format}")
+    else:
+        print(f"🎯 Nessun filtro formato - cerca in tutti i formati")
     
     templates = query.all()
-    print(f"📋 Template disponibili per {format}: {len(templates)}")
+    print(f"📋 Template disponibili: {len(templates)}")
     
     # Log filtri applicati
     if colors:
@@ -251,29 +285,34 @@ def match_decks(
         total_cards_needed = 0
         cards_owned = 0
         missing_cards = []
+        missing_cards_total = 0  # Totale carte mancanti (somma quantità)
         deck_list = []
         
         for tc in template_cards:
-            card_name = tc.card_name.lower().strip()
+            # Normalizza anche il nome della carta del template
+            card_name = normalize_card_name(tc.card_name).lower().strip()
             quantity_needed = tc.quantity
             total_cards_needed += quantity_needed
             
             quantity_have = owned_cards.get(card_name, 0)
             cards_owned += min(quantity_have, quantity_needed)
             
+            missing_qty = max(0, quantity_needed - quantity_have)
+            
             deck_list.append({
                 "name": tc.card_name,
                 "type": tc.card_type or "Unknown",
                 "quantity_needed": quantity_needed,
                 "quantity_owned": quantity_have,
-                "missing": max(0, quantity_needed - quantity_have)
+                "missing": missing_qty
             })
             
             if quantity_have < quantity_needed:
                 missing_cards.append({
                     "name": tc.card_name,
-                    "missing": quantity_needed - quantity_have
+                    "missing": missing_qty
                 })
+                missing_cards_total += missing_qty
         
         match_percentage = (cards_owned / total_cards_needed * 100) if total_cards_needed > 0 else 0
         
@@ -308,7 +347,7 @@ def match_decks(
                 "match_percentage": round(match_percentage, 1),
                 "cards_owned": cards_owned,
                 "total_cards": total_cards_needed,
-                "missing_cards_count": len(missing_cards),
+                "missing_cards_count": missing_cards_total,  # Totale carte mancanti (somma quantità)
                 "missing_cards": missing_cards[:10],  # Top 10 carte mancanti
                 "colors": '/'.join(sorted(deck_colors)) if deck_colors else 'C',
                 "deck_list": deck_list,

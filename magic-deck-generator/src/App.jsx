@@ -47,6 +47,8 @@ function App() {
     const file = e.target.files[0]
     if (!file) return
 
+    console.log('📁 File selezionato:', file.name, 'Tipo:', file.type, 'Dimensione:', file.size)
+
     setLoading(true)
     setMessage('')
     
@@ -59,6 +61,16 @@ function App() {
         method: 'POST',
         body: formData
       })
+      
+      if (!res.ok) {
+        const errorData = await res.json()
+        console.error('❌ Errore analisi:', errorData)
+        setMessage(`Errore: ${errorData.detail || 'Impossibile analizzare il file'}`)
+        setLoading(false)
+        e.target.value = ''
+        return
+      }
+      
       const data = await res.json()
       
       // Mostra l'interfaccia di mapping
@@ -70,6 +82,7 @@ function App() {
       setShowColumnMapper(true)
       
     } catch (err) {
+      console.error('❌ Errore:', err)
       setMessage('Errore nell\'analisi del file')
     }
     setLoading(false)
@@ -139,19 +152,15 @@ function App() {
   }
 
   const generateDecks = async () => {
-    // Verifica che sia selezionato almeno un formato
-    if (filters.formats.length === 0) {
-      setMessage('⚠️ Seleziona almeno un formato per cercare i mazzi')
-      return
-    }
-    
     setLoading(true)
     try {
       // Costruisci URL con parametri di filtro
       const params = new URLSearchParams()
       
-      // Formato è obbligatorio - usa il primo selezionato
-      params.append('format', filters.formats[0])
+      // Formato è opzionale - se selezionato, filtra per formato
+      if (filters.formats.length > 0) {
+        params.append('format', filters.formats[0])
+      }
       
       if (filters.colors.length > 0) {
         params.append('colors', filters.colors.join(','))
@@ -235,9 +244,9 @@ function App() {
                 Caricamento...
               </>
             ) : (
-              '📁 Carica Collezione Excel'
+              '📁 Carica Collezione (Excel/CSV)'
             )}
-            <input type="file" accept=".xlsx" onChange={handleUpload} hidden disabled={loading} />
+            <input type="file" accept=".xlsx,.csv" onChange={handleUpload} hidden disabled={loading} />
           </label>
           {cards.length > 0 && !loading && (
             <span className="card-count">✅ {cards.length} carte caricate</span>
@@ -405,7 +414,7 @@ function App() {
               </div>
 
               <div className="filter-group">
-                <label>Formato: <span className="required">*</span></label>
+                <label>Formato:</label>
                 <div className="format-filters">
                   {availableFormats.map(format => (
                     <button
@@ -417,9 +426,6 @@ function App() {
                     </button>
                   ))}
                 </div>
-                {filters.formats.length === 0 && (
-                  <small className="hint">Seleziona un formato per cercare i mazzi</small>
-                )}
               </div>
 
               <div className="filter-group">
@@ -452,14 +458,12 @@ function App() {
               )}
             </div>
 
-            <button className="generate-btn" onClick={generateDecks} disabled={loading || filters.formats.length === 0}>
+            <button className="generate-btn" onClick={generateDecks} disabled={loading}>
               {loading ? (
                 <>
                   <span className="spinner"></span>
                   Analizzando mazzi...
                 </>
-              ) : filters.formats.length === 0 ? (
-                '⚠️ Seleziona un formato'
               ) : (
                 '🔍 Trova Mazzi Compatibili'
               )}
@@ -477,7 +481,20 @@ function App() {
                 <div 
                   key={i} 
                   className={`deck-card ${selectedDeck === i ? 'selected' : ''} ${deck.can_build ? 'buildable' : ''}`}
-                  onClick={() => setSelectedDeck(selectedDeck === i ? null : i)}
+                  onClick={() => {
+                    const newSelection = selectedDeck === i ? null : i
+                    setSelectedDeck(newSelection)
+                    
+                    // Scroll alla sezione dettagli dopo un breve delay
+                    if (newSelection !== null) {
+                      setTimeout(() => {
+                        const detailSection = document.querySelector('.deck-detail')
+                        if (detailSection) {
+                          detailSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        }
+                      }, 100)
+                    }
+                  }}
                 >
                   <div className="deck-header">
                     <span className="deck-colors">{getColorEmoji(deck.colors)}</span>
@@ -509,33 +526,27 @@ function App() {
               {decks[selectedDeck].can_build && <p className="can-build">✅ Puoi costruire questo mazzo!</p>}
             </div>
             
-            {decks[selectedDeck].missing_cards && decks[selectedDeck].missing_cards.length > 0 && (
-              <div className="missing-section">
-                <h3>Carte Mancanti (top 10)</h3>
-                <div className="missing-list">
-                  {decks[selectedDeck].missing_cards.map((card, i) => (
-                    <div key={i} className="missing-item">
-                      <span className="missing-qty">{card.missing}x</span>
-                      <span className="missing-name">{card.name}</span>
+            {decks[selectedDeck].deck_list && decks[selectedDeck].deck_list.length > 0 ? (
+              <>
+                <h3>Lista Completa ({decks[selectedDeck].deck_list.length} carte uniche)</h3>
+                <div className="cards-list">
+                  {decks[selectedDeck].deck_list.map((card, i) => (
+                    <div key={i} className={`card-item ${card.missing > 0 ? 'missing' : 'owned'}`}>
+                      <span className="card-qty">{card.quantity_needed}x</span>
+                      <span className="card-name">{card.name}</span>
+                      {card.type && card.type !== 'Unknown' && (
+                        <span className="card-type">{card.type}</span>
+                      )}
+                      <span className="card-status">
+                        {card.missing > 0 ? `❌ -${card.missing}` : '✅'}
+                      </span>
                     </div>
                   ))}
                 </div>
-              </div>
+              </>
+            ) : (
+              <p>⚠️ Nessuna carta trovata per questo mazzo</p>
             )}
-            
-            <h3>Lista Completa</h3>
-            <div className="cards-list">
-              {decks[selectedDeck].deck_list.map((card, i) => (
-                <div key={i} className={`card-item ${card.missing > 0 ? 'missing' : 'owned'}`}>
-                  <span className="card-qty">{card.quantity_needed}x</span>
-                  <span className="card-name">{card.name}</span>
-                  <span className="card-type">{card.type}</span>
-                  <span className="card-status">
-                    {card.missing > 0 ? `❌ -${card.missing}` : '✅'}
-                  </span>
-                </div>
-              ))}
-            </div>
           </section>
         )}
       </main>
