@@ -7,6 +7,7 @@ const API_URL = import.meta.env.PROD
 
 function App() {
   const [userId] = useState(() => localStorage.getItem('userId') || crypto.randomUUID())
+  const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'it')
   const [cards, setCards] = useState([])
   const [decks, setDecks] = useState([])
   const [loading, setLoading] = useState(false)
@@ -28,10 +29,91 @@ function App() {
   const [filePreview, setFilePreview] = useState([])
   const [totalRows, setTotalRows] = useState(0)
 
+  // Traduzioni
+  const translations = {
+    it: {
+      title: '🃏 Magic Deck Matcher',
+      subtitle: 'Carica le tue carte e scopri quali mazzi competitivi puoi costruire',
+      uploadBtn: '📁 Carica Collezione (Excel/CSV)',
+      uploading: 'Caricamento...',
+      cardsLoaded: 'carte caricate',
+      searchFilters: '🔍 Filtri di Ricerca',
+      colors: 'Colori:',
+      format: 'Formato:',
+      minCompletion: 'Completamento minimo:',
+      buildableOnly: 'Solo mazzi costruibili (≥90%)',
+      resetFilters: '🔄 Reset Filtri',
+      findDecks: '🔍 Trova Mazzi Compatibili',
+      analyzing: 'Analizzando mazzi...',
+      compatibleDecks: 'Mazzi Compatibili',
+      match: 'Match:',
+      cardsOwned: 'Carte possedute:',
+      canBuild: '✅ Puoi costruire questo mazzo!',
+      completeList: 'Lista Completa',
+      uniqueCards: 'carte uniche',
+      buildable: '🎯 Costruibile!',
+      missing: 'Mancano',
+      mapColumns: '📋 Mappa le Colonne del File',
+      rowsFound: 'righe. Seleziona quale colonna del tuo file corrisponde a ciascun campo.',
+      cardName: 'Nome Carta',
+      quantity: 'Quantità',
+      cardType: 'Tipo Carta',
+      manaCost: 'Costo Mana',
+      rarity: 'Rarità',
+      optional: '-- Opzionale --',
+      selectColumn: '-- Seleziona colonna --',
+      preview: 'Anteprima Dati (prime 5 righe)',
+      cancel: 'Annulla',
+      confirm: '✓ Conferma e Carica',
+      required: '*',
+      footer: 'Magic Deck Builder © 2026'
+    },
+    en: {
+      title: '🃏 Magic Deck Matcher',
+      subtitle: 'Upload your cards and discover which competitive decks you can build',
+      uploadBtn: '📁 Upload Collection (Excel/CSV)',
+      uploading: 'Uploading...',
+      cardsLoaded: 'cards loaded',
+      searchFilters: '🔍 Search Filters',
+      colors: 'Colors:',
+      format: 'Format:',
+      minCompletion: 'Minimum completion:',
+      buildableOnly: 'Buildable decks only (≥90%)',
+      resetFilters: '🔄 Reset Filters',
+      findDecks: '🔍 Find Compatible Decks',
+      analyzing: 'Analyzing decks...',
+      compatibleDecks: 'Compatible Decks',
+      match: 'Match:',
+      cardsOwned: 'Cards owned:',
+      canBuild: '✅ You can build this deck!',
+      completeList: 'Complete List',
+      uniqueCards: 'unique cards',
+      buildable: '🎯 Buildable!',
+      missing: 'Missing',
+      mapColumns: '📋 Map File Columns',
+      rowsFound: 'rows found. Select which column from your file corresponds to each field.',
+      cardName: 'Card Name',
+      quantity: 'Quantity',
+      cardType: 'Card Type',
+      manaCost: 'Mana Cost',
+      rarity: 'Rarity',
+      optional: '-- Optional --',
+      selectColumn: '-- Select column --',
+      preview: 'Data Preview (first 5 rows)',
+      cancel: 'Cancel',
+      confirm: '✓ Confirm and Upload',
+      required: '*',
+      footer: 'Magic Deck Builder © 2026'
+    }
+  }
+
+  const t = translations[language]
+
   useEffect(() => {
     localStorage.setItem('userId', userId)
+    localStorage.setItem('language', language)
     loadAvailableFormats()
-  }, [userId])
+  }, [userId, language])
 
   const loadAvailableFormats = async () => {
     try {
@@ -231,8 +313,22 @@ function App() {
   return (
     <div className="app">
       <header>
-        <h1>🃏 Magic Deck Matcher</h1>
-        <p>Carica le tue carte e scopri quali mazzi competitivi puoi costruire</p>
+        <div className="language-selector">
+          <button 
+            className={`lang-btn ${language === 'it' ? 'active' : ''}`}
+            onClick={() => setLanguage('it')}
+          >
+            🇮🇹 IT
+          </button>
+          <button 
+            className={`lang-btn ${language === 'en' ? 'active' : ''}`}
+            onClick={() => setLanguage('en')}
+          >
+            🇬🇧 EN
+          </button>
+        </div>
+        <h1>{t.title}</h1>
+        <p>{t.subtitle}</p>
       </header>
 
       <main>
@@ -241,15 +337,15 @@ function App() {
             {loading ? (
               <>
                 <span className="spinner"></span>
-                Caricamento...
+                {t.uploading}
               </>
             ) : (
-              '📁 Carica Collezione (Excel/CSV)'
+              t.uploadBtn
             )}
             <input type="file" accept=".xlsx,.csv" onChange={handleUpload} hidden disabled={loading} />
           </label>
           {cards.length > 0 && !loading && (
-            <span className="card-count">✅ {cards.length} carte caricate</span>
+            <span className="card-count">✅ {cards.length} {t.cardsLoaded}</span>
           )}
         </section>
 
@@ -259,14 +355,14 @@ function App() {
         {showColumnMapper && (
           <div className="modal-overlay">
             <div className="modal-content column-mapper">
-              <h2>📋 Mappa le Colonne del File</h2>
+              <h2>{t.mapColumns}</h2>
               <p className="modal-subtitle">
-                Trovate {totalRows} righe. Seleziona quale colonna del tuo file corrisponde a ciascun campo.
+                {totalRows} {t.rowsFound}
               </p>
               
               <div className="mapping-grid">
                 <div className="mapping-row required-field">
-                  <label>Nome Carta <span className="required">*</span></label>
+                  <label>{t.cardName} <span className="required">{t.required}</span></label>
                   <select 
                     value={columnMapping.name || ''} 
                     onChange={(e) => updateMapping('name', e.target.value)}
