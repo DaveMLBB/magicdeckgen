@@ -14,11 +14,19 @@ function App() {
   const [message, setMessage] = useState('')
   const [filters, setFilters] = useState({
     colors: [],
-    minMatch: 50,
+    minMatch: 10,
     buildableOnly: false,
     formats: []
   })
   const [availableFormats, setAvailableFormats] = useState([])
+  
+  // Stati per il mapping delle colonne
+  const [showColumnMapper, setShowColumnMapper] = useState(false)
+  const [fileToUpload, setFileToUpload] = useState(null)
+  const [fileColumns, setFileColumns] = useState([])
+  const [columnMapping, setColumnMapping] = useState({})
+  const [filePreview, setFilePreview] = useState([])
+  const [totalRows, setTotalRows] = useState(0)
 
   useEffect(() => {
     localStorage.setItem('userId', userId)
@@ -42,8 +50,49 @@ function App() {
     setLoading(true)
     setMessage('')
     
+    // Prima analizza il file per ottenere le colonne
     const formData = new FormData()
     formData.append('file', file)
+
+    try {
+      const res = await fetch(`${API_URL}/api/cards/analyze/${userId}`, {
+        method: 'POST',
+        body: formData
+      })
+      const data = await res.json()
+      
+      // Mostra l'interfaccia di mapping
+      setFileToUpload(file)
+      setFileColumns(data.columns)
+      setColumnMapping(data.suggested_mapping)
+      setFilePreview(data.preview)
+      setTotalRows(data.total_rows)
+      setShowColumnMapper(true)
+      
+    } catch (err) {
+      setMessage('Errore nell\'analisi del file')
+    }
+    setLoading(false)
+    
+    // Reset input
+    e.target.value = ''
+  }
+  
+  const confirmUpload = async () => {
+    if (!fileToUpload) return
+    
+    // Verifica che almeno nome e quantità siano mappati
+    if (!columnMapping.name || !columnMapping.quantity) {
+      setMessage('⚠️ Devi mappare almeno le colonne Nome e Quantità')
+      return
+    }
+    
+    setLoading(true)
+    setMessage('')
+    
+    const formData = new FormData()
+    formData.append('file', fileToUpload)
+    formData.append('mapping', JSON.stringify(columnMapping))
 
     try {
       const res = await fetch(`${API_URL}/api/cards/upload/${userId}`, {
@@ -53,10 +102,30 @@ function App() {
       const data = await res.json()
       setMessage(`✓ ${data.message}`)
       loadCards()
+      
+      // Chiudi il mapper
+      setShowColumnMapper(false)
+      setFileToUpload(null)
+      
     } catch (err) {
       setMessage('Errore nel caricamento del file')
     }
     setLoading(false)
+  }
+  
+  const cancelUpload = () => {
+    setShowColumnMapper(false)
+    setFileToUpload(null)
+    setFileColumns([])
+    setColumnMapping({})
+    setFilePreview([])
+  }
+  
+  const updateMapping = (field, column) => {
+    setColumnMapping(prev => ({
+      ...prev,
+      [field]: column === '' ? null : column
+    }))
   }
 
   const loadCards = async () => {
@@ -70,17 +139,22 @@ function App() {
   }
 
   const generateDecks = async () => {
+    // Verifica che sia selezionato almeno un formato
+    if (filters.formats.length === 0) {
+      setMessage('⚠️ Seleziona almeno un formato per cercare i mazzi')
+      return
+    }
+    
     setLoading(true)
     try {
       // Costruisci URL con parametri di filtro
       const params = new URLSearchParams()
       
+      // Formato è obbligatorio - usa il primo selezionato
+      params.append('format', filters.formats[0])
+      
       if (filters.colors.length > 0) {
         params.append('colors', filters.colors.join(','))
-      }
-      
-      if (filters.formats.length > 0) {
-        params.append('formats', filters.formats.join(','))
       }
       
       params.append('min_match', filters.minMatch)
@@ -124,18 +198,17 @@ function App() {
   }
 
   const toggleFormatFilter = (format) => {
-    setFilters(prev => {
-      const newFormats = prev.formats.includes(format)
-        ? prev.formats.filter(f => f !== format)
-        : [...prev.formats, format]
-      return { ...prev, formats: newFormats }
-    })
+    // Permetti solo un formato alla volta (radio button behavior)
+    setFilters(prev => ({
+      ...prev,
+      formats: prev.formats.includes(format) ? [] : [format]
+    }))
   }
 
   const resetFilters = () => {
     setFilters({
       colors: [],
-      minMatch: 50,
+      minMatch: 10,
       buildableOnly: false,
       formats: []
     })
@@ -155,16 +228,161 @@ function App() {
 
       <main>
         <section className="upload-section">
-          <label className="upload-btn">
-            📁 Carica Collezione Excel
-            <input type="file" accept=".xlsx" onChange={handleUpload} hidden />
+          <label className={`upload-btn ${loading ? 'disabled' : ''}`}>
+            {loading ? (
+              <>
+                <span className="spinner"></span>
+                Caricamento...
+              </>
+            ) : (
+              '📁 Carica Collezione Excel'
+            )}
+            <input type="file" accept=".xlsx" onChange={handleUpload} hidden disabled={loading} />
           </label>
-          {cards.length > 0 && (
+          {cards.length > 0 && !loading && (
             <span className="card-count">✅ {cards.length} carte caricate</span>
           )}
         </section>
 
         {message && <div className="message">{message}</div>}
+        
+        {/* Modal per mappare le colonne */}
+        {showColumnMapper && (
+          <div className="modal-overlay">
+            <div className="modal-content column-mapper">
+              <h2>📋 Mappa le Colonne del File</h2>
+              <p className="modal-subtitle">
+                Trovate {totalRows} righe. Seleziona quale colonna del tuo file corrisponde a ciascun campo.
+              </p>
+              
+              <div className="mapping-grid">
+                <div className="mapping-row required-field">
+                  <label>Nome Carta <span className="required">*</span></label>
+                  <select 
+                    value={columnMapping.name || ''} 
+                    onChange={(e) => updateMapping('name', e.target.value)}
+                  >
+                    <option value="">-- Seleziona colonna --</option>
+                    {fileColumns.map(col => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="mapping-row required-field">
+                  <label>Quantità <span className="required">*</span></label>
+                  <select 
+                    value={columnMapping.quantity || ''} 
+                    onChange={(e) => updateMapping('quantity', e.target.value)}
+                  >
+                    <option value="">-- Seleziona colonna --</option>
+                    {fileColumns.map(col => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="mapping-row">
+                  <label>Tipo Carta</label>
+                  <select 
+                    value={columnMapping.card_type || ''} 
+                    onChange={(e) => updateMapping('card_type', e.target.value)}
+                  >
+                    <option value="">-- Opzionale --</option>
+                    {fileColumns.map(col => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="mapping-row">
+                  <label>Colori</label>
+                  <select 
+                    value={columnMapping.colors || ''} 
+                    onChange={(e) => updateMapping('colors', e.target.value)}
+                  >
+                    <option value="">-- Opzionale --</option>
+                    {fileColumns.map(col => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="mapping-row">
+                  <label>Costo Mana</label>
+                  <select 
+                    value={columnMapping.mana_cost || ''} 
+                    onChange={(e) => updateMapping('mana_cost', e.target.value)}
+                  >
+                    <option value="">-- Opzionale --</option>
+                    {fileColumns.map(col => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="mapping-row">
+                  <label>Rarità</label>
+                  <select 
+                    value={columnMapping.rarity || ''} 
+                    onChange={(e) => updateMapping('rarity', e.target.value)}
+                  >
+                    <option value="">-- Opzionale --</option>
+                    {fileColumns.map(col => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              {filePreview.length > 0 && (
+                <div className="preview-section">
+                  <h3>Anteprima Dati (prime 5 righe)</h3>
+                  <div className="preview-table-container">
+                    <table className="preview-table">
+                      <thead>
+                        <tr>
+                          {fileColumns.map(col => (
+                            <th key={col}>{col}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filePreview.map((row, idx) => (
+                          <tr key={idx}>
+                            {fileColumns.map(col => (
+                              <td key={col}>{String(row[col] || '')}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              
+              <div className="modal-actions">
+                <button className="cancel-btn" onClick={cancelUpload}>
+                  Annulla
+                </button>
+                <button 
+                  className="confirm-btn" 
+                  onClick={confirmUpload}
+                  disabled={!columnMapping.name || !columnMapping.quantity}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner"></span>
+                      Caricamento...
+                    </>
+                  ) : (
+                    '✓ Conferma e Carica'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {cards.length > 0 && (
           <>
@@ -187,7 +405,7 @@ function App() {
               </div>
 
               <div className="filter-group">
-                <label>Formati:</label>
+                <label>Formato: <span className="required">*</span></label>
                 <div className="format-filters">
                   {availableFormats.map(format => (
                     <button
@@ -199,13 +417,16 @@ function App() {
                     </button>
                   ))}
                 </div>
+                {filters.formats.length === 0 && (
+                  <small className="hint">Seleziona un formato per cercare i mazzi</small>
+                )}
               </div>
 
               <div className="filter-group">
                 <label>Completamento minimo: {filters.minMatch}%</label>
                 <input
                   type="range"
-                  min="50"
+                  min="10"
                   max="100"
                   value={filters.minMatch}
                   onChange={(e) => updateMinMatch(Number(e.target.value))}
@@ -224,19 +445,21 @@ function App() {
                 </label>
               </div>
 
-              {(filters.colors.length > 0 || filters.minMatch > 50 || filters.buildableOnly || filters.formats.length > 0) && (
+              {(filters.colors.length > 0 || filters.minMatch > 10 || filters.buildableOnly || filters.formats.length > 0) && (
                 <button className="reset-filters-btn-inline" onClick={resetFilters}>
                   🔄 Reset Filtri
                 </button>
               )}
             </div>
 
-            <button className="generate-btn" onClick={generateDecks} disabled={loading}>
+            <button className="generate-btn" onClick={generateDecks} disabled={loading || filters.formats.length === 0}>
               {loading ? (
                 <>
                   <span className="spinner"></span>
-                  Analizzando 736 mazzi...
+                  Analizzando mazzi...
                 </>
+              ) : filters.formats.length === 0 ? (
+                '⚠️ Seleziona un formato'
               ) : (
                 '🔍 Trova Mazzi Compatibili'
               )}

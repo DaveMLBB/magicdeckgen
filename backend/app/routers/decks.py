@@ -198,13 +198,13 @@ def select_deck_cards(cards: list, archetype: str, target: int) -> list:
 @router.get("/match/{user_id}")
 def match_decks(
     user_id: str, 
+    format: str,  # OBBLIGATORIO - Formato del mazzo
     colors: str = None,  # Colori separati da virgola: "W,U,B"
-    formats: str = None,  # Formati separati da virgola: "Modern,Commander"
-    min_match: int = 50,  # Percentuale minima di match
+    min_match: int = 10,  # Percentuale minima di match
     buildable_only: bool = False,  # Solo mazzi costruibili (>=90%)
     db: Session = Depends(get_db)
 ):
-    """Trova mazzi template che puoi costruire con le tue carte"""
+    """Trova mazzi template che puoi costruire con le tue carte - FORMATO OBBLIGATORIO"""
     from app.models import DeckTemplate, DeckTemplateCard
     
     # Carica le carte dell'utente
@@ -221,22 +221,17 @@ def match_decks(
     
     print(f"🃏 Carte possedute: {len(owned_cards)}")
     
-    # Costruisci query con filtri
-    query = db.query(DeckTemplate)
-    
-    # Filtro per formati
-    if formats:
-        format_list = [f.strip() for f in formats.split(',')]
-        query = query.filter(DeckTemplate.format.in_(format_list))
-        print(f"🎯 Filtro formati: {format_list}")
+    # Costruisci query con filtro formato OBBLIGATORIO
+    query = db.query(DeckTemplate).filter(DeckTemplate.format == format)
+    print(f"🎯 Filtro formato: {format}")
     
     templates = query.all()
-    print(f"📋 Template disponibili dopo filtri: {len(templates)}")
+    print(f"📋 Template disponibili per {format}: {len(templates)}")
     
     # Log filtri applicati
     if colors:
         print(f"🎨 Filtro colori: {colors}")
-    if min_match > 50:
+    if min_match > 10:
         print(f"📊 Match minimo: {min_match}%")
     if buildable_only:
         print(f"🎯 Solo costruibili (>=90%)")
@@ -323,7 +318,7 @@ def match_decks(
     # Ordina per match percentage
     matched_decks.sort(key=lambda d: d["match_percentage"], reverse=True)
     
-    print(f"✅ Trovati {len(matched_decks)} mazzi con match >= 50%")
+    print(f"✅ Trovati {len(matched_decks)} mazzi con match >= {min_match}%")
     
     return {
         "decks": matched_decks[:20],  # Top 20 mazzi
