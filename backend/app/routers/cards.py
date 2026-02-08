@@ -318,7 +318,11 @@ async def upload_cards(
         db.query(Card).filter(Card.user_id == user_id).delete()
     
     cards_added = 0
+    cards_enriched = 0
     errors = []
+    
+    # Import MTGCard per il lookup
+    from app.models import MTGCard
     
     for idx, row in df.iterrows():
         try:
@@ -353,7 +357,23 @@ async def upload_cards(
             mana_cost = str(row[mana_cost_col]) if mana_cost_col and mana_cost_col in df.columns and pd.notna(row[mana_cost_col]) else None
             
             type_col = column_mapping.get('card_type')
-            card_type = str(row[type_col]) if type_col and type_col in df.columns and pd.notna(row[type_col]) else 'unknown'
+            card_type = str(row[type_col]) if type_col and type_col in df.columns and pd.notna(row[type_col]) else None
+            
+            # Se il tipo è vuoto, Unknown o nan, cerca nel database MTG
+            if not card_type or card_type.lower() in ['unknown', 'nan', 'none', '']:
+                mtg_card = db.query(MTGCard).filter(MTGCard.name == name).first()
+                if mtg_card:
+                    if mtg_card.types:
+                        card_type = mtg_card.types.split(',')[0].strip()
+                        cards_enriched += 1
+                    elif mtg_card.type_line:
+                        type_parts = mtg_card.type_line.split('—')[0].strip()
+                        card_type = type_parts.split()[0] if type_parts else 'Unknown'
+                        cards_enriched += 1
+            
+            # Se ancora non abbiamo un tipo, usa Unknown
+            if not card_type or card_type.lower() in ['nan', 'none', '']:
+                card_type = 'Unknown'
             
             colors_col = column_mapping.get('colors')
             colors = str(row[colors_col]) if colors_col and colors_col in df.columns and pd.notna(row[colors_col]) else ''
@@ -375,7 +395,7 @@ async def upload_cards(
             cards_added += 1
             
             if idx < 3:
-                print(f"✓ Carta {idx+1}: {name} x{quantity}")
+                print(f"✓ Carta {idx+1}: {name} x{quantity} ({card_type})")
             
         except Exception as e:
             errors.append(f"Riga {idx + 1}: {str(e)}")
@@ -389,11 +409,15 @@ async def upload_cards(
     db.commit()
     
     print(f"✅ Caricate {cards_added} carte su {len(df)} righe")
+    print(f"🔍 Arricchite {cards_enriched} carte dal database MTG")
     print(f"📊 Caricamenti: {user.uploads_count}/{user.uploads_limit}")
     
+    enriched_msg = f" ({cards_enriched} enriched from MTG database)" if cards_enriched > 0 else ""
+    
     return {
-        "message": f"Loaded {cards_added} cards",
+        "message": f"Loaded {cards_added} cards{enriched_msg}",
         "count": cards_added,
+        "cards_enriched": cards_enriched,
         "errors": errors[:10] if errors else [],
         "uploads_remaining": user.uploads_limit - user.uploads_count
     }

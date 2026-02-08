@@ -365,6 +365,7 @@ def match_decks(
         # Ora salva il mazzo
         if True:
             matched_decks.append({
+                "deck_template_id": template.id,  # Aggiungi l'ID del template
                 "name": template.name,
                 "source": template.source,
                 "format": template.format,

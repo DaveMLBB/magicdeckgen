@@ -45,6 +45,12 @@ function App() {
   const [userCollections, setUserCollections] = useState([])
   const [loadingCollections, setLoadingCollections] = useState(false)
   const [showFormatWarning, setShowFormatWarning] = useState(false)
+  const [importing, setImporting] = useState(false)
+  
+  // Stati per card preview
+  const [hoveredCard, setHoveredCard] = useState(null)
+  const [cardImageUrl, setCardImageUrl] = useState(null)
+  const [imageLoading, setImageLoading] = useState(false)
 
   // Traduzioni
   const translations = {
@@ -102,6 +108,7 @@ function App() {
       howToStep1: '1. Esporta la tua collezione da un\'app di gestione carte (es. Delver Lens, TCGPlayer, ecc.)',
       howToStep2: '2. Il file deve contenere almeno due colonne: Nome Carta e Quantità',
       howToStep3: '3. Formati supportati: Excel (.xlsx) o CSV (.csv)',
+      howToStep4: '⚠️ IMPORTANTE: I nomi delle carte devono essere in INGLESE',
       howToExample: 'Esempio formato:',
       exampleName: 'Nome',
       exampleQty: 'Quantità',
@@ -111,7 +118,7 @@ function App() {
       noDecksFound: 'Nessun deck trovato con i filtri selezionati',
       selectCollectionSource: 'Seleziona Origine Collezione',
       formatWarningTitle: '⚠️ Nessun Formato Selezionato',
-      formatWarningMessage: 'Non hai selezionato un formato. La ricerca potrebbe richiedere fino a 5 minuti per analizzare tutti i 3930+ mazzi disponibili.',
+      formatWarningMessage: 'Non hai selezionato un formato. La ricerca potrebbe richiedere fino a 5 minuti per analizzare tutti i 7200+ mazzi disponibili.',
       formatWarningContinue: 'Continua Comunque',
       formatWarningCancel: 'Annulla',
       uploadNewFile: '📁 Carica Nuovo File',
@@ -123,7 +130,11 @@ function App() {
       createCollectionFirst: 'Crea prima una collezione dalla sezione "📚 Collezione"',
       loadCollection: 'Carica Collezione',
       collectionLoaded: 'Collezione caricata con successo',
-      close: 'Chiudi'
+      close: 'Chiudi',
+      importToCollection: 'Importa in Collezione',
+      importing: 'Importando...',
+      deckImported: 'Mazzo importato con successo!',
+      errorImporting: 'Errore durante l\'importazione del mazzo'
     },
     en: {
       title: '🃏 Magic Deck Matcher',
@@ -178,6 +189,7 @@ function App() {
       howToStep1: '1. Export your collection from a card management app (e.g., Delver Lens, TCGPlayer, etc.)',
       howToStep2: '2. The file must contain at least two columns: Card Name and Quantity',
       howToStep3: '3. Supported formats: Excel (.xlsx) or CSV (.csv)',
+      howToStep4: '⚠️ IMPORTANT: Card names must be in ENGLISH',
       howToExample: 'Example format:',
       exampleName: 'Name',
       exampleQty: 'Quantity',
@@ -199,7 +211,11 @@ function App() {
       createCollectionFirst: 'Create a collection first from "📚 Collection" section',
       loadCollection: 'Load Collection',
       collectionLoaded: 'Collection loaded successfully',
-      close: 'Close'
+      close: 'Close',
+      importToCollection: 'Import to Collection',
+      importing: 'Importing...',
+      deckImported: 'Deck imported successfully!',
+      errorImporting: 'Error importing deck'
     }
   }
 
@@ -599,6 +615,76 @@ function App() {
     return colors.split('/').map(c => colorMap[c] || c).join('')
   }
 
+  const handleCardHover = async (cardName) => {
+    if (!cardName || cardName === hoveredCard) return
+    
+    setHoveredCard(cardName)
+    setImageLoading(true)
+    setCardImageUrl(null)
+    
+    try {
+      const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        setCardImageUrl(data.image_uris?.normal || data.image_uris?.small)
+      }
+    } catch (err) {
+      console.error('Error loading card image:', err)
+    } finally {
+      setImageLoading(false)
+    }
+  }
+
+  const handleCardLeave = () => {
+    setHoveredCard(null)
+    setCardImageUrl(null)
+  }
+
+  const importDeckAsCollection = async (deckIndex) => {
+    const deck = decks[deckIndex]
+    if (!deck || !deck.deck_template_id) {
+      setMessage(t.errorImporting)
+      return
+    }
+
+    setImporting(true)
+    try {
+      const res = await fetch(
+        `${API_URL}/api/collections/import-deck/${user.userId}/${deck.deck_template_id}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.detail || t.errorImporting)
+      }
+
+      const enrichedMsg = data.cards_enriched > 0 
+        ? ` (${data.cards_enriched} ${language === 'it' ? 'arricchite' : 'enriched'})`
+        : ''
+      
+      setMessage(`✅ ${t.deckImported} "${data.name}" (${data.cards_added} ${t.cards}${enrichedMsg})`)
+      
+      // Opzionale: reindirizza alla collezione appena creata
+      setTimeout(() => {
+        setCurrentView('collections')
+      }, 2000)
+
+    } catch (err) {
+      console.error('Errore import deck:', err)
+      setMessage(`❌ ${err.message || t.errorImporting}`)
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="app">
       {currentView === 'collections' ? (
@@ -683,6 +769,7 @@ function App() {
                 <p>✓ {t.howToStep1}</p>
                 <p>✓ {t.howToStep2}</p>
                 <p>✓ {t.howToStep3}</p>
+                <p className="important-note">⚠️ {t.howToStep4}</p>
               </div>
               <div className="example-table">
                 <h3>{t.howToExample}</h3>
@@ -1057,6 +1144,7 @@ function App() {
                   <div className="deck-header">
                     <span className="deck-colors">{getColorEmoji(deck.colors)}</span>
                     <h3>{deck.name}</h3>
+                    {deck.format && <span className="deck-format">{deck.format}</span>}
                   </div>
                   <div className="match-bar">
                     <div className="match-fill" style={{width: `${deck.match_percentage}%`}}></div>
@@ -1077,8 +1165,25 @@ function App() {
 
         {selectedDeck !== null && decks[selectedDeck] && (
           <section className="deck-detail">
-            <h2>{decks[selectedDeck].name}</h2>
+            <div className="deck-detail-header">
+              <h2>{decks[selectedDeck].name}</h2>
+              <button 
+                className="import-deck-btn"
+                onClick={() => importDeckAsCollection(selectedDeck)}
+                disabled={importing}
+              >
+                {importing ? (
+                  <>
+                    <span className="spinner"></span>
+                    {t.importing}
+                  </>
+                ) : (
+                  <>📥 {t.importToCollection}</>
+                )}
+              </button>
+            </div>
             <div className="deck-info">
+              {decks[selectedDeck].format && <p>{t.format}: <strong>{decks[selectedDeck].format}</strong></p>}
               <p>{t.match}: <strong>{decks[selectedDeck].match_percentage}%</strong></p>
               <p>{t.cardsOwned}: <strong>{decks[selectedDeck].cards_owned}/{decks[selectedDeck].total_cards}</strong></p>
               {decks[selectedDeck].can_build && <p className="can-build">{t.canBuild}</p>}
@@ -1089,7 +1194,12 @@ function App() {
                 <h3>{t.completeList} ({decks[selectedDeck].deck_list.length} {t.uniqueCards})</h3>
                 <div className="cards-list">
                   {decks[selectedDeck].deck_list.map((card, i) => (
-                    <div key={i} className={`card-item ${card.missing > 0 ? 'missing' : 'owned'}`}>
+                    <div 
+                      key={i} 
+                      className={`card-item ${card.missing > 0 ? 'missing' : 'owned'}`}
+                      onMouseEnter={() => handleCardHover(card.name)}
+                      onMouseLeave={handleCardLeave}
+                    >
                       <span className="card-qty">{card.quantity_needed}x</span>
                       <span className="card-name">{card.name}</span>
                       {card.type && card.type !== 'Unknown' && (
@@ -1106,6 +1216,25 @@ function App() {
               <p>{t.noCardsFound}</p>
             )}
           </section>
+        )}
+        
+        {/* Card Preview Tooltip */}
+        {hoveredCard && (
+          <div className="card-preview-tooltip">
+            {imageLoading ? (
+              <div className="card-preview-loading">
+                <div className="spinner"></div>
+                <p>Loading...</p>
+              </div>
+            ) : cardImageUrl ? (
+              <img src={cardImageUrl} alt={hoveredCard} className="card-preview-image" />
+            ) : (
+              <div className="card-preview-error">
+                <p>Image not available</p>
+                <small>{hoveredCard}</small>
+              </div>
+            )}
+          </div>
         )}
         
         {/* Format Warning Modal */}

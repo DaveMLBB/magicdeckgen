@@ -213,3 +213,130 @@ def get_collection(collection_id: int, db: Session = Depends(get_db)):
         "created_at": collection.created_at.isoformat(),
         "updated_at": collection.updated_at.isoformat()
     }
+
+@router.post("/import-deck/{user_id}/{deck_template_id}")
+def import_deck_as_collection(
+    user_id: int,
+    deck_template_id: int,
+    db: Session = Depends(get_db)
+):
+    """Import a deck template as a new collection"""
+    from app.models import DeckTemplate, DeckTemplateCard, MTGCard
+    
+    # Check user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check collection limits
+    collection_limits = {
+        'free': 5,
+        'monthly_10': 10,
+        'monthly_30': 50,
+        'yearly': None,
+        'lifetime': None
+    }
+    
+    limit = collection_limits.get(user.subscription_type, 5)
+    
+    if limit is not None:
+        current_count = db.query(func.count(CardCollection.id)).filter(
+            CardCollection.user_id == user_id
+        ).scalar()
+        
+        if current_count >= limit:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Collection limit reached ({limit}). Upgrade your subscription to create more collections."
+            )
+    
+    # Get deck template
+    deck_template = db.query(DeckTemplate).filter(DeckTemplate.id == deck_template_id).first()
+    if not deck_template:
+        raise HTTPException(status_code=404, detail="Deck template not found")
+    
+    # Get template cards
+    template_cards = db.query(DeckTemplateCard).filter(
+        DeckTemplateCard.deck_template_id == deck_template_id
+    ).all()
+    
+    if not template_cards:
+        raise HTTPException(status_code=400, detail="Deck template has no cards")
+    
+    # Check if collection with this name already exists
+    base_name = deck_template.name
+    collection_name = base_name
+    counter = 1
+    
+    while db.query(CardCollection).filter(
+        CardCollection.user_id == user_id,
+        CardCollection.name == collection_name
+    ).first():
+        collection_name = f"{base_name} ({counter})"
+        counter += 1
+    
+    # Create collection
+    new_collection = CardCollection(
+        name=collection_name,
+        description=f"Imported from {deck_template.format} deck: {deck_template.name}",
+        user_id=user_id
+    )
+    
+    db.add(new_collection)
+    db.flush()  # Get collection ID
+    
+    # Add cards to collection with enriched data from MTG database
+    cards_added = 0
+    cards_enriched = 0
+    
+    for template_card in template_cards:
+        card_type = template_card.card_type
+        
+        # Se il tipo è vuoto o Unknown, cerca nel database MTG
+        if not card_type or card_type == 'Unknown' or card_type.strip() == '':
+            # Cerca la carta nel database MTG
+            mtg_card = db.query(MTGCard).filter(
+                MTGCard.name == template_card.card_name
+            ).first()
+            
+            if mtg_card:
+                # Usa il campo 'types' che contiene il tipo principale
+                if mtg_card.types:
+                    card_type = mtg_card.types.split(',')[0].strip()
+                    cards_enriched += 1
+                elif mtg_card.type_line:
+                    # Fallback: estrai dal type_line
+                    type_parts = mtg_card.type_line.split('—')[0].strip()
+                    card_type = type_parts.split()[0] if type_parts else 'Unknown'
+                    cards_enriched += 1
+        
+        # Se ancora non abbiamo un tipo, usa Unknown
+        if not card_type or card_type.strip() == '':
+            card_type = 'Unknown'
+        
+        new_card = Card(
+            name=template_card.card_name,
+            mana_cost=template_card.mana_cost,
+            card_type=card_type,
+            colors=template_card.colors,
+            quantity_owned=template_card.quantity,
+            user_id=user_id,
+            collection_id=new_collection.id
+        )
+        db.add(new_card)
+        cards_added += 1
+    
+    db.commit()
+    db.refresh(new_collection)
+    
+    print(f"✅ Importate {cards_added} carte, {cards_enriched} arricchite dal database MTG")
+    
+    return {
+        "id": new_collection.id,
+        "name": new_collection.name,
+        "description": new_collection.description,
+        "cards_added": cards_added,
+        "cards_enriched": cards_enriched,
+        "created_at": new_collection.created_at.isoformat()
+    }
+

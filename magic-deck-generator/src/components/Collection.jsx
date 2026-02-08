@@ -34,6 +34,11 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
   // Edit quantity states
   const [editingCardId, setEditingCardId] = useState(null)
   const [editQuantity, setEditQuantity] = useState('')
+  
+  // Card preview states
+  const [hoveredCard, setHoveredCard] = useState(null)
+  const [cardImageUrl, setCardImageUrl] = useState(null)
+  const [imageLoading, setImageLoading] = useState(false)
 
   // Debug: verify onShowSubscriptions is available
   console.log('Collection mounted - onShowSubscriptions type:', typeof onShowSubscriptions, 'value:', !!onShowSubscriptions)
@@ -403,6 +408,35 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
     setEditQuantity('')
   }
 
+  const handleCardHover = async (cardName) => {
+    if (!cardName || cardName === hoveredCard) return
+    
+    setHoveredCard(cardName)
+    setImageLoading(true)
+    setCardImageUrl(null)
+    
+    try {
+      // Cerca l'immagine nella cartella public/card-images
+      // Il nome del file è l'UUID della carta, quindi dobbiamo fare una ricerca
+      // Per ora usiamo l'API Scryfall come fallback
+      const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        setCardImageUrl(data.image_uris?.normal || data.image_uris?.small)
+      }
+    } catch (err) {
+      console.error('Error loading card image:', err)
+    } finally {
+      setImageLoading(false)
+    }
+  }
+
+  const handleCardLeave = () => {
+    setHoveredCard(null)
+    setCardImageUrl(null)
+  }
+
   return (
     <div className="collection-page">
       <header className="collection-header">
@@ -566,7 +600,12 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
                 </thead>
                 <tbody>
                   {cards.map((card) => (
-                    <tr key={card.id} className={card.locked ? 'locked-row' : ''}>
+                    <tr 
+                      key={card.id} 
+                      className={card.locked ? 'locked-row' : ''}
+                      onMouseEnter={() => !card.locked && handleCardHover(card.name)}
+                      onMouseLeave={handleCardLeave}
+                    >
                       <td className="card-name">
                         {card.locked ? (
                           <span className="locked-overlay">
@@ -654,6 +693,25 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
           </>
         )}
       </main>
+
+      {/* Card Preview Tooltip */}
+      {hoveredCard && (
+        <div className="card-preview-tooltip">
+          {imageLoading ? (
+            <div className="card-preview-loading">
+              <div className="spinner"></div>
+              <p>Loading...</p>
+            </div>
+          ) : cardImageUrl ? (
+            <img src={cardImageUrl} alt={hoveredCard} className="card-preview-image" />
+          ) : (
+            <div className="card-preview-error">
+              <p>Image not available</p>
+              <small>{hoveredCard}</small>
+            </div>
+          )}
+        </div>
+      )}
 
       <footer className="collection-footer">
         <p>Magic Deck Builder © 2026</p>
