@@ -28,6 +28,8 @@ class User(Base):
     subscription_expires_at = Column(DateTime, nullable=True)
     uploads_count = Column(Integer, default=0)  # Upload counter
     uploads_limit = Column(Integer, default=3)  # Upload limit (3 for free)
+    searches_count = Column(Integer, default=0)  # Deck search counter
+    searches_limit = Column(Integer, default=10)  # Deck search limit (10 for free)
 
 class CardCollection(Base):
     __tablename__ = "card_collections"

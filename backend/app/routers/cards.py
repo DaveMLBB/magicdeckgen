@@ -585,3 +585,32 @@ def get_collection_stats(
         "show_upgrade_warning": show_upgrade_warning,
         "viewable_cards": min(total_unique, unique_card_limit) if unique_card_limit else total_unique
     }
+
+@router.put("/card/{card_id}/quantity")
+def update_card_quantity(
+    card_id: int,
+    quantity: int,
+    db: Session = Depends(get_db)
+):
+    """Update card quantity"""
+    if quantity < 0:
+        raise HTTPException(status_code=400, detail="Quantity cannot be negative")
+    
+    card = db.query(Card).filter(Card.id == card_id).first()
+    if not card:
+        raise HTTPException(status_code=404, detail="Card not found")
+    
+    if quantity == 0:
+        # Remove card if quantity is 0
+        db.delete(card)
+        db.commit()
+        return {"message": "Card removed", "deleted": True}
+    else:
+        card.quantity_owned = quantity
+        db.commit()
+        return {
+            "message": "Quantity updated",
+            "card_id": card.id,
+            "new_quantity": card.quantity_owned,
+            "deleted": False
+        }

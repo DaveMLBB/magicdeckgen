@@ -205,7 +205,29 @@ def match_decks(
     db: Session = Depends(get_db)
 ):
     """Trova mazzi template che puoi costruire con le tue carte"""
-    from app.models import DeckTemplate, DeckTemplateCard
+    from app.models import DeckTemplate, DeckTemplateCard, User
+    
+    # Get user to check subscription
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if not user:
+        return {"decks": [], "message": "User not found"}
+    
+    # Check if user can search (has searches remaining)
+    if user.searches_count >= user.searches_limit:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Search limit reached ({user.searches_limit}). Please upgrade your subscription to continue."
+        )
+    
+    # Determine result limit based on subscription
+    result_limits = {
+        'free': 10,
+        'monthly_10': 20,
+        'monthly_30': 30,
+        'yearly': None,  # unlimited
+        'lifetime': None  # unlimited
+    }
+    result_limit = result_limits.get(user.subscription_type, 10)
     
     # Terre base da normalizzare
     BASIC_LANDS = {
@@ -269,6 +291,8 @@ def match_decks(
         print(f"📊 Match minimo: {min_match}%")
     if buildable_only:
         print(f"🎯 Solo costruibili (>=90%)")
+    
+    print(f"👤 Utente: {user.subscription_type} - Limite risultati: {result_limit if result_limit else 'illimitato'}")
     
     matched_decks = []
     
@@ -357,13 +381,28 @@ def match_decks(
     # Ordina per match percentage
     matched_decks.sort(key=lambda d: d["match_percentage"], reverse=True)
     
+    # Apply subscription limit
+    limited_decks = matched_decks[:result_limit] if result_limit else matched_decks
+    
+    # Increment search counter
+    user.searches_count += 1
+    db.commit()
+    
     print(f"✅ Trovati {len(matched_decks)} mazzi con match >= {min_match}%")
+    print(f"📊 Restituiti {len(limited_decks)} mazzi (limite: {result_limit if result_limit else 'illimitato'})")
+    print(f"🔍 Ricerche: {user.searches_count}/{user.searches_limit}")
     
     return {
-        "decks": matched_decks[:20],  # Top 20 mazzi
+        "decks": limited_decks,
         "total_templates": len(templates),
         "total_matches": len(matched_decks),
-        "user_cards_count": len(owned_cards)
+        "user_cards_count": len(owned_cards),
+        "subscription_type": user.subscription_type,
+        "result_limit": result_limit,
+        "limited": result_limit is not None and len(matched_decks) > result_limit,
+        "searches_count": user.searches_count,
+        "searches_limit": user.searches_limit,
+        "searches_remaining": max(0, user.searches_limit - user.searches_count)
     }
 
 

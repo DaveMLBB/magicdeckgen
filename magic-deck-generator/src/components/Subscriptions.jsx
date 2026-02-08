@@ -17,6 +17,8 @@ function Subscriptions({ user, onClose, language }) {
       currentPlan: 'Piano Attuale',
       uploads: 'Caricamenti',
       remaining: 'Rimanenti',
+      collections: 'Collezioni',
+      deckSearches: 'Ricerche Mazzi',
       expiresAt: 'Scade il',
       lifetime: 'A vita',
       selectPlan: 'Scegli Piano',
@@ -53,7 +55,12 @@ function Subscriptions({ user, onClose, language }) {
         '10 uploads/month • 10 collections • Unlimited cards': '10 caricamenti/mese • 10 collezioni • Carte illimitate',
         '30 uploads/month • 50 collections • Unlimited cards': '30 caricamenti/mese • 50 collezioni • Carte illimitate',
         'Unlimited uploads • Unlimited collections • Unlimited cards': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate',
-        'Unlimited uploads • Unlimited collections • Unlimited cards • Forever': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate • Per sempre'
+        'Unlimited uploads • Unlimited collections • Unlimited cards • Forever': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate • Per sempre',
+        '3 uploads • 5 collections • 20 unique cards per collection • 10 deck results': '3 caricamenti • 5 collezioni • 20 carte uniche per collezione • 10 risultati mazzi',
+        '10 uploads/month • 10 collections • Unlimited cards • 20 deck results': '10 caricamenti/mese • 10 collezioni • Carte illimitate • 20 risultati mazzi',
+        '30 uploads/month • 50 collections • Unlimited cards • 30 deck results': '30 caricamenti/mese • 50 collezioni • Carte illimitate • 30 risultati mazzi',
+        'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate • Risultati mazzi illimitati',
+        'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results • Forever': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate • Risultati mazzi illimitati • Per sempre'
       }
     },
     en: {
@@ -61,6 +68,8 @@ function Subscriptions({ user, onClose, language }) {
       currentPlan: 'Current Plan',
       uploads: 'Uploads',
       remaining: 'Remaining',
+      collections: 'Collections',
+      deckSearches: 'Deck Searches',
       expiresAt: 'Expires on',
       lifetime: 'Lifetime',
       selectPlan: 'Choose Plan',
@@ -97,7 +106,12 @@ function Subscriptions({ user, onClose, language }) {
         '10 uploads/month • 10 collections • Unlimited cards': '10 uploads/month • 10 collections • Unlimited cards',
         '30 uploads/month • 50 collections • Unlimited cards': '30 uploads/month • 50 collections • Unlimited cards',
         'Unlimited uploads • Unlimited collections • Unlimited cards': 'Unlimited uploads • Unlimited collections • Unlimited cards',
-        'Unlimited uploads • Unlimited collections • Unlimited cards • Forever': 'Unlimited uploads • Unlimited collections • Unlimited cards • Forever'
+        'Unlimited uploads • Unlimited collections • Unlimited cards • Forever': 'Unlimited uploads • Unlimited collections • Unlimited cards • Forever',
+        '3 uploads • 5 collections • 20 unique cards per collection • 10 deck results': '3 uploads • 5 collections • 20 unique cards per collection • 10 deck results',
+        '10 uploads/month • 10 collections • Unlimited cards • 20 deck results': '10 uploads/month • 10 collections • Unlimited cards • 20 deck results',
+        '30 uploads/month • 50 collections • Unlimited cards • 30 deck results': '30 uploads/month • 50 collections • Unlimited cards • 30 deck results',
+        'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results': 'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results',
+        'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results • Forever': 'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results • Forever'
       }
     }
   }
@@ -175,14 +189,42 @@ function Subscriptions({ user, onClose, language }) {
           <div className="current-subscription">
             <h3>{t.currentPlan}: {status.plan_name}</h3>
             <div className="subscription-stats">
+              {/* Uploads */}
               <div className="stat">
                 <span className="stat-label">{t.uploads}:</span>
                 <span className="stat-value">{status.uploads_count} / {status.uploads_limit}</span>
               </div>
-              <div className="stat">
-                <span className="stat-label">{t.remaining}:</span>
-                <span className="stat-value highlight">{status.uploads_remaining}</span>
-              </div>
+              
+              {/* Collections */}
+              {status.collections_limit && (
+                <div className="stat">
+                  <span className="stat-label">{t.collections}:</span>
+                  <span className="stat-value">{status.collections_count} / {status.collections_limit}</span>
+                </div>
+              )}
+              
+              {!status.collections_limit && (
+                <div className="stat">
+                  <span className="stat-label">{t.collections}:</span>
+                  <span className="stat-value highlight">{status.collections_count} / {t.unlimited}</span>
+                </div>
+              )}
+              
+              {/* Deck Searches */}
+              {status.searches_limit && (
+                <div className="stat">
+                  <span className="stat-label">{t.deckSearches}:</span>
+                  <span className="stat-value">{status.searches_count} / {status.searches_limit}</span>
+                </div>
+              )}
+              
+              {!status.searches_limit && (
+                <div className="stat">
+                  <span className="stat-label">{t.deckSearches}:</span>
+                  <span className="stat-value highlight">{status.searches_count} / {t.unlimited}</span>
+                </div>
+              )}
+              
               {status.expires_at && (
                 <div className="stat">
                   <span className="stat-label">{t.expiresAt}:</span>
@@ -212,7 +254,8 @@ function Subscriptions({ user, onClose, language }) {
             })
             .map(plan => {
               // Parse description to extract features
-              const features = (t.planDescriptions[plan.description] || plan.description).split(' • ')
+              const descriptionText = t.planDescriptions[plan.description] || plan.description
+              const features = descriptionText.split(' • ')
               
               return (
                 <div 
@@ -248,7 +291,7 @@ function Subscriptions({ user, onClose, language }) {
                     {features.map((feature, idx) => (
                       <div key={idx} className="feature">
                         <span className="feature-icon">✓</span>
-                        <span className="feature-text">{feature}</span>
+                        <span className="feature-text">{feature.trim()}</span>
                       </div>
                     ))}
                   </div>

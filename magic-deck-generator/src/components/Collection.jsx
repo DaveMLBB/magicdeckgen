@@ -25,6 +25,15 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
   const [filePreview, setFilePreview] = useState([])
   const [totalRows, setTotalRows] = useState(0)
   const [uploadMessage, setUploadMessage] = useState('')
+  
+  // Rename collection states
+  const [showRenameModal, setShowRenameModal] = useState(false)
+  const [newCollectionName, setNewCollectionName] = useState('')
+  const [renaming, setRenaming] = useState(false)
+  
+  // Edit quantity states
+  const [editingCardId, setEditingCardId] = useState(null)
+  const [editQuantity, setEditQuantity] = useState('')
 
   // Debug: verify onShowSubscriptions is available
   console.log('Collection mounted - onShowSubscriptions type:', typeof onShowSubscriptions, 'value:', !!onShowSubscriptions)
@@ -82,7 +91,14 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       required: '*',
       mustMapColumns: '⚠️ Devi mappare almeno le colonne Nome e Quantità',
       errorAnalyzing: 'Errore: Impossibile analizzare il file',
-      errorUploading: 'Errore nel caricamento del file'
+      errorUploading: 'Errore nel caricamento del file',
+      renameCollection: 'Rinomina Collezione',
+      collectionName: 'Nome Collezione',
+      save: 'Salva',
+      editQuantity: 'Modifica Quantità',
+      remove: 'Rimuovi',
+      quantityUpdated: 'Quantità aggiornata',
+      cardRemoved: 'Carta rimossa'
     },
     en: {
       title: 'Collection',
@@ -136,7 +152,14 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       required: '*',
       mustMapColumns: '⚠️ You must map at least Name and Quantity columns',
       errorAnalyzing: 'Error: Unable to analyze file',
-      errorUploading: 'Error uploading file'
+      errorUploading: 'Error uploading file',
+      renameCollection: 'Rename Collection',
+      collectionName: 'Collection Name',
+      save: 'Save',
+      editQuantity: 'Edit Quantity',
+      remove: 'Remove',
+      quantityUpdated: 'Quantity updated',
+      cardRemoved: 'Card removed'
     }
   }
 
@@ -326,6 +349,60 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
     }))
   }
 
+  const handleRenameCollection = async () => {
+    if (!newCollectionName.trim() || !collection) return
+    
+    setRenaming(true)
+    try {
+      const res = await fetch(`${API_URL}/api/collections/${collection.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCollectionName })
+      })
+      
+      if (res.ok) {
+        collection.name = newCollectionName
+        setShowRenameModal(false)
+        setNewCollectionName('')
+      }
+    } catch (err) {
+      console.error('Error renaming collection:', err)
+    }
+    setRenaming(false)
+  }
+
+  const handleUpdateQuantity = async (cardId, newQuantity) => {
+    try {
+      const res = await fetch(`${API_URL}/api/cards/card/${cardId}/quantity?quantity=${newQuantity}`, {
+        method: 'PUT'
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        setUploadMessage(data.deleted ? `✓ ${t.cardRemoved}` : `✓ ${t.quantityUpdated}`)
+        setEditingCardId(null)
+        setEditQuantity('')
+        loadCollection()
+        loadStats()
+        
+        // Clear message after 2 seconds
+        setTimeout(() => setUploadMessage(''), 2000)
+      }
+    } catch (err) {
+      console.error('Error updating quantity:', err)
+    }
+  }
+
+  const startEditQuantity = (card) => {
+    setEditingCardId(card.id)
+    setEditQuantity(card.quantity.toString())
+  }
+
+  const cancelEditQuantity = () => {
+    setEditingCardId(null)
+    setEditQuantity('')
+  }
+
   return (
     <div className="collection-page">
       <header className="collection-header">
@@ -349,9 +426,22 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
         </div>
         <div className="header-title-row">
           <h1>{collection ? collection.name : t.title}</h1>
-          <button className="upload-cards-btn" onClick={() => setShowUploadModal(true)}>
-            {t.uploadCards}
-          </button>
+          <div className="header-buttons">
+            {collection && (
+              <button 
+                className="rename-btn" 
+                onClick={() => {
+                  setNewCollectionName(collection.name)
+                  setShowRenameModal(true)
+                }}
+              >
+                ✏️
+              </button>
+            )}
+            <button className="upload-cards-btn" onClick={() => setShowUploadModal(true)}>
+              {t.uploadCards}
+            </button>
+          </div>
         </div>
         {collection && collection.description && (
           <p className="collection-description">{collection.description}</p>
@@ -471,6 +561,7 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
                     <th onClick={() => handleSort('colors')} className="sortable">
                       {t.colors} {sortBy === 'colors' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </th>
+                    <th className="actions-header">{language === 'it' ? 'Azioni' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -487,13 +578,51 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
                         )}
                       </td>
                       <td className="card-quantity">
-                        {card.locked ? <span className="blur-text">{card.quantity}</span> : card.quantity}
+                        {card.locked ? (
+                          <span className="blur-text">{card.quantity}</span>
+                        ) : editingCardId === card.id ? (
+                          <div className="quantity-edit">
+                            <input
+                              type="number"
+                              min="0"
+                              value={editQuantity}
+                              onChange={(e) => setEditQuantity(e.target.value)}
+                              className="quantity-input"
+                              autoFocus
+                            />
+                            <button 
+                              className="save-qty-btn"
+                              onClick={() => handleUpdateQuantity(card.id, parseInt(editQuantity))}
+                            >
+                              ✓
+                            </button>
+                            <button 
+                              className="cancel-qty-btn"
+                              onClick={cancelEditQuantity}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          card.quantity
+                        )}
                       </td>
                       <td className="card-type">
                         {card.locked ? <span className="blur-text">{card.type}</span> : card.type}
                       </td>
                       <td className="card-colors">
                         {card.locked ? <span className="blur-text">{getColorEmoji(card.colors)}</span> : getColorEmoji(card.colors)}
+                      </td>
+                      <td className="card-actions">
+                        {!card.locked && editingCardId !== card.id && (
+                          <button 
+                            className="edit-qty-btn"
+                            onClick={() => startEditQuantity(card)}
+                            title={t.editQuantity}
+                          >
+                            ✏️
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -529,6 +658,43 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       <footer className="collection-footer">
         <p>Magic Deck Builder © 2026</p>
       </footer>
+
+      {/* Rename Collection Modal */}
+      {showRenameModal && (
+        <div className="modal-overlay">
+          <div className="modal-content rename-modal">
+            <h2>{t.renameCollection}</h2>
+            <div className="form-group">
+              <label>{t.collectionName}</label>
+              <input
+                type="text"
+                value={newCollectionName}
+                onChange={(e) => setNewCollectionName(e.target.value)}
+                maxLength={100}
+                autoFocus
+              />
+            </div>
+            <div className="modal-actions">
+              <button 
+                className="cancel-btn"
+                onClick={() => {
+                  setShowRenameModal(false)
+                  setNewCollectionName('')
+                }}
+              >
+                {t.cancel}
+              </button>
+              <button 
+                className="confirm-btn"
+                onClick={handleRenameCollection}
+                disabled={!newCollectionName.trim() || renaming}
+              >
+                {renaming ? `${t.save}...` : t.save}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upload Modal */}
       {showUploadModal && (

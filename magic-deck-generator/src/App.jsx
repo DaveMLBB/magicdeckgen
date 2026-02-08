@@ -38,6 +38,12 @@ function App() {
   const [columnMapping, setColumnMapping] = useState({})
   const [filePreview, setFilePreview] = useState([])
   const [totalRows, setTotalRows] = useState(0)
+  
+  // Stati per la selezione collezione
+  const [showCollectionSelector, setShowCollectionSelector] = useState(false)
+  const [userCollections, setUserCollections] = useState([])
+  const [loadingCollections, setLoadingCollections] = useState(false)
+  const [showFormatWarning, setShowFormatWarning] = useState(false)
 
   // Traduzioni
   const translations = {
@@ -90,7 +96,22 @@ function App() {
       mustMapColumns: '⚠️ Devi mappare almeno le colonne Nome e Quantità',
       foundDecks: 'Trovati',
       decksCompatible: 'mazzi compatibili (mostrando top 20)',
-      noDecksFound: 'Nessun deck trovato con i filtri selezionati'
+      noDecksFound: 'Nessun deck trovato con i filtri selezionati',
+      selectCollectionSource: 'Seleziona Origine Collezione',
+      formatWarningTitle: '⚠️ Nessun Formato Selezionato',
+      formatWarningMessage: 'Non hai selezionato un formato. La ricerca potrebbe richiedere fino a 5 minuti per analizzare tutti i 3930+ mazzi disponibili.',
+      formatWarningContinue: 'Continua Comunque',
+      formatWarningCancel: 'Annulla',
+      uploadNewFile: '📁 Carica Nuovo File',
+      uploadNewFileDesc: 'Carica un file Excel o CSV',
+      loadExistingCollection: '📚 Carica Collezione Esistente',
+      loadExistingCollectionDesc: 'Seleziona una collezione già creata',
+      selectCollection: 'Seleziona Collezione',
+      noCollectionsAvailable: 'Nessuna collezione disponibile',
+      createCollectionFirst: 'Crea prima una collezione dalla sezione "📚 Collezione"',
+      loadCollection: 'Carica Collezione',
+      collectionLoaded: 'Collezione caricata con successo',
+      close: 'Chiudi'
     },
     en: {
       title: '🃏 Magic Deck Matcher',
@@ -141,11 +162,54 @@ function App() {
       mustMapColumns: '⚠️ You must map at least Name and Quantity columns',
       foundDecks: 'Found',
       decksCompatible: 'compatible decks (showing top 20)',
-      noDecksFound: 'No decks found with selected filters'
+      noDecksFound: 'No decks found with selected filters',
+      selectCollectionSource: 'Select Collection Source',
+      formatWarningTitle: '⚠️ No Format Selected',
+      formatWarningMessage: 'You have not selected a format. The search may take up to 5 minutes to analyze all 3930+ available decks.',
+      formatWarningContinue: 'Continue Anyway',
+      formatWarningCancel: 'Cancel',
+      uploadNewFile: '📁 Upload New File',
+      uploadNewFileDesc: 'Upload an Excel or CSV file',
+      loadExistingCollection: '📚 Load Existing Collection',
+      loadExistingCollectionDesc: 'Select an already created collection',
+      selectCollection: 'Select Collection',
+      noCollectionsAvailable: 'No collections available',
+      createCollectionFirst: 'Create a collection first from "📚 Collection" section',
+      loadCollection: 'Load Collection',
+      collectionLoaded: 'Collection loaded successfully',
+      close: 'Close'
     }
   }
 
   const t = translations[language]
+
+  // Definisci le funzioni prima degli useEffect
+  const loadSubscriptionStatus = async () => {
+    if (!user) return
+    try {
+      const res = await fetch(`${API_URL}/api/subscriptions/status?token=${user.token}`)
+      const data = await res.json()
+      setSubscriptionStatus(data)
+      
+      // Se l'utente è free e non abbiamo ancora mostrato la modale, mostrala
+      if (data.subscription_type === 'free' && !hasShownSubscriptionModal) {
+        setShowSubscriptions(true)
+        setHasShownSubscriptionModal(true)
+      }
+    } catch (err) {
+      console.error('Errore caricamento stato abbonamento:', err)
+    }
+  }
+
+  const loadAvailableFormats = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/decks/formats`)
+      const data = await res.json()
+      setAvailableFormats(data.formats || [])
+    } catch (err) {
+      console.error('Errore caricamento formati:', err)
+    }
+  }
 
   // Verifica autenticazione all'avvio
   useEffect(() => {
@@ -178,25 +242,8 @@ function App() {
     }
   }, [language, user])
 
-  const loadSubscriptionStatus = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/subscriptions/status?token=${user.token}`)
-      const data = await res.json()
-      setSubscriptionStatus(data)
-      
-      // Se l'utente è free e non abbiamo ancora mostrato la modale, mostrala
-      if (data.subscription_type === 'free' && !hasShownSubscriptionModal) {
-        setShowSubscriptions(true)
-        setHasShownSubscriptionModal(true)
-      }
-    } catch (err) {
-      console.error('Errore caricamento stato abbonamento:', err)
-    }
-  }
-
   const handleLogin = (userData) => {
     setUser(userData)
-    loadAvailableFormats()
   }
 
   const handleLogout = () => {
@@ -221,62 +268,114 @@ function App() {
     return <Auth onLogin={handleLogin} language={language} />
   }
 
-  const loadAvailableFormats = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/decks/formats`)
-      const data = await res.json()
-      setAvailableFormats(data.formats || [])
-    } catch (err) {
-      console.error('Errore caricamento formati:', err)
+  const handleUpload = async (e) => {
+    // Se chiamato da input file, procedi con l'upload
+    if (e && e.target && e.target.files) {
+      const file = e.target.files[0]
+      if (!file) return
+
+      console.log('📁 File selezionato:', file.name, 'Tipo:', file.type, 'Dimensione:', file.size)
+
+      setLoading(true)
+      setMessage('')
+      
+      // Prima analizza il file per ottenere le colonne
+      const formData = new FormData()
+      formData.append('file', file)
+
+      try {
+        const res = await fetch(`${API_URL}/api/cards/analyze/${user.userId}`, {
+          method: 'POST',
+          body: formData
+        })
+        
+        if (!res.ok) {
+          const errorData = await res.json()
+          console.error('❌ Errore analisi:', errorData)
+          setMessage(`${t.errorAnalyzing}: ${errorData.detail || ''}`)
+          setLoading(false)
+          e.target.value = ''
+          return
+        }
+        
+        const data = await res.json()
+        
+        // Mostra l'interfaccia di mapping
+        setFileToUpload(file)
+        setFileColumns(data.columns)
+        setColumnMapping(data.suggested_mapping)
+        setFilePreview(data.preview)
+        setTotalRows(data.total_rows)
+        setShowColumnMapper(true)
+        setShowCollectionSelector(false)
+        
+      } catch (err) {
+        console.error('❌ Errore:', err)
+        setMessage(t.errorAnalyzing)
+      }
+      setLoading(false)
+      
+      // Reset input
+      e.target.value = ''
+    } else {
+      // Altrimenti apri la modale di selezione
+      setShowCollectionSelector(true)
+      loadUserCollections()
     }
   }
-
-  const handleUpload = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-
-    console.log('📁 File selezionato:', file.name, 'Tipo:', file.type, 'Dimensione:', file.size)
-
+  
+  const loadUserCollections = async () => {
+    setLoadingCollections(true)
+    try {
+      const res = await fetch(`${API_URL}/api/collections/user/${user.userId}`)
+      const data = await res.json()
+      setUserCollections(data.collections || [])
+    } catch (err) {
+      console.error('Error loading collections:', err)
+    }
+    setLoadingCollections(false)
+  }
+  
+  const loadExistingCollection = async (collectionId) => {
     setLoading(true)
     setMessage('')
-    
-    // Prima analizza il file per ottenere le colonne
-    const formData = new FormData()
-    formData.append('file', file)
-
     try {
-      const res = await fetch(`${API_URL}/api/cards/analyze/${user.userId}`, {
-        method: 'POST',
-        body: formData
-      })
+      // Carica tutte le carte con paginazione (max 100 per pagina)
+      let allCards = []
+      let page = 1
+      let hasMore = true
       
-      if (!res.ok) {
-        const errorData = await res.json()
-        console.error('❌ Errore analisi:', errorData)
-        setMessage(`${t.errorAnalyzing}: ${errorData.detail || ''}`)
-        setLoading(false)
-        e.target.value = ''
-        return
+      while (hasMore) {
+        const res = await fetch(`${API_URL}/api/cards/collection/${user.userId}?collection_id=${collectionId}&page=${page}&page_size=100`)
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`)
+        }
+        const data = await res.json()
+        
+        allCards = [...allCards, ...data.cards]
+        hasMore = data.pagination.has_next
+        page++
       }
       
-      const data = await res.json()
+      // Converti le carte nel formato atteso
+      const formattedCards = allCards.map(card => ({
+        id: card.id,
+        name: card.name,
+        quantity_owned: card.quantity,
+        card_type: card.type,
+        colors: card.colors,
+        mana_cost: card.mana_cost,
+        rarity: card.rarity
+      }))
       
-      // Mostra l'interfaccia di mapping
-      setFileToUpload(file)
-      setFileColumns(data.columns)
-      setColumnMapping(data.suggested_mapping)
-      setFilePreview(data.preview)
-      setTotalRows(data.total_rows)
-      setShowColumnMapper(true)
-      
+      setCards(formattedCards)
+      setMessage(`✓ ${t.collectionLoaded}: ${formattedCards.length} ${t.cardsLoaded}`)
+      setShowCollectionSelector(false)
     } catch (err) {
-      console.error('❌ Errore:', err)
-      setMessage(t.errorAnalyzing)
+      console.error('Error loading collection:', err)
+      setMessage(t.errorUploading)
     }
     setLoading(false)
-    
-    // Reset input
-    e.target.value = ''
   }
   
   const confirmUpload = async () => {
@@ -291,24 +390,60 @@ function App() {
     setLoading(true)
     setMessage('')
     
-    const formData = new FormData()
-    formData.append('file', fileToUpload)
-    formData.append('mapping', JSON.stringify(columnMapping))
-
     try {
-      const res = await fetch(`${API_URL}/api/cards/upload/${user.userId}`, {
+      // 1. Crea automaticamente una collezione con la data come nome
+      const now = new Date()
+      const collectionName = now.toLocaleString(language === 'it' ? 'it-IT' : 'en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+      
+      console.log('📁 Creazione collezione automatica:', collectionName)
+      
+      const createCollectionRes = await fetch(`${API_URL}/api/collections/create?user_id=${user.userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: collectionName,
+          description: null
+        })
+      })
+      
+      if (!createCollectionRes.ok) {
+        const errorData = await createCollectionRes.json()
+        setMessage(`${t.errorUploading}: ${errorData.detail || ''}`)
+        setLoading(false)
+        return
+      }
+      
+      const newCollection = await createCollectionRes.json()
+      console.log('✅ Collezione creata:', newCollection)
+      
+      // 2. Carica le carte nella nuova collezione
+      const formData = new FormData()
+      formData.append('file', fileToUpload)
+      formData.append('mapping', JSON.stringify(columnMapping))
+      formData.append('collection_id', newCollection.id.toString())
+
+      const uploadRes = await fetch(`${API_URL}/api/cards/upload/${user.userId}`, {
         method: 'POST',
         body: formData
       })
-      const data = await res.json()
+      
+      const data = await uploadRes.json()
       setMessage(`✓ ${data.message}`)
       loadCards()
+      loadSubscriptionStatus()
       
       // Chiudi il mapper
       setShowColumnMapper(false)
       setFileToUpload(null)
       
     } catch (err) {
+      console.error('Errore upload:', err)
       setMessage(t.errorUploading)
     }
     setLoading(false)
@@ -340,6 +475,17 @@ function App() {
   }
 
   const generateDecks = async () => {
+    // Se non è selezionato un formato, mostra avviso
+    if (filters.formats.length === 0) {
+      setShowFormatWarning(true)
+      return
+    }
+    
+    performSearch()
+  }
+  
+  const performSearch = async () => {
+    setShowFormatWarning(false)
     setDeckLoading(true)
     try {
       // Costruisci URL con parametri di filtro
@@ -366,10 +512,25 @@ function App() {
       const res = await fetch(url)
       const data = await res.json()
       setDecks(data.decks || [])
+      
+      // Mostra messaggio con info sui limiti
       if (data.decks?.length === 0) {
         setMessage(data.message || t.noDecksFound)
       } else {
-        setMessage(`✓ ${t.foundDecks} ${data.total_matches} ${t.decksCompatible}`)
+        let msg = `✓ ${t.foundDecks} ${data.total_matches} ${t.decksCompatible}`
+        
+        // Se i risultati sono limitati, mostra avviso
+        if (data.limited) {
+          const limitInfo = {
+            it: `(mostrando ${data.decks.length} di ${data.total_matches} - limite piano ${data.subscription_type})`,
+            en: `(showing ${data.decks.length} of ${data.total_matches} - ${data.subscription_type} plan limit)`
+          }
+          msg += ` ${limitInfo[language]}`
+        } else {
+          msg += ` ${language === 'it' ? `(mostrando top ${data.decks.length})` : `(showing top ${data.decks.length})`}`
+        }
+        
+        setMessage(msg)
       }
     } catch (err) {
       setMessage(t.errorSearching)
@@ -483,7 +644,11 @@ function App() {
 
       <main>
         <section className="upload-section">
-          <label className={`upload-btn ${loading ? 'disabled' : ''}`}>
+          <button 
+            className={`upload-btn ${loading ? 'disabled' : ''}`}
+            onClick={() => handleUpload()}
+            disabled={loading}
+          >
             {loading ? (
               <>
                 <span className="spinner"></span>
@@ -492,14 +657,91 @@ function App() {
             ) : (
               t.uploadBtn
             )}
-            <input type="file" accept=".xlsx,.csv" onChange={handleUpload} hidden disabled={loading} />
-          </label>
+          </button>
           {cards.length > 0 && !loading && (
             <span className="card-count">✅ {cards.length} {t.cardsLoaded}</span>
           )}
         </section>
 
         {message && <div className="message">{message}</div>}
+        
+        {/* Modal per selezionare origine collezione */}
+        {showCollectionSelector && (
+          <div className="modal-overlay" onClick={() => setShowCollectionSelector(false)}>
+            <div className="modal-content collection-selector-modal" onClick={(e) => e.stopPropagation()}>
+              <h2>{t.selectCollectionSource}</h2>
+              
+              {loadingCollections ? (
+                <div style={{ textAlign: 'center', padding: '3rem' }}>
+                  <div className="spinner" style={{ width: '40px', height: '40px' }}></div>
+                </div>
+              ) : userCollections.length === 0 ? (
+                <>
+                  <div className="no-collections-message" style={{ marginBottom: '2rem' }}>
+                    <p>{t.noCollectionsAvailable}</p>
+                    <small>{t.createCollectionFirst}</small>
+                  </div>
+                  <div className="collection-source-options" style={{ gridTemplateColumns: '1fr', justifyItems: 'center' }}>
+                    <label className="source-option" style={{ maxWidth: '400px' }}>
+                      <div className="source-icon">📁</div>
+                      <div className="source-title">{t.uploadNewFile}</div>
+                      <div className="source-desc">{t.uploadNewFileDesc}</div>
+                      <input 
+                        type="file" 
+                        accept=".xlsx,.csv" 
+                        onChange={handleUpload} 
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="collection-source-options" style={{ gridTemplateColumns: '1fr', justifyItems: 'center' }}>
+                    <label className="source-option" style={{ maxWidth: '400px' }}>
+                      <div className="source-icon">📁</div>
+                      <div className="source-title">{t.uploadNewFile}</div>
+                      <div className="source-desc">{t.uploadNewFileDesc}</div>
+                      <input 
+                        type="file" 
+                        accept=".xlsx,.csv" 
+                        onChange={handleUpload} 
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  </div>
+                  
+                  <div className="collection-select-section">
+                    <h3>{t.selectCollection}</h3>
+                    <div className="collections-list">
+                      {userCollections.map(collection => (
+                        <div 
+                          key={collection.id} 
+                          className="collection-item"
+                          onClick={() => loadExistingCollection(collection.id)}
+                        >
+                          <div className="collection-item-name">{collection.name}</div>
+                          <div className="collection-item-stats">
+                            {collection.card_count} {t.uniqueCards} • {collection.total_cards} {t.cards}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              <div className="modal-actions">
+                <button 
+                  className="cancel-btn" 
+                  onClick={() => setShowCollectionSelector(false)}
+                >
+                  {t.close}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Modal per mappare le colonne */}
         {showColumnMapper && (
@@ -795,6 +1037,30 @@ function App() {
             )}
           </section>
         )}
+        
+        {/* Format Warning Modal */}
+        {showFormatWarning && (
+          <div className="modal-overlay" onClick={() => setShowFormatWarning(false)}>
+            <div className="modal-content format-warning-modal" onClick={(e) => e.stopPropagation()}>
+              <h2>{t.formatWarningTitle}</h2>
+              <p className="warning-message">{t.formatWarningMessage}</p>
+              <div className="modal-actions">
+                <button 
+                  className="cancel-btn" 
+                  onClick={() => setShowFormatWarning(false)}
+                >
+                  {t.formatWarningCancel}
+                </button>
+                <button 
+                  className="confirm-btn warning-btn" 
+                  onClick={performSearch}
+                >
+                  {t.formatWarningContinue}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
           <footer>
@@ -814,6 +1080,17 @@ function App() {
           language={language}
         />
       )}
+
+      {/* Bug Report Button - always visible */}
+      <a 
+        href="https://cloudsw.site/contatti" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="bug-report-btn"
+        title={language === 'it' ? 'Segnala un problema' : 'Report a bug'}
+      >
+        🐛 {language === 'it' ? 'Segnala Bug' : 'Report Bug'}
+      </a>
     </div>
   )
 }

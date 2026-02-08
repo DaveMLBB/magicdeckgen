@@ -142,41 +142,91 @@
   color: #f5576c;
 }
 
-.test-account-section {
+.test-accounts-section {
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px solid rgba(255,255,255,0.1);
-  text-align: center;
 }
 
 .test-label {
   color: #a0aec0;
   font-size: 0.85rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 1px;
+  text-align: center;
 }
 
-.test-btn {
-  padding: 0.625rem 1.5rem;
-  border-radius: 8px;
+.test-accounts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.test-account-btn {
+  padding: 1rem;
+  border-radius: 12px;
   border: 2px solid rgba(255,255,255,0.2);
   background: rgba(255,255,255,0.05);
-  color: #cbd5e0;
-  font-size: 0.9rem;
+  color: #fff;
   cursor: pointer;
   transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
 }
 
-.test-btn:hover:not(:disabled) {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.2);
+.test-account-btn:hover:not(:disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.test-account-btn.free:hover:not(:disabled) {
+  border-color: rgba(104, 211, 145, 0.6);
+  background: rgba(104, 211, 145, 0.1);
+  box-shadow: 0 8px 25px rgba(104, 211, 145, 0.4);
+}
+
+.test-account-btn.premium:hover:not(:disabled) {
+  border-color: rgba(102, 126, 234, 0.6);
+  background: rgba(102, 126, 234, 0.1);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.test-account-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.test-account-icon {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+}
+
+.test-account-title {
+  font-weight: 700;
+  font-size: 0.95rem;
   color: #fff;
 }
 
-.test-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.test-account-desc {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.test-account-email {
+  font-size: 0.75rem;
+  color: #718096;
+  font-family: monospace;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .test-accounts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @keyframes slideIn {

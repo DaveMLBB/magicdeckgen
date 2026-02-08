@@ -29,8 +29,11 @@ function Auth({ onLogin, language }) {
       registerError: 'Errore durante la registrazione',
       emailRequired: 'Email richiesta',
       passwordRequired: 'Password richiesta',
-      testAccount: 'Account di test',
-      useTestAccount: 'Usa account di test'
+      testAccounts: 'Account di Test',
+      freeAccount: 'Account Free',
+      premiumAccount: 'Account Premium',
+      freeDesc: '3 caricamenti',
+      premiumDesc: '10 caricamenti/mese'
     },
     en: {
       login: 'Login',
@@ -47,8 +50,11 @@ function Auth({ onLogin, language }) {
       registerError: 'Registration error',
       emailRequired: 'Email required',
       passwordRequired: 'Password required',
-      testAccount: 'Test account',
-      useTestAccount: 'Use test account'
+      testAccounts: 'Test Accounts',
+      freeAccount: 'Free Account',
+      premiumAccount: 'Premium Account',
+      freeDesc: '3 uploads',
+      premiumDesc: '10 uploads/month'
     }
   }
 
@@ -132,9 +138,14 @@ function Auth({ onLogin, language }) {
     setLoading(false)
   }
 
-  const useTestAccount = () => {
-    setEmail('test@example.com')
-    setPassword('test123')
+  const useTestAccount = (accountType) => {
+    if (accountType === 'free') {
+      setEmail('test@example.com')
+      setPassword('test123')
+    } else if (accountType === 'premium') {
+      setEmail('premium@example.com')
+      setPassword('premium123')
+    }
     setIsLogin(true)
   }
 
@@ -198,15 +209,31 @@ function Auth({ onLogin, language }) {
           {isLogin ? t.switchToRegister : t.switchToLogin}
         </button>
 
-        <div className="test-account-section">
-          <p className="test-label">{t.testAccount}</p>
-          <button 
-            className="test-btn" 
-            onClick={useTestAccount}
-            disabled={loading}
-          >
-            {t.useTestAccount}
-          </button>
+        <div className="test-accounts-section">
+          <p className="test-label">{t.testAccounts}</p>
+          <div className="test-accounts-grid">
+            <button 
+              className="test-account-btn free" 
+              onClick={() => useTestAccount('free')}
+              disabled={loading}
+            >
+              <div className="test-account-icon">🆓</div>
+              <div className="test-account-title">{t.freeAccount}</div>
+              <div className="test-account-desc">{t.freeDesc}</div>
+              <div className="test-account-email">test@example.com</div>
+            </button>
+            
+            <button 
+              className="test-account-btn premium" 
+              onClick={() => useTestAccount('premium')}
+              disabled={loading}
+            >
+              <div className="test-account-icon">💎</div>
+              <div className="test-account-title">{t.premiumAccount}</div>
+              <div className="test-account-desc">{t.premiumDesc}</div>
+              <div className="test-account-email">premium@example.com</div>
+            </button>
+          </div>
         </div>
       </div>
     </div>
