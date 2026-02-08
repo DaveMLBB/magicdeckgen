@@ -1,9 +1,14 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import os
 
 # SQLite con persistenza su file (come H2 file mode)
 SQLALCHEMY_DATABASE_URL = "sqlite:///./data/magic.db"
+
+# Log per debug
+print(f"🔍 Database path: {os.path.abspath('./data/magic.db')}")
+print(f"🔍 Current working directory: {os.getcwd()}")
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, 

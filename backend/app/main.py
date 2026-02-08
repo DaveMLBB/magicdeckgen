@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import cards, decks
+from app.routers import cards, decks, auth, subscriptions, collections
 
 Base.metadata.create_all(bind=engine)
 
@@ -18,6 +18,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(subscriptions.router, prefix="/api/subscriptions", tags=["subscriptions"])
+app.include_router(collections.router, prefix="/api/collections", tags=["collections"])
 app.include_router(cards.router, prefix="/api/cards", tags=["cards"])
 app.include_router(decks.router, prefix="/api/decks", tags=["decks"])
 

@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 import pandas as pd
 from io import BytesIO
 from app.database import get_db
-from app.models import Card
+from app.models import Card, User
 
 router = APIRouter()
 
@@ -202,9 +202,43 @@ async def upload_cards(
     user_id: str, 
     file: UploadFile = File(...), 
     mapping: str = Form(None),  # JSON string del mapping come Form data
+    collection_id: int = Form(None),  # ID della collezione
     db: Session = Depends(get_db)
 ):
-    """Carica carte da file Excel/CSV con mapping personalizzato"""
+    """Upload cards from Excel/CSV file with custom mapping"""
+    from app.models import User, CardCollection
+    from datetime import datetime
+    
+    # Check subscription limits
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify collection belongs to user
+    if collection_id:
+        collection = db.query(CardCollection).filter(
+            CardCollection.id == collection_id,
+            CardCollection.user_id == int(user_id)
+        ).first()
+        if not collection:
+            raise HTTPException(status_code=404, detail="Collection not found")
+    
+    # Check subscription expiration
+    if user.subscription_expires_at and datetime.utcnow() > user.subscription_expires_at:
+        if user.subscription_type != 'lifetime':
+            user.subscription_type = 'free'
+            user.uploads_limit = 3
+            user.uploads_count = 0
+            user.subscription_expires_at = None
+            db.commit()
+    
+    # Check if can upload
+    if user.uploads_count >= user.uploads_limit:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Upload limit reached ({user.uploads_limit}). Please upgrade your subscription to continue."
+        )
+    
     if not file.filename.endswith(('.xlsx', '.csv')):
         raise HTTPException(status_code=400, detail="Il file deve essere .xlsx o .csv")
     
@@ -252,7 +286,7 @@ async def upload_cards(
                             engine='python'
                         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Errore nella lettura del file: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Error reading file: {str(e)}")
     
     # Parse mapping se fornito
     import json
@@ -273,8 +307,15 @@ async def upload_cards(
             'rarity': 'rarity'
         }
     
-    # Rimuovi carte esistenti dell'utente
-    db.query(Card).filter(Card.user_id == user_id).delete()
+    # Rimuovi carte esistenti dell'utente (solo per la collezione specifica se fornita)
+    if collection_id:
+        db.query(Card).filter(
+            Card.user_id == user_id,
+            Card.collection_id == collection_id
+        ).delete()
+    else:
+        # Se non c'è collection_id, rimuovi tutte le carte dell'utente (vecchio comportamento)
+        db.query(Card).filter(Card.user_id == user_id).delete()
     
     cards_added = 0
     errors = []
@@ -327,7 +368,8 @@ async def upload_cards(
                 colors=colors,
                 rarity=rarity,
                 quantity_owned=quantity,
-                user_id=user_id
+                user_id=user_id,
+                collection_id=collection_id
             )
             db.add(card)
             cards_added += 1
@@ -342,12 +384,18 @@ async def upload_cards(
     
     db.commit()
     
+    # Incrementa contatore caricamenti
+    user.uploads_count += 1
+    db.commit()
+    
     print(f"✅ Caricate {cards_added} carte su {len(df)} righe")
+    print(f"📊 Caricamenti: {user.uploads_count}/{user.uploads_limit}")
     
     return {
-        "message": f"Caricate {cards_added} carte",
+        "message": f"Loaded {cards_added} cards",
         "count": cards_added,
-        "errors": errors[:10] if errors else []
+        "errors": errors[:10] if errors else [],
+        "uploads_remaining": user.uploads_limit - user.uploads_count
     }
 
 @router.get("/{user_id}")
@@ -377,4 +425,163 @@ def add_card(user_id: str, card_data: dict, db: Session = Depends(get_db)):
     )
     db.add(card)
     db.commit()
-    return {"message": "Carta aggiunta"}
+    return {"message": "Card added"}
+
+@router.get("/collection/{user_id}")
+def get_user_collection(
+    user_id: int,
+    collection_id: int = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    search: Optional[str] = None,
+    sort_by: str = Query("name", regex="^(name|quantity|type|colors)$"),
+    sort_order: str = Query("asc", regex="^(asc|desc)$"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get user's card collection with pagination and filters.
+    Free plan: limited to 20 unique cards per collection
+    Paid plans: unlimited
+    """
+    # Get user to check subscription
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Determine display limit based on subscription (20 unique cards for free)
+    unique_card_limit = 20 if user.subscription_type == 'free' else None
+    
+    # Base query
+    query = db.query(Card).filter(Card.user_id == user_id)
+    
+    # Filter by collection if specified
+    if collection_id:
+        query = query.filter(Card.collection_id == collection_id)
+    
+    # Apply search filter
+    if search:
+        query = query.filter(Card.name.ilike(f"%{search}%"))
+    
+    # Get total count (unique cards)
+    total_unique_cards = query.count()
+    
+    # Check if user exceeds limit
+    limited = False
+    locked_cards = 0
+    if unique_card_limit and total_unique_cards > unique_card_limit:
+        limited = True
+        locked_cards = total_unique_cards - unique_card_limit
+    
+    # Apply sorting
+    if sort_by == "name":
+        query = query.order_by(Card.name.asc() if sort_order == "asc" else Card.name.desc())
+    elif sort_by == "quantity":
+        query = query.order_by(Card.quantity_owned.asc() if sort_order == "asc" else Card.quantity_owned.desc())
+    elif sort_by == "type":
+        query = query.order_by(Card.card_type.asc() if sort_order == "asc" else Card.card_type.desc())
+    elif sort_by == "colors":
+        query = query.order_by(Card.colors.asc() if sort_order == "asc" else Card.colors.desc())
+    
+    # Get all cards (we'll mark which ones are locked in frontend)
+    all_cards = query.all()
+    
+    # Apply pagination
+    offset = (page - 1) * page_size
+    paginated_cards = all_cards[offset:offset + page_size]
+    
+    # Calculate total pages
+    total_pages = (len(all_cards) + page_size - 1) // page_size
+    
+    # Format response
+    cards_data = []
+    for idx, card in enumerate(paginated_cards):
+        global_idx = offset + idx
+        is_locked = unique_card_limit and global_idx >= unique_card_limit
+        
+        cards_data.append({
+            "id": card.id,
+            "name": card.name,
+            "quantity": card.quantity_owned,
+            "type": card.card_type or "Unknown",
+            "colors": card.colors or "",
+            "mana_cost": card.mana_cost or "",
+            "rarity": card.rarity or "",
+            "locked": is_locked
+        })
+    
+    return {
+        "cards": cards_data,
+        "pagination": {
+            "page": page,
+            "page_size": page_size,
+            "total_cards": len(all_cards),
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        },
+        "subscription": {
+            "type": user.subscription_type,
+            "limited": limited,
+            "unique_card_limit": unique_card_limit,
+            "total_unique_cards": total_unique_cards,
+            "locked_cards": locked_cards,
+            "cards_remaining": max(0, unique_card_limit - total_unique_cards) if unique_card_limit else None
+        }
+    }
+
+@router.get("/collection/{user_id}/stats")
+def get_collection_stats(
+    user_id: int,
+    collection_id: int = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Get statistics about user's collection"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get all cards (filtered by collection if specified)
+    query = db.query(Card).filter(Card.user_id == user_id)
+    if collection_id:
+        query = query.filter(Card.collection_id == collection_id)
+    
+    cards = query.all()
+    
+    # Calculate stats
+    total_unique = len(cards)
+    total_quantity = sum(card.quantity_owned for card in cards)
+    
+    # Count by colors
+    colors_count = {}
+    for card in cards:
+        color = card.colors or "Colorless"
+        colors_count[color] = colors_count.get(color, 0) + 1
+    
+    # Count by type
+    types_count = {}
+    for card in cards:
+        card_type = card.card_type or "Unknown"
+        types_count[card_type] = types_count.get(card_type, 0) + 1
+    
+    # Check if limited (20 unique cards for free)
+    unique_card_limit = 20 if user.subscription_type == 'free' else None
+    limited = unique_card_limit and total_unique > unique_card_limit
+    locked_cards = max(0, total_unique - unique_card_limit) if unique_card_limit else 0
+    cards_remaining = max(0, unique_card_limit - total_unique) if unique_card_limit else None
+    
+    # Show warning when 5 or fewer cards remaining
+    show_upgrade_warning = unique_card_limit and cards_remaining is not None and cards_remaining <= 5 and cards_remaining > 0
+    
+    return {
+        "total_unique_cards": total_unique,
+        "total_cards": total_quantity,
+        "colors_distribution": colors_count,
+        "types_distribution": types_count,
+        "subscription_type": user.subscription_type,
+        "limited": limited,
+        "unique_card_limit": unique_card_limit,
+        "locked_cards": locked_cards,
+        "cards_remaining": cards_remaining,
+        "show_upgrade_warning": show_upgrade_warning,
+        "viewable_cards": min(total_unique, unique_card_limit) if unique_card_limit else total_unique
+    }

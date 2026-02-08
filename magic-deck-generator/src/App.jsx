@@ -1,18 +1,28 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import Auth from './components/Auth'
+import Subscriptions from './components/Subscriptions'
+import Collection from './components/Collection'
+import CollectionsList from './components/CollectionsList'
 
 const API_URL = import.meta.env.PROD 
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
   : 'http://localhost:8000'
 
 function App() {
-  const [userId] = useState(() => localStorage.getItem('userId') || crypto.randomUUID())
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'it')
   const [cards, setCards] = useState([])
   const [decks, setDecks] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [deckLoading, setDeckLoading] = useState(false)
   const [selectedDeck, setSelectedDeck] = useState(null)
   const [message, setMessage] = useState('')
+  const [showSubscriptions, setShowSubscriptions] = useState(false)
+  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail'
+  const [selectedCollection, setSelectedCollection] = useState(null)
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null)
+  const [hasShownSubscriptionModal, setHasShownSubscriptionModal] = useState(false)
   const [filters, setFilters] = useState({
     colors: [],
     minMatch: 10,
@@ -66,7 +76,21 @@ function App() {
       cancel: 'Annulla',
       confirm: '✓ Conferma e Carica',
       required: '*',
-      footer: 'Magic Deck Builder © 2026'
+      footer: 'Magic Deck Builder © 2026',
+      logout: '🚪 Esci',
+      unverified: '⚠️ Non verificato',
+      uploadsRemaining: 'caricamenti',
+      viewCollection: '📚 Collezione',
+      complete: 'completo',
+      cards: 'carte',
+      noCardsFound: '⚠️ Nessuna carta trovata per questo mazzo',
+      errorAnalyzing: 'Errore: Impossibile analizzare il file',
+      errorUploading: 'Errore nel caricamento del file',
+      errorSearching: 'Errore nella ricerca dei deck',
+      mustMapColumns: '⚠️ Devi mappare almeno le colonne Nome e Quantità',
+      foundDecks: 'Trovati',
+      decksCompatible: 'mazzi compatibili (mostrando top 20)',
+      noDecksFound: 'Nessun deck trovato con i filtri selezionati'
     },
     en: {
       title: '🃏 Magic Deck Matcher',
@@ -103,17 +127,99 @@ function App() {
       cancel: 'Cancel',
       confirm: '✓ Confirm and Upload',
       required: '*',
-      footer: 'Magic Deck Builder © 2026'
+      footer: 'Magic Deck Builder © 2026',
+      logout: '🚪 Logout',
+      unverified: '⚠️ Unverified',
+      uploadsRemaining: 'uploads',
+      viewCollection: '📚 Collection',
+      complete: 'complete',
+      cards: 'cards',
+      noCardsFound: '⚠️ No cards found for this deck',
+      errorAnalyzing: 'Error: Unable to analyze file',
+      errorUploading: 'Error uploading file',
+      errorSearching: 'Error searching for decks',
+      mustMapColumns: '⚠️ You must map at least Name and Quantity columns',
+      foundDecks: 'Found',
+      decksCompatible: 'compatible decks (showing top 20)',
+      noDecksFound: 'No decks found with selected filters'
     }
   }
 
   const t = translations[language]
 
+  // Verifica autenticazione all'avvio
   useEffect(() => {
-    localStorage.setItem('userId', userId)
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token')
+      const userId = localStorage.getItem('userId')
+      const userEmail = localStorage.getItem('userEmail')
+      const isVerified = localStorage.getItem('isVerified') === 'true'
+
+      if (token && userId) {
+        setUser({
+          userId: parseInt(userId),
+          email: userEmail,
+          isVerified,
+          token
+        })
+      }
+      
+      setLoading(false)
+    }
+
+    checkAuth()
+  }, [])
+
+  useEffect(() => {
     localStorage.setItem('language', language)
+    if (user) {
+      loadAvailableFormats()
+      loadSubscriptionStatus()
+    }
+  }, [language, user])
+
+  const loadSubscriptionStatus = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/subscriptions/status?token=${user.token}`)
+      const data = await res.json()
+      setSubscriptionStatus(data)
+      
+      // Se l'utente è free e non abbiamo ancora mostrato la modale, mostrala
+      if (data.subscription_type === 'free' && !hasShownSubscriptionModal) {
+        setShowSubscriptions(true)
+        setHasShownSubscriptionModal(true)
+      }
+    } catch (err) {
+      console.error('Errore caricamento stato abbonamento:', err)
+    }
+  }
+
+  const handleLogin = (userData) => {
+    setUser(userData)
     loadAvailableFormats()
-  }, [userId, language])
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('userEmail')
+    localStorage.removeItem('isVerified')
+    setUser(null)
+    setCards([])
+    setDecks([])
+  }
+
+  if (loading) {
+    return (
+      <div className="app" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div className="spinner" style={{ width: '50px', height: '50px' }}></div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Auth onLogin={handleLogin} language={language} />
+  }
 
   const loadAvailableFormats = async () => {
     try {
@@ -139,7 +245,7 @@ function App() {
     formData.append('file', file)
 
     try {
-      const res = await fetch(`${API_URL}/api/cards/analyze/${userId}`, {
+      const res = await fetch(`${API_URL}/api/cards/analyze/${user.userId}`, {
         method: 'POST',
         body: formData
       })
@@ -147,7 +253,7 @@ function App() {
       if (!res.ok) {
         const errorData = await res.json()
         console.error('❌ Errore analisi:', errorData)
-        setMessage(`Errore: ${errorData.detail || 'Impossibile analizzare il file'}`)
+        setMessage(`${t.errorAnalyzing}: ${errorData.detail || ''}`)
         setLoading(false)
         e.target.value = ''
         return
@@ -165,7 +271,7 @@ function App() {
       
     } catch (err) {
       console.error('❌ Errore:', err)
-      setMessage('Errore nell\'analisi del file')
+      setMessage(t.errorAnalyzing)
     }
     setLoading(false)
     
@@ -178,7 +284,7 @@ function App() {
     
     // Verifica che almeno nome e quantità siano mappati
     if (!columnMapping.name || !columnMapping.quantity) {
-      setMessage('⚠️ Devi mappare almeno le colonne Nome e Quantità')
+      setMessage(t.mustMapColumns)
       return
     }
     
@@ -190,7 +296,7 @@ function App() {
     formData.append('mapping', JSON.stringify(columnMapping))
 
     try {
-      const res = await fetch(`${API_URL}/api/cards/upload/${userId}`, {
+      const res = await fetch(`${API_URL}/api/cards/upload/${user.userId}`, {
         method: 'POST',
         body: formData
       })
@@ -203,7 +309,7 @@ function App() {
       setFileToUpload(null)
       
     } catch (err) {
-      setMessage('Errore nel caricamento del file')
+      setMessage(t.errorUploading)
     }
     setLoading(false)
   }
@@ -225,7 +331,7 @@ function App() {
 
   const loadCards = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/cards/${userId}`)
+      const res = await fetch(`${API_URL}/api/cards/${user.userId}`)
       const data = await res.json()
       setCards(data)
     } catch (err) {
@@ -234,7 +340,7 @@ function App() {
   }
 
   const generateDecks = async () => {
-    setLoading(true)
+    setDeckLoading(true)
     try {
       // Costruisci URL con parametri di filtro
       const params = new URLSearchParams()
@@ -254,21 +360,21 @@ function App() {
         params.append('buildable_only', 'true')
       }
       
-      const url = `${API_URL}/api/decks/match/${userId}?${params.toString()}`
+      const url = `${API_URL}/api/decks/match/${user.userId}?${params.toString()}`
       console.log('🔍 Ricerca con filtri:', url)
       
       const res = await fetch(url)
       const data = await res.json()
       setDecks(data.decks || [])
       if (data.decks?.length === 0) {
-        setMessage(data.message || 'Nessun deck trovato con i filtri selezionati')
+        setMessage(data.message || t.noDecksFound)
       } else {
-        setMessage(`✓ Trovati ${data.total_matches} mazzi compatibili (mostrando top 20)`)
+        setMessage(`✓ ${t.foundDecks} ${data.total_matches} ${t.decksCompatible}`)
       }
     } catch (err) {
-      setMessage('Errore nella ricerca dei deck')
+      setMessage(t.errorSearching)
     }
-    setLoading(false)
+    setDeckLoading(false)
   }
 
   const toggleColorFilter = (color) => {
@@ -312,24 +418,68 @@ function App() {
 
   return (
     <div className="app">
-      <header>
-        <div className="language-selector">
-          <button 
-            className={`lang-btn ${language === 'it' ? 'active' : ''}`}
-            onClick={() => setLanguage('it')}
-          >
-            🇮🇹 IT
-          </button>
-          <button 
-            className={`lang-btn ${language === 'en' ? 'active' : ''}`}
-            onClick={() => setLanguage('en')}
-          >
-            🇬🇧 EN
-          </button>
-        </div>
-        <h1>{t.title}</h1>
-        <p>{t.subtitle}</p>
-      </header>
+      {currentView === 'collections' ? (
+        <CollectionsList
+          user={user}
+          onBack={() => setCurrentView('main')}
+          onSelectCollection={(collection) => {
+            setSelectedCollection(collection)
+            setCurrentView('collection-detail')
+          }}
+          language={language}
+          onShowSubscriptions={() => setShowSubscriptions(true)}
+        />
+      ) : currentView === 'collection-detail' ? (
+        <Collection
+          user={user}
+          collection={selectedCollection}
+          onBack={() => {
+            setSelectedCollection(null)
+            setCurrentView('collections')
+          }}
+          language={language}
+          onShowSubscriptions={() => setShowSubscriptions(true)}
+          onUploadComplete={() => loadSubscriptionStatus()}
+        />
+      ) : (
+        <>
+          <header>
+            <div className="header-top">
+              <div className="language-selector">
+                <button 
+                  className={`lang-btn ${language === 'it' ? 'active' : ''}`}
+                  onClick={() => setLanguage('it')}
+                >
+                  🇮🇹 IT
+                </button>
+                <button 
+                  className={`lang-btn ${language === 'en' ? 'active' : ''}`}
+                  onClick={() => setLanguage('en')}
+                >
+                  🇬🇧 EN
+                </button>
+              </div>
+              <div className="user-info">
+                <span className="user-email">{user.email}</span>
+                {!user.isVerified && (
+                  <span className="unverified-badge">{t.unverified}</span>
+                )}
+                <button className="collection-btn" onClick={() => setCurrentView('collections')}>
+                  {t.viewCollection}
+                </button>
+                {subscriptionStatus && (
+                  <button className="subscription-btn" onClick={() => setShowSubscriptions(true)}>
+                    💎 {subscriptionStatus.uploads_remaining} {t.uploadsRemaining}
+                  </button>
+                )}
+                <button className="logout-btn" onClick={handleLogout}>
+                  {t.logout}
+                </button>
+              </div>
+            </div>
+            <h1>{t.title}</h1>
+            <p>{t.subtitle}</p>
+          </header>
 
       <main>
         <section className="upload-section">
@@ -367,7 +517,7 @@ function App() {
                     value={columnMapping.name || ''} 
                     onChange={(e) => updateMapping('name', e.target.value)}
                   >
-                    <option value="">-- Seleziona colonna --</option>
+                    <option value="">{t.selectColumn}</option>
                     {fileColumns.map(col => (
                       <option key={col} value={col}>{col}</option>
                     ))}
@@ -375,12 +525,12 @@ function App() {
                 </div>
                 
                 <div className="mapping-row required-field">
-                  <label>Quantità <span className="required">*</span></label>
+                  <label>{t.quantity} <span className="required">{t.required}</span></label>
                   <select 
                     value={columnMapping.quantity || ''} 
                     onChange={(e) => updateMapping('quantity', e.target.value)}
                   >
-                    <option value="">-- Seleziona colonna --</option>
+                    <option value="">{t.selectColumn}</option>
                     {fileColumns.map(col => (
                       <option key={col} value={col}>{col}</option>
                     ))}
@@ -388,12 +538,12 @@ function App() {
                 </div>
                 
                 <div className="mapping-row">
-                  <label>Tipo Carta</label>
+                  <label>{t.cardType}</label>
                   <select 
                     value={columnMapping.card_type || ''} 
                     onChange={(e) => updateMapping('card_type', e.target.value)}
                   >
-                    <option value="">-- Opzionale --</option>
+                    <option value="">{t.optional}</option>
                     {fileColumns.map(col => (
                       <option key={col} value={col}>{col}</option>
                     ))}
@@ -401,12 +551,12 @@ function App() {
                 </div>
                 
                 <div className="mapping-row">
-                  <label>Colori</label>
+                  <label>{t.colors}</label>
                   <select 
                     value={columnMapping.colors || ''} 
                     onChange={(e) => updateMapping('colors', e.target.value)}
                   >
-                    <option value="">-- Opzionale --</option>
+                    <option value="">{t.optional}</option>
                     {fileColumns.map(col => (
                       <option key={col} value={col}>{col}</option>
                     ))}
@@ -414,12 +564,12 @@ function App() {
                 </div>
                 
                 <div className="mapping-row">
-                  <label>Costo Mana</label>
+                  <label>{t.manaCost}</label>
                   <select 
                     value={columnMapping.mana_cost || ''} 
                     onChange={(e) => updateMapping('mana_cost', e.target.value)}
                   >
-                    <option value="">-- Opzionale --</option>
+                    <option value="">{t.optional}</option>
                     {fileColumns.map(col => (
                       <option key={col} value={col}>{col}</option>
                     ))}
@@ -427,12 +577,12 @@ function App() {
                 </div>
                 
                 <div className="mapping-row">
-                  <label>Rarità</label>
+                  <label>{t.rarity}</label>
                   <select 
                     value={columnMapping.rarity || ''} 
                     onChange={(e) => updateMapping('rarity', e.target.value)}
                   >
-                    <option value="">-- Opzionale --</option>
+                    <option value="">{t.optional}</option>
                     {fileColumns.map(col => (
                       <option key={col} value={col}>{col}</option>
                     ))}
@@ -442,7 +592,7 @@ function App() {
               
               {filePreview.length > 0 && (
                 <div className="preview-section">
-                  <h3>Anteprima Dati (prime 5 righe)</h3>
+                  <h3>{t.preview}</h3>
                   <div className="preview-table-container">
                     <table className="preview-table">
                       <thead>
@@ -468,7 +618,7 @@ function App() {
               
               <div className="modal-actions">
                 <button className="cancel-btn" onClick={cancelUpload}>
-                  Annulla
+                  {t.cancel}
                 </button>
                 <button 
                   className="confirm-btn" 
@@ -478,10 +628,10 @@ function App() {
                   {loading ? (
                     <>
                       <span className="spinner"></span>
-                      Caricamento...
+                      {t.uploading}
                     </>
                   ) : (
-                    '✓ Conferma e Carica'
+                    t.confirm
                   )}
                 </button>
               </div>
@@ -495,7 +645,7 @@ function App() {
               <h3>🔍 Filtri di Ricerca</h3>
               
               <div className="filter-group">
-                <label>Colori:</label>
+                <label>{t.colors}</label>
                 <div className="color-filters">
                   {['W', 'U', 'B', 'R', 'G'].map(color => (
                     <button
@@ -510,7 +660,7 @@ function App() {
               </div>
 
               <div className="filter-group">
-                <label>Formato:</label>
+                <label>{t.format}</label>
                 <div className="format-filters">
                   {availableFormats.map(format => (
                     <button
@@ -525,7 +675,7 @@ function App() {
               </div>
 
               <div className="filter-group">
-                <label>Completamento minimo: {filters.minMatch}%</label>
+                <label>{t.minCompletion}: {filters.minMatch}%</label>
                 <input
                   type="range"
                   min="10"
@@ -543,7 +693,7 @@ function App() {
                     checked={filters.buildableOnly}
                     onChange={toggleBuildableOnly}
                   />
-                  <span>Solo mazzi costruibili (≥90%)</span>
+                  <span>{t.buildableOnly}</span>
                 </label>
               </div>
 
@@ -554,14 +704,14 @@ function App() {
               )}
             </div>
 
-            <button className="generate-btn" onClick={generateDecks} disabled={loading}>
-              {loading ? (
+            <button className="generate-btn" onClick={generateDecks} disabled={deckLoading}>
+              {deckLoading ? (
                 <>
                   <span className="spinner"></span>
-                  Analizzando mazzi...
+                  {t.analyzing}
                 </>
               ) : (
-                '🔍 Trova Mazzi Compatibili'
+                t.findDecks
               )}
             </button>
           </>
@@ -570,7 +720,7 @@ function App() {
         {decks.length > 0 && (
           <section className="decks-section">
             <div className="results-header">
-              <h2>Mazzi Compatibili ({decks.length})</h2>
+              <h2>{t.compatibleDecks} ({decks.length})</h2>
             </div>
             <div className="decks-grid">
               {decks.map((deck, i) => (
@@ -598,15 +748,15 @@ function App() {
                   </div>
                   <div className="match-bar">
                     <div className="match-fill" style={{width: `${deck.match_percentage}%`}}></div>
-                    <span className="match-text">{deck.match_percentage}% completo</span>
+                    <span className="match-text">{deck.match_percentage}% {t.complete}</span>
                   </div>
                   <div className="deck-stats">
-                    <span>✅ {deck.cards_owned}/{deck.total_cards} carte</span>
+                    <span>✅ {deck.cards_owned}/{deck.total_cards} {t.cards}</span>
                     {deck.missing_cards_count > 0 && (
-                      <span>❌ Mancano {deck.missing_cards_count}</span>
+                      <span>❌ {t.missing} {deck.missing_cards_count}</span>
                     )}
                   </div>
-                  {deck.can_build && <div className="buildable-badge">🎯 Costruibile!</div>}
+                  {deck.can_build && <div className="buildable-badge">{t.buildable}</div>}
                 </div>
               ))}
             </div>
@@ -617,14 +767,14 @@ function App() {
           <section className="deck-detail">
             <h2>{decks[selectedDeck].name}</h2>
             <div className="deck-info">
-              <p>Match: <strong>{decks[selectedDeck].match_percentage}%</strong></p>
-              <p>Carte possedute: <strong>{decks[selectedDeck].cards_owned}/{decks[selectedDeck].total_cards}</strong></p>
-              {decks[selectedDeck].can_build && <p className="can-build">✅ Puoi costruire questo mazzo!</p>}
+              <p>{t.match}: <strong>{decks[selectedDeck].match_percentage}%</strong></p>
+              <p>{t.cardsOwned}: <strong>{decks[selectedDeck].cards_owned}/{decks[selectedDeck].total_cards}</strong></p>
+              {decks[selectedDeck].can_build && <p className="can-build">{t.canBuild}</p>}
             </div>
             
             {decks[selectedDeck].deck_list && decks[selectedDeck].deck_list.length > 0 ? (
               <>
-                <h3>Lista Completa ({decks[selectedDeck].deck_list.length} carte uniche)</h3>
+                <h3>{t.completeList} ({decks[selectedDeck].deck_list.length} {t.uniqueCards})</h3>
                 <div className="cards-list">
                   {decks[selectedDeck].deck_list.map((card, i) => (
                     <div key={i} className={`card-item ${card.missing > 0 ? 'missing' : 'owned'}`}>
@@ -641,15 +791,29 @@ function App() {
                 </div>
               </>
             ) : (
-              <p>⚠️ Nessuna carta trovata per questo mazzo</p>
+              <p>{t.noCardsFound}</p>
             )}
           </section>
         )}
       </main>
 
-      <footer>
-        <p>Magic Deck Builder © 2026</p>
-      </footer>
+          <footer>
+            <p>Magic Deck Builder © 2026</p>
+          </footer>
+        </>
+      )}
+
+      {/* Subscriptions modal - always available regardless of view */}
+      {showSubscriptions && (
+        <Subscriptions 
+          user={user} 
+          onClose={() => {
+            setShowSubscriptions(false)
+            loadSubscriptionStatus()
+          }}
+          language={language}
+        />
+      )}
     </div>
   )
 }

@@ -73,7 +73,7 @@ def generate_decks(user_id: str, format: str = "standard", db: Session = Depends
     cards = db.query(Card).filter(Card.user_id == user_id).all()
     
     if not cards:
-        return {"decks": [], "message": "Nessuna carta trovata. Carica prima un file Excel."}
+        return {"decks": [], "message": "No cards found. Please upload a file first."}
     
     # Raggruppa carte per colore
     cards_by_color = defaultdict(list)
@@ -238,7 +238,7 @@ def match_decks(
     user_cards = db.query(Card).filter(Card.user_id == user_id).all()
     
     if not user_cards:
-        return {"decks": [], "message": "Nessuna carta trovata. Carica prima un file Excel."}
+        return {"decks": [], "message": "No cards found. Please upload a file first."}
     
     # Crea un dizionario delle carte possedute (con normalizzazione)
     owned_cards = {}

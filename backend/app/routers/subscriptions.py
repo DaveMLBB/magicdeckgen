@@ -1,0 +1,204 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from datetime import datetime, timedelta
+from app.database import get_db
+from app.models import User
+from jose import JWTError, jwt
+
+router = APIRouter()
+
+SECRET_KEY = "your-secret-key-change-in-production"
+ALGORITHM = "HS256"
+
+# Subscription plans
+SUBSCRIPTION_PLANS = {
+    'free': {
+        'name': 'Free',
+        'price': 0,
+        'uploads_limit': 3,
+        'duration_days': None,
+        'description': '3 uploads • 5 collections • 20 unique cards per collection'
+    },
+    'monthly_10': {
+        'name': '10 Uploads',
+        'price': 5.00,
+        'uploads_limit': 10,
+        'duration_days': 30,
+        'description': '10 uploads/month • 10 collections • Unlimited cards'
+    },
+    'monthly_30': {
+        'name': '30 Uploads',
+        'price': 10.00,
+        'uploads_limit': 30,
+        'duration_days': 30,
+        'description': '30 uploads/month • 50 collections • Unlimited cards'
+    },
+    'yearly': {
+        'name': 'Yearly Unlimited',
+        'price': 25.00,
+        'uploads_limit': 999999,
+        'duration_days': 365,
+        'description': 'Unlimited uploads • Unlimited collections • Unlimited cards'
+    },
+    'lifetime': {
+        'name': 'Lifetime Unlimited',
+        'price': 60.00,
+        'uploads_limit': 999999,
+        'duration_days': None,  # No expiration
+        'description': 'Unlimited uploads • Unlimited collections • Unlimited cards • Forever'
+    }
+}
+
+class SubscriptionPurchase(BaseModel):
+    plan: str
+    payment_method: str = 'stripe'  # stripe, paypal, etc.
+
+def get_current_user(token: str, db: Session):
+    """Get current user from token"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = int(payload.get("sub"))
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    return user
+
+@router.get("/plans")
+def get_plans():
+    """Get all available plans"""
+    return {
+        "plans": [
+            {
+                "id": plan_id,
+                **plan_data
+            }
+            for plan_id, plan_data in SUBSCRIPTION_PLANS.items()
+        ]
+    }
+
+@router.get("/status")
+def get_subscription_status(token: str, db: Session = Depends(get_db)):
+    """Get user subscription status"""
+    user = get_current_user(token, db)
+    
+    # Check if subscription is expired
+    is_expired = False
+    if user.subscription_expires_at:
+        is_expired = datetime.utcnow() > user.subscription_expires_at
+        
+        # If expired, reset to free
+        if is_expired and user.subscription_type != 'lifetime':
+            user.subscription_type = 'free'
+            user.uploads_limit = 3
+            user.uploads_count = 0
+            user.subscription_expires_at = None
+            db.commit()
+    
+    plan = SUBSCRIPTION_PLANS.get(user.subscription_type, SUBSCRIPTION_PLANS['free'])
+    
+    return {
+        "subscription_type": user.subscription_type,
+        "plan_name": plan['name'],
+        "uploads_count": user.uploads_count,
+        "uploads_limit": user.uploads_limit,
+        "uploads_remaining": max(0, user.uploads_limit - user.uploads_count),
+        "expires_at": user.subscription_expires_at.isoformat() if user.subscription_expires_at else None,
+        "is_expired": is_expired,
+        "can_upload": user.uploads_count < user.uploads_limit
+    }
+
+@router.post("/purchase")
+def purchase_subscription(
+    purchase: SubscriptionPurchase,
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """Purchase subscription (simulated - to be integrated with Stripe/PayPal)"""
+    user = get_current_user(token, db)
+    
+    if purchase.plan not in SUBSCRIPTION_PLANS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid plan"
+        )
+    
+    plan = SUBSCRIPTION_PLANS[purchase.plan]
+    
+    # TODO: Integrate with Stripe/PayPal for real payment
+    # For now we simulate successful payment
+    
+    # Update user subscription
+    user.subscription_type = purchase.plan
+    user.uploads_limit = plan['uploads_limit']
+    user.uploads_count = 0  # Reset counter
+    
+    # Set expiration
+    if plan['duration_days']:
+        user.subscription_expires_at = datetime.utcnow() + timedelta(days=plan['duration_days'])
+    else:
+        user.subscription_expires_at = None  # Lifetime
+    
+    db.commit()
+    
+    return {
+        "message": "Subscription activated successfully!",
+        "subscription_type": user.subscription_type,
+        "plan_name": plan['name'],
+        "uploads_limit": user.uploads_limit,
+        "expires_at": user.subscription_expires_at.isoformat() if user.subscription_expires_at else None
+    }
+
+@router.post("/increment-upload")
+def increment_upload_count(token: str, db: Session = Depends(get_db)):
+    """Increment upload counter (called after successful upload)"""
+    user = get_current_user(token, db)
+    
+    # Verifica se può ancora caricare
+    if user.uploads_count >= user.uploads_limit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Upload limit reached. Please upgrade your subscription."
+        )
+    
+    user.uploads_count += 1
+    db.commit()
+    
+    return {
+        "uploads_count": user.uploads_count,
+        "uploads_remaining": user.uploads_limit - user.uploads_count
+    }
+
+@router.get("/can-upload")
+def can_upload(token: str, db: Session = Depends(get_db)):
+    """Check if user can upload"""
+    user = get_current_user(token, db)
+    
+    # Check expiration
+    if user.subscription_expires_at and datetime.utcnow() > user.subscription_expires_at:
+        if user.subscription_type != 'lifetime':
+            user.subscription_type = 'free'
+            user.uploads_limit = 3
+            user.uploads_count = 0
+            user.subscription_expires_at = None
+            db.commit()
+    
+    can_upload = user.uploads_count < user.uploads_limit
+    
+    return {
+        "can_upload": can_upload,
+        "uploads_count": user.uploads_count,
+        "uploads_limit": user.uploads_limit,
+        "uploads_remaining": max(0, user.uploads_limit - user.uploads_count),
+        "subscription_type": user.subscription_type
+    }

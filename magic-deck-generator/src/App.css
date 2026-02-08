@@ -34,12 +34,97 @@ header {
   position: relative;
 }
 
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
 .language-selector {
-  position: absolute;
-  top: 1rem;
-  right: 2rem;
   display: flex;
   gap: 0.5rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.user-email {
+  color: #cbd5e0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.unverified-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  color: #fbbf24;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.subscription-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 2px solid rgba(102, 126, 234, 0.5);
+  background: rgba(102, 126, 234, 0.2);
+  color: #667eea;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.subscription-btn:hover {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.3);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.collection-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 2px solid rgba(104, 211, 145, 0.3);
+  background: rgba(104, 211, 145, 0.1);
+  color: #68d391;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.collection-btn:hover {
+  border-color: #68d391;
+  background: rgba(104, 211, 145, 0.3);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.logout-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.05);
+  color: #cbd5e0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.logout-btn:hover {
+  border-color: rgba(245, 87, 108, 0.5);
+  background: rgba(245, 87, 108, 0.2);
+  color: #f5576c;
 }
 
 .lang-btn {
