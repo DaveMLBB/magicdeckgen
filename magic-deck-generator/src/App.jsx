@@ -4,6 +4,7 @@ import Auth from './components/Auth'
 import Subscriptions from './components/Subscriptions'
 import Collection from './components/Collection'
 import CollectionsList from './components/CollectionsList'
+import CardSearch from './components/CardSearch'
 
 const API_URL = import.meta.env.PROD 
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
@@ -19,7 +20,7 @@ function App() {
   const [selectedDeck, setSelectedDeck] = useState(null)
   const [message, setMessage] = useState('')
   const [showSubscriptions, setShowSubscriptions] = useState(false)
-  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail'
+  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search'
   const [selectedCollection, setSelectedCollection] = useState(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState(null)
   const [hasShownSubscriptionModal, setHasShownSubscriptionModal] = useState(false)
@@ -87,6 +88,7 @@ function App() {
       unverified: '⚠️ Non verificato',
       uploadsRemaining: 'caricamenti',
       viewCollection: '📚 Collezione',
+      searchCards: '🔍 Cerca Carte',
       complete: 'completo',
       cards: 'carte',
       noCardsFound: '⚠️ Nessuna carta trovata per questo mazzo',
@@ -96,6 +98,16 @@ function App() {
       mustMapColumns: '⚠️ Devi mappare almeno le colonne Nome e Quantità',
       foundDecks: 'Trovati',
       decksCompatible: 'mazzi compatibili (mostrando top 20)',
+      howToTitle: '📋 Come Preparare il File',
+      howToStep1: '1. Esporta la tua collezione da un\'app di gestione carte (es. Delver Lens, TCGPlayer, ecc.)',
+      howToStep2: '2. Il file deve contenere almeno due colonne: Nome Carta e Quantità',
+      howToStep3: '3. Formati supportati: Excel (.xlsx) o CSV (.csv)',
+      howToExample: 'Esempio formato:',
+      exampleName: 'Nome',
+      exampleQty: 'Quantità',
+      exampleCard1: 'Lightning Bolt',
+      exampleCard2: 'Counterspell',
+      exampleCard3: 'Sol Ring',
       noDecksFound: 'Nessun deck trovato con i filtri selezionati',
       selectCollectionSource: 'Seleziona Origine Collezione',
       formatWarningTitle: '⚠️ Nessun Formato Selezionato',
@@ -162,6 +174,16 @@ function App() {
       mustMapColumns: '⚠️ You must map at least Name and Quantity columns',
       foundDecks: 'Found',
       decksCompatible: 'compatible decks (showing top 20)',
+      howToTitle: '📋 How to Prepare Your File',
+      howToStep1: '1. Export your collection from a card management app (e.g., Delver Lens, TCGPlayer, etc.)',
+      howToStep2: '2. The file must contain at least two columns: Card Name and Quantity',
+      howToStep3: '3. Supported formats: Excel (.xlsx) or CSV (.csv)',
+      howToExample: 'Example format:',
+      exampleName: 'Name',
+      exampleQty: 'Quantity',
+      exampleCard1: 'Lightning Bolt',
+      exampleCard2: 'Counterspell',
+      exampleCard3: 'Sol Ring',
       noDecksFound: 'No decks found with selected filters',
       selectCollectionSource: 'Select Collection Source',
       formatWarningTitle: '⚠️ No Format Selected',
@@ -602,6 +624,12 @@ function App() {
           onShowSubscriptions={() => setShowSubscriptions(true)}
           onUploadComplete={() => loadSubscriptionStatus()}
         />
+      ) : currentView === 'card-search' ? (
+        <CardSearch
+          user={user}
+          onBack={() => setCurrentView('main')}
+          language={language}
+        />
       ) : (
         <>
           <header>
@@ -628,6 +656,9 @@ function App() {
                 <button className="collection-btn" onClick={() => setCurrentView('collections')}>
                   {t.viewCollection}
                 </button>
+                <button className="collection-btn" onClick={() => setCurrentView('card-search')}>
+                  {t.searchCards}
+                </button>
                 {subscriptionStatus && (
                   <button className="subscription-btn" onClick={() => setShowSubscriptions(true)}>
                     💎 {subscriptionStatus.uploads_remaining} {t.uploadsRemaining}
@@ -643,6 +674,45 @@ function App() {
           </header>
 
       <main>
+        {/* Sezione istruzioni */}
+        {cards.length === 0 && (
+          <section className="instructions-section">
+            <h2>{t.howToTitle}</h2>
+            <div className="instructions-content">
+              <div className="instruction-steps">
+                <p>✓ {t.howToStep1}</p>
+                <p>✓ {t.howToStep2}</p>
+                <p>✓ {t.howToStep3}</p>
+              </div>
+              <div className="example-table">
+                <h3>{t.howToExample}</h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{t.exampleName}</th>
+                      <th>{t.exampleQty}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{t.exampleCard1}</td>
+                      <td>4</td>
+                    </tr>
+                    <tr>
+                      <td>{t.exampleCard2}</td>
+                      <td>3</td>
+                    </tr>
+                    <tr>
+                      <td>{t.exampleCard3}</td>
+                      <td>1</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
         <section className="upload-section">
           <button 
             className={`upload-btn ${loading ? 'disabled' : ''}`}

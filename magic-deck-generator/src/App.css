@@ -1360,3 +1360,98 @@ footer {
     padding: 1.5rem;
   }
 }
+
+/* Instructions Section */
+.instructions-section {
+  max-width: 900px;
+  margin: 0 auto 3rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.instructions-section h2 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.8rem;
+  color: #fff;
+  text-align: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.instructions-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.instruction-steps {
+  text-align: left;
+}
+
+.instruction-steps p {
+  margin: 1rem 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #cbd5e0;
+  padding-left: 0.5rem;
+}
+
+.example-table {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.example-table h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #a0aec0;
+  text-align: center;
+}
+
+.example-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.example-table th {
+  background: rgba(102, 126, 234, 0.3);
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #fff;
+  border-bottom: 2px solid rgba(102, 126, 234, 0.5);
+}
+
+.example-table td {
+  padding: 0.75rem;
+  color: #cbd5e0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.example-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.example-table tbody tr:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+@media (max-width: 768px) {
+  .instructions-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .instruction-steps p {
+    font-size: 0.95rem;
+  }
+}

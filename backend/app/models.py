@@ -82,3 +82,39 @@ class DeckTemplateCard(Base):
     card_type = Column(String, nullable=True)
     colors = Column(String, nullable=True)
     mana_cost = Column(String, nullable=True)
+
+class MTGCard(Base):
+    __tablename__ = "mtg_cards"
+    
+    uuid = Column(String, primary_key=True, index=True)  # UUID univoco della carta
+    name = Column(String, index=True, nullable=False)  # Nome in inglese
+    mana_cost = Column(String, nullable=True)
+    mana_value = Column(Integer, nullable=True)  # CMC
+    colors = Column(String, nullable=True)  # W,U,B,R,G
+    color_identity = Column(String, nullable=True)
+    type_line = Column(String, index=True, nullable=True)  # Tipo completo
+    types = Column(String, nullable=True)  # Creature, Instant, etc
+    subtypes = Column(String, nullable=True)  # Human, Wizard, etc
+    supertypes = Column(String, nullable=True)  # Legendary, Basic, etc
+    text = Column(String, nullable=True)  # Testo della carta
+    power = Column(String, nullable=True)
+    toughness = Column(String, nullable=True)
+    loyalty = Column(String, nullable=True)
+    defense = Column(String, nullable=True)
+    rarity = Column(String, index=True, nullable=True)  # common, uncommon, rare, mythic
+    set_code = Column(String, index=True, nullable=True)  # Codice set
+    artist = Column(String, nullable=True)
+    flavor_text = Column(String, nullable=True)
+    keywords = Column(String, nullable=True)  # Flying, Haste, etc
+    layout = Column(String, nullable=True)  # normal, split, flip, etc
+    
+    # Traduzioni
+    name_it = Column(String, nullable=True)  # Nome italiano
+    text_it = Column(String, nullable=True)  # Testo italiano
+    type_it = Column(String, nullable=True)  # Tipo italiano
+    
+    # Immagini (Scryfall URLs)
+    image_url = Column(String, nullable=True)
+    
+    # Legalità (JSON string)
+    legalities = Column(String, nullable=True)
