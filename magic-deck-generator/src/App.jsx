@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import './mobile.css'
 import Auth from './components/Auth'
 import Subscriptions from './components/Subscriptions'
 import Collection from './components/Collection'
@@ -22,8 +23,7 @@ function App() {
   const [deckLoading, setDeckLoading] = useState(false)
   const [selectedDeck, setSelectedDeck] = useState(null)
   const [message, setMessage] = useState('')
-  const [showSubscriptions, setShowSubscriptions] = useState(false)
-  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search', 'saved-decks', 'saved-deck-detail'
+  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search', 'saved-decks', 'saved-deck-detail', 'subscriptions'
   const [selectedCollection, setSelectedCollection] = useState(null)
   const [selectedSavedDeck, setSelectedSavedDeck] = useState(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState(null)
@@ -265,7 +265,7 @@ function App() {
       
       // Se l'utente è free e non abbiamo ancora mostrato la modale, mostrala
       if (data.subscription_type === 'free' && !hasShownSubscriptionModal) {
-        setShowSubscriptions(true)
+        setCurrentView('subscriptions')
         setHasShownSubscriptionModal(true)
       }
     } catch (err) {
@@ -886,7 +886,13 @@ function App() {
 
   return (
     <div className="app">
-      {currentView === 'collections' ? (
+      {currentView === 'subscriptions' ? (
+        <Subscriptions
+          user={user}
+          onBack={() => setCurrentView('main')}
+          language={language}
+        />
+      ) : currentView === 'collections' ? (
         <CollectionsList
           user={user}
           onBack={() => setCurrentView('main')}
@@ -895,7 +901,7 @@ function App() {
             setCurrentView('collection-detail')
           }}
           language={language}
-          onShowSubscriptions={() => setShowSubscriptions(true)}
+          onShowSubscriptions={() => setCurrentView('subscriptions')}
         />
       ) : currentView === 'collection-detail' ? (
         <Collection
@@ -906,7 +912,7 @@ function App() {
             setCurrentView('collections')
           }}
           language={language}
-          onShowSubscriptions={() => setShowSubscriptions(true)}
+          onShowSubscriptions={() => setCurrentView('subscriptions')}
           onUploadComplete={() => loadSubscriptionStatus()}
         />
       ) : currentView === 'card-search' ? (
@@ -968,7 +974,7 @@ function App() {
                   {t.viewDecks}
                 </button>
                 {subscriptionStatus && (
-                  <button className="subscription-btn" onClick={() => setShowSubscriptions(true)}>
+                  <button className="subscription-btn" onClick={() => setCurrentView('subscriptions')}>
                     💎 {subscriptionStatus.uploads_remaining} {t.uploadsRemaining}
                   </button>
                 )}
@@ -1568,18 +1574,6 @@ function App() {
             <p>Magic Deck Builder © 2026</p>
           </footer>
         </>
-      )}
-
-      {/* Subscriptions modal - always available regardless of view */}
-      {showSubscriptions && (
-        <Subscriptions 
-          user={user} 
-          onClose={() => {
-            setShowSubscriptions(false)
-            loadSubscriptionStatus()
-          }}
-          language={language}
-        />
       )}
 
       {/* Bug Report Button - always visible */}

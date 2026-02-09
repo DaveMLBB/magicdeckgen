@@ -276,6 +276,241 @@ function Auth({ onLogin, language, setLanguage }) {
             </div>
           </div>
 
+          {/* How It Works Section */}
+          <div className="how-it-works-section">
+            <h2 className="section-title">
+              {language === 'it' ? '🚀 Come Funziona' : '🚀 How It Works'}
+            </h2>
+            <div className="steps-grid">
+              <div className="step-card">
+                <div className="step-number">1</div>
+                <h3>{language === 'it' ? 'Carica la Collezione' : 'Upload Collection'}</h3>
+                <p>
+                  {language === 'it' 
+                    ? 'Esporta la tua collezione da app come Delver Lens o TCGPlayer in formato Excel/CSV e caricala'
+                    : 'Export your collection from apps like Delver Lens or TCGPlayer in Excel/CSV format and upload it'}
+                </p>
+              </div>
+              <div className="step-card">
+                <div className="step-number">2</div>
+                <h3>{language === 'it' ? 'Analisi Automatica' : 'Automatic Analysis'}</h3>
+                <p>
+                  {language === 'it' 
+                    ? 'Il sistema analizza oltre 7200 mazzi competitivi e calcola la compatibilità con le tue carte'
+                    : 'The system analyzes over 7200 competitive decks and calculates compatibility with your cards'}
+                </p>
+              </div>
+              <div className="step-card">
+                <div className="step-number">3</div>
+                <h3>{language === 'it' ? 'Scopri i Mazzi' : 'Discover Decks'}</h3>
+                <p>
+                  {language === 'it' 
+                    ? 'Visualizza i mazzi che puoi costruire, ordina per completamento e scopri quali carte ti mancano'
+                    : 'View decks you can build, sort by completion and discover which cards you\'re missing'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Formats Section */}
+          <div className="formats-section">
+            <h2 className="section-title">
+              {language === 'it' ? '🎮 Formati Supportati' : '🎮 Supported Formats'}
+            </h2>
+            <div className="formats-grid">
+              <div className="format-badge">Commander (EDH)</div>
+              <div className="format-badge">Modern</div>
+              <div className="format-badge">Standard</div>
+              <div className="format-badge">Legacy</div>
+              <div className="format-badge">Vintage</div>
+              <div className="format-badge">Pioneer</div>
+              <div className="format-badge">Pauper</div>
+              <div className="format-badge">Historic</div>
+              <div className="format-badge">Brawl</div>
+              <div className="format-badge">Alchemy</div>
+            </div>
+          </div>
+
+          {/* Benefits Section */}
+          <div className="benefits-section">
+            <h2 className="section-title">
+              {language === 'it' ? '💡 Perché Usare Magic Deck Builder?' : '💡 Why Use Magic Deck Builder?'}
+            </h2>
+            <div className="benefits-grid">
+              <div className="benefit-item">
+                <span className="benefit-icon">💰</span>
+                <div className="benefit-content">
+                  <h4>{language === 'it' ? 'Risparmia Denaro' : 'Save Money'}</h4>
+                  <p>
+                    {language === 'it' 
+                      ? 'Scopri quali mazzi puoi costruire senza comprare nuove carte'
+                      : 'Discover which decks you can build without buying new cards'}
+                  </p>
+                </div>
+              </div>
+              <div className="benefit-item">
+                <span className="benefit-icon">⏱️</span>
+                <div className="benefit-content">
+                  <h4>{language === 'it' ? 'Risparmia Tempo' : 'Save Time'}</h4>
+                  <p>
+                    {language === 'it' 
+                      ? 'Non perdere ore a cercare deck list compatibili manualmente'
+                      : 'Don\'t waste hours manually searching for compatible deck lists'}
+                  </p>
+                </div>
+              </div>
+              <div className="benefit-item">
+                <span className="benefit-icon">🏆</span>
+                <div className="benefit-content">
+                  <h4>{language === 'it' ? 'Gioca Competitivo' : 'Play Competitive'}</h4>
+                  <p>
+                    {language === 'it' 
+                      ? 'Accedi a mazzi vincenti da tornei e campionati ufficiali'
+                      : 'Access winning decks from official tournaments and championships'}
+                  </p>
+                </div>
+              </div>
+              <div className="benefit-item">
+                <span className="benefit-icon">📈</span>
+                <div className="benefit-content">
+                  <h4>{language === 'it' ? 'Ottimizza la Collezione' : 'Optimize Collection'}</h4>
+                  <p>
+                    {language === 'it' 
+                      ? 'Scopri quali carte acquistare per completare più mazzi'
+                      : 'Discover which cards to buy to complete more decks'}
+                  </p>
+                </div>
+              </div>
+              <div className="benefit-item">
+                <span className="benefit-icon">📚</span>
+                <div className="benefit-content">
+                  <h4>{language === 'it' ? 'Gestione Collezioni' : 'Collection Management'}</h4>
+                  <p>
+                    {language === 'it' 
+                      ? 'Organizza le tue carte in collezioni multiple e tieni traccia di tutto'
+                      : 'Organize your cards in multiple collections and keep track of everything'}
+                  </p>
+                </div>
+              </div>
+              <div className="benefit-item">
+                <span className="benefit-icon">🃏</span>
+                <div className="benefit-content">
+                  <h4>{language === 'it' ? 'Gestione Deck' : 'Deck Management'}</h4>
+                  <p>
+                    {language === 'it' 
+                      ? 'Salva i tuoi mazzi preferiti e condividili con la community'
+                      : 'Save your favorite decks and share them with the community'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Testimonials Section */}
+          <div className="testimonials-section">
+            <h2 className="section-title">
+              {language === 'it' ? '⭐ Cosa Dicono i Giocatori' : '⭐ What Players Say'}
+            </h2>
+            <div className="testimonials-grid">
+              <div className="testimonial-card">
+                <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                <p className="testimonial-text">
+                  {language === 'it' 
+                    ? '"Fantastico! Ho scoperto che posso costruire 3 mazzi Modern competitivi con le carte che già possiedo."'
+                    : '"Amazing! I discovered I can build 3 competitive Modern decks with cards I already own."'}
+                </p>
+                <p className="testimonial-author">- Marco R.</p>
+              </div>
+              <div className="testimonial-card">
+                <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                <p className="testimonial-text">
+                  {language === 'it' 
+                    ? '"Strumento indispensabile per chi ha una grande collezione. Mi ha fatto risparmiare centinaia di euro!"'
+                    : '"Essential tool for anyone with a large collection. Saved me hundreds of euros!"'}
+                </p>
+                <p className="testimonial-author">- Sarah L.</p>
+              </div>
+              <div className="testimonial-card">
+                <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
+                <p className="testimonial-text">
+                  {language === 'it' 
+                    ? '"Interfaccia intuitiva e risultati precisi. Perfetto per preparare tornei!"'
+                    : '"Intuitive interface and accurate results. Perfect for tournament preparation!"'}
+                </p>
+                <p className="testimonial-author">- Giovanni P.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* FAQ Section */}
+          <div className="faq-section">
+            <h2 className="section-title">
+              {language === 'it' ? '❓ Domande Frequenti' : '❓ Frequently Asked Questions'}
+            </h2>
+            <div className="faq-grid">
+              <div className="faq-item">
+                <h4 className="faq-question">
+                  {language === 'it' ? 'Come carico la mia collezione?' : 'How do I upload my collection?'}
+                </h4>
+                <p className="faq-answer">
+                  {language === 'it' 
+                    ? 'Esporta la tua collezione da app come Delver Lens, TCGPlayer o Dragon Shield in formato Excel (.xlsx) o CSV (.csv). Il file deve contenere almeno il nome della carta e la quantità. I nomi delle carte devono essere in inglese.'
+                    : 'Export your collection from apps like Delver Lens, TCGPlayer or Dragon Shield in Excel (.xlsx) or CSV (.csv) format. The file must contain at least the card name and quantity. Card names must be in English.'}
+                </p>
+              </div>
+              <div className="faq-item">
+                <h4 className="faq-question">
+                  {language === 'it' ? 'Quali formati sono supportati?' : 'Which formats are supported?'}
+                </h4>
+                <p className="faq-answer">
+                  {language === 'it' 
+                    ? 'Supportiamo tutti i principali formati Magic: Commander (EDH), Modern, Standard, Legacy, Vintage, Pioneer, Pauper, Historic, Brawl e Alchemy. Il database include oltre 7200 mazzi competitivi.'
+                    : 'We support all major Magic formats: Commander (EDH), Modern, Standard, Legacy, Vintage, Pioneer, Pauper, Historic, Brawl and Alchemy. The database includes over 7200 competitive decks.'}
+                </p>
+              </div>
+              <div className="faq-item">
+                <h4 className="faq-question">
+                  {language === 'it' ? 'È davvero gratuito?' : 'Is it really free?'}
+                </h4>
+                <p className="faq-answer">
+                  {language === 'it' 
+                    ? 'Sì! Offriamo un piano gratuito che include 3 caricamenti di collezione. Per utenti più attivi, sono disponibili piani Premium (10 caricamenti/mese) e Lifetime (tutto illimitato).'
+                    : 'Yes! We offer a free plan that includes 3 collection uploads. For more active users, Premium (10 uploads/month) and Lifetime (everything unlimited) plans are available.'}
+                </p>
+              </div>
+              <div className="faq-item">
+                <h4 className="faq-question">
+                  {language === 'it' ? 'Come vengono aggiornati i mazzi?' : 'How are decks updated?'}
+                </h4>
+                <p className="faq-answer">
+                  {language === 'it' 
+                    ? 'Il nostro database viene aggiornato regolarmente con mazzi vincenti da tornei ufficiali, Grand Prix, Pro Tour e campionati. Inoltre, gli utenti possono condividere i propri mazzi pubblici.'
+                    : 'Our database is regularly updated with winning decks from official tournaments, Grand Prix, Pro Tour and championships. Additionally, users can share their own public decks.'}
+                </p>
+              </div>
+              <div className="faq-item">
+                <h4 className="faq-question">
+                  {language === 'it' ? 'Posso gestire più collezioni?' : 'Can I manage multiple collections?'}
+                </h4>
+                <p className="faq-answer">
+                  {language === 'it' 
+                    ? 'Assolutamente sì! Puoi creare collezioni separate per diversi formati, mazzi o set. Ogni collezione può essere analizzata indipendentemente.'
+                    : 'Absolutely! You can create separate collections for different formats, decks or sets. Each collection can be analyzed independently.'}
+                </p>
+              </div>
+              <div className="faq-item">
+                <h4 className="faq-question">
+                  {language === 'it' ? 'Funziona su mobile?' : 'Does it work on mobile?'}
+                </h4>
+                <p className="faq-answer">
+                  {language === 'it' 
+                    ? 'Sì, l\'applicazione è completamente responsive e funziona su smartphone e tablet. Tuttavia, per un\'esperienza ottimale consigliamo l\'utilizzo su PC desktop.'
+                    : 'Yes, the application is fully responsive and works on smartphones and tablets. However, for the best experience we recommend using a desktop PC.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* CTA Section */}
           <div className="cta-section">
             <h2>{language === 'it' ? 'Pronto a iniziare?' : 'Ready to start?'}</h2>

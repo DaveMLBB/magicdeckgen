@@ -1,0 +1,227 @@
+/* ========================================
+   MOBILE OPTIMIZATIONS
+   Ottimizzazioni specifiche per dispositivi mobili
+   ======================================== */
+
+/* Previeni zoom su input focus (iOS) */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important; /* Previene lo zoom automatico su iOS */
+  }
+}
+
+/* Ottimizza le animazioni per dispositivi mobili */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Migliora le performance su mobile riducendo le animazioni complesse */
+@media (max-width: 768px) {
+  .deck-card {
+    animation: none; /* Rimuovi animazioni di entrata su mobile */
+  }
+  
+  .deck-card:nth-child(1),
+  .deck-card:nth-child(2),
+  .deck-card:nth-child(3),
+  .deck-card:nth-child(4),
+  .deck-card:nth-child(5),
+  .deck-card:nth-child(6) {
+    animation-delay: 0s;
+  }
+}
+
+/* Safe area per dispositivi con notch (iPhone X+) */
+@supports (padding: max(0px)) {
+  .app {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+  
+  header {
+    padding-top: max(3rem, calc(3rem + env(safe-area-inset-top)));
+  }
+  
+  .bug-report-btn {
+    bottom: max(1rem, calc(1rem + env(safe-area-inset-bottom)));
+    right: max(1rem, calc(1rem + env(safe-area-inset-right)));
+  }
+}
+
+/* Ottimizza il rendering delle immagini su mobile */
+@media (max-width: 768px) {
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Migliora la leggibilità su schermi piccoli */
+@media (max-width: 576px) {
+  body {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+/* Ottimizza i modali per schermi piccoli */
+@media (max-width: 768px) {
+  .modal-overlay {
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+  
+  .modal-content {
+    margin-bottom: 2rem;
+  }
+}
+
+/* Migliora l'accessibilità dei pulsanti su touch */
+@media (max-width: 768px) {
+  button,
+  .upload-btn,
+  .generate-btn,
+  .deck-card,
+  .collection-item {
+    min-height: 44px; /* Dimensione minima consigliata per target touch */
+  }
+}
+
+/* Ottimizza le griglie per schermi molto piccoli */
+@media (max-width: 360px) {
+  .color-filters {
+    gap: 0.5rem;
+  }
+  
+  .color-btn {
+    width: 38px;
+    height: 38px;
+    font-size: 1.1rem;
+  }
+  
+  .format-btn,
+  .source-btn {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* Landscape mode su mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  header {
+    padding: 1.5rem 1rem 1rem;
+  }
+  
+  header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .instructions-section {
+    padding: 1rem;
+  }
+  
+  .modal-content {
+    max-height: 80vh;
+  }
+}
+
+/* Ottimizza lo scrolling per liste lunghe */
+@media (max-width: 768px) {
+  .cards-list,
+  .decks-grid {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Migliora la visibilità dei badge su mobile */
+@media (max-width: 768px) {
+  .unverified-badge,
+  .deck-format,
+  .deck-source-badge {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+}
+
+/* Ottimizza le transizioni per dispositivi mobili */
+@media (max-width: 768px) {
+  * {
+    transition-duration: 0.2s !important; /* Transizioni più veloci su mobile */
+  }
+}
+
+/* Previeni il bounce scroll su iOS */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* Migliora la visualizzazione delle tabelle su schermi molto piccoli */
+@media (max-width: 576px) {
+  .preview-table th,
+  .preview-table td {
+    padding: 0.4rem;
+    font-size: 0.75rem;
+  }
+  
+  .example-table th,
+  .example-table td {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Ottimizza i margini per massimizzare lo spazio su mobile */
+@media (max-width: 768px) {
+  .decks-section,
+  .filters-section,
+  .upload-section {
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* Migliora la visualizzazione degli spinner su mobile */
+@media (max-width: 768px) {
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border-width: 2px;
+  }
+  
+  .modal-content .spinner {
+    width: 35px;
+    height: 35px;
+    border-width: 3px;
+  }
+}
+
+/* Dark mode ottimizzato per mobile */
+@media (prefers-color-scheme: dark) and (max-width: 768px) {
+  .app {
+    /* Riduci la luminosità del background su mobile per risparmiare batteria */
+    background: linear-gradient(135deg, #0a0817 0%, #1f1a3d 50%, #1a1a2e 100%);
+  }
+}
+
+/* Ottimizza i focus states per navigazione da tastiera su mobile */
+@media (max-width: 768px) {
+  button:focus-visible,
+  select:focus-visible,
+  input:focus-visible {
+    outline: 3px solid rgba(102, 126, 234, 0.6);
+    outline-offset: 2px;
+  }
+}

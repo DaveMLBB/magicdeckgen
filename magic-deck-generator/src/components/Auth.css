@@ -169,14 +169,6 @@
   margin-bottom: 4rem;
 }
 
-.features-title {
-  text-align: center;
-  font-size: 2.5rem;
-  color: #fff;
-  margin-bottom: 3rem;
-  animation: fadeIn 0.4s ease-out;
-}
-
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -562,6 +554,10 @@
 }
 
 @media (max-width: 768px) {
+  .auth-container {
+    padding: 1rem;
+  }
+
   .landing-language-selector {
     top: 1rem;
     right: 1rem;
@@ -570,6 +566,11 @@
   .landing-language-selector .lang-btn {
     padding: 0.5rem 0.875rem;
     font-size: 0.9rem;
+  }
+
+  .hero-section {
+    padding: 2rem 1rem;
+    margin-bottom: 2rem;
   }
 
   .hero-title {
@@ -582,24 +583,52 @@
 
   .hero-subtitle {
     font-size: 1.2rem;
+    margin-bottom: 2rem;
   }
 
   .hero-cta {
     flex-direction: column;
     align-items: stretch;
+    gap: 1rem;
   }
 
   .cta-primary, .cta-secondary {
     width: 100%;
     justify-content: center;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+  }
+
+  .features-section {
+    padding: 2rem 1rem;
+    margin-bottom: 2rem;
   }
 
   .features-grid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 
   .features-title {
     font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .feature-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .feature-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .feature-card h3 {
+    font-size: 1.3rem;
+  }
+
+  .feature-card p {
+    font-size: 0.95rem;
   }
 
   .cta-section {
@@ -613,6 +642,7 @@
 
   .cta-section p {
     font-size: 1.1rem;
+    margin-bottom: 2rem;
   }
 
   .cta-large {
@@ -623,10 +653,16 @@
 
   .test-accounts-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .test-account-btn {
+    padding: 0.875rem;
   }
 
   .auth-box {
-    padding: 2rem;
+    padding: 2rem 1.5rem;
+    max-width: 100%;
   }
 
   .auth-header {
@@ -644,6 +680,103 @@
 
   .auth-box h2 {
     font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group input {
+    padding: 0.75rem 0.875rem;
+    font-size: 16px; /* Previene zoom su iOS */
+  }
+
+  .auth-btn {
+    padding: 0.875rem;
+    font-size: 1rem;
+  }
+
+  .switch-btn {
+    padding: 0.65rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-icon {
+    font-size: 2.5rem;
+    margin-right: 0.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.1rem;
+  }
+
+  .cta-primary, .cta-secondary {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .features-title {
+    font-size: 1.75rem;
+  }
+
+  .feature-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .feature-icon {
+    font-size: 2.5rem;
+  }
+
+  .feature-card h3 {
+    font-size: 1.2rem;
+  }
+
+  .cta-section {
+    padding: 2rem 1rem;
+  }
+
+  .cta-section h2 {
+    font-size: 1.75rem;
+  }
+
+  .cta-section p {
+    font-size: 1rem;
+  }
+
+  .cta-large {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .auth-box {
+    padding: 1.5rem 1rem;
+  }
+
+  .auth-box h1 {
+    font-size: 1.75rem;
+  }
+
+  .auth-box h2 {
+    font-size: 1.3rem;
+  }
+
+  .test-account-icon {
+    font-size: 1.75rem;
+  }
+
+  .test-account-title {
+    font-size: 0.9rem;
+  }
+
+  .test-account-desc {
+    font-size: 0.75rem;
   }
 }
 
@@ -710,5 +843,349 @@
   
   .recommendation-text {
     font-size: 0.8rem;
+  }
+}
+
+
+/* How It Works Section */
+.how-it-works-section {
+  padding: 4rem 2rem;
+  margin-bottom: 4rem;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 30px;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 2.5rem;
+  color: #fff;
+  margin-bottom: 3rem;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.step-card {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 2.5rem;
+  text-align: center;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.step-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.3);
+}
+
+.step-number {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.step-card h3 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.step-card p {
+  color: #cbd5e0;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+/* Formats Section */
+.formats-section {
+  padding: 4rem 2rem;
+  margin-bottom: 4rem;
+}
+
+.formats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.format-badge {
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  background: rgba(102, 126, 234, 0.2);
+  border: 2px solid rgba(102, 126, 234, 0.4);
+  color: #a0c4ff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transition: all 0.3s;
+  cursor: default;
+}
+
+.format-badge:hover {
+  background: rgba(102, 126, 234, 0.3);
+  border-color: rgba(102, 126, 234, 0.6);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* Benefits Section */
+.benefits-section {
+  padding: 4rem 2rem;
+  margin-bottom: 4rem;
+  background: rgba(104, 211, 145, 0.05);
+  border-radius: 30px;
+}
+
+.benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.benefit-item {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  padding: 2rem;
+  background: rgba(255,255,255,0.05);
+  border-radius: 16px;
+  transition: all 0.3s;
+}
+
+.benefit-item:hover {
+  background: rgba(255,255,255,0.08);
+  transform: translateX(8px);
+}
+
+.benefit-icon {
+  font-size: 3rem;
+  flex-shrink: 0;
+}
+
+.benefit-content h4 {
+  font-size: 1.3rem;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.benefit-content p {
+  color: #cbd5e0;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+/* Testimonials Section */
+.testimonials-section {
+  padding: 4rem 2rem;
+  margin-bottom: 4rem;
+}
+
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.testimonial-card {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 2.5rem;
+  transition: all 0.3s;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 12px 40px rgba(251, 191, 36, 0.3);
+}
+
+.testimonial-stars {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #fbbf24;
+}
+
+.testimonial-text {
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  font-style: italic;
+  margin-bottom: 1rem;
+}
+
+.testimonial-author {
+  color: #a0aec0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* FAQ Section */
+.faq-section {
+  padding: 4rem 2rem;
+  margin-bottom: 4rem;
+  background: rgba(118, 75, 162, 0.05);
+  border-radius: 30px;
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.faq-item {
+  background: rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s;
+}
+
+.faq-item:hover {
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-4px);
+}
+
+.faq-question {
+  font-size: 1.2rem;
+  color: #fff;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.faq-answer {
+  color: #cbd5e0;
+  line-height: 1.7;
+  font-size: 1rem;
+}
+
+/* Responsive for new sections */
+@media (max-width: 768px) {
+  .how-it-works-section,
+  .formats-section,
+  .benefits-section,
+  .testimonials-section,
+  .faq-section {
+    padding: 2rem 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .section-title {
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+  }
+
+  .steps-grid,
+  .benefits-grid,
+  .testimonials-grid,
+  .faq-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .step-card,
+  .testimonial-card,
+  .faq-item {
+    padding: 1.5rem;
+  }
+
+  .step-number {
+    width: 50px;
+    height: 50px;
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .step-card h3 {
+    font-size: 1.3rem;
+  }
+
+  .format-badge {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .benefit-item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  .benefit-icon {
+    font-size: 2.5rem;
+  }
+
+  .benefit-content h4 {
+    font-size: 1.2rem;
+  }
+
+  .testimonial-stars {
+    font-size: 1.3rem;
+  }
+
+  .testimonial-text {
+    font-size: 1rem;
+  }
+
+  .faq-question {
+    font-size: 1.1rem;
+  }
+
+  .faq-answer {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .step-card h3,
+  .benefit-content h4,
+  .faq-question {
+    font-size: 1.1rem;
+  }
+
+  .step-card p,
+  .benefit-content p,
+  .testimonial-text,
+  .faq-answer {
+    font-size: 0.9rem;
+  }
+
+  .format-badge {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
   }
 }

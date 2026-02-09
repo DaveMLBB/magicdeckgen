@@ -2,6 +2,8 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  /* Migliora il touch su mobile */
+  -webkit-tap-highlight-color: transparent;
 }
 
 html, body, #root {
@@ -14,6 +16,8 @@ html, body, #root {
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   overflow-x: hidden;
+  /* Migliora lo scrolling su iOS */
+  -webkit-overflow-scrolling: touch;
 }
 
 .app {
@@ -23,6 +27,10 @@ body {
   color: #fff;
   padding: 0;
   margin: 0;
+  /* Migliora la leggibilità del testo su mobile */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 header {
@@ -768,42 +776,430 @@ footer {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
   }
+  
+  .filters-section {
+    padding: 1.5rem;
+  }
+  
+  .color-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
 }
 
 @media (max-width: 768px) {
-  header h1 {
-    font-size: 2rem;
+  /* Header mobile */
+  header {
+    padding: 2rem 1rem 1.5rem;
   }
   
+  header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  header p {
+    font-size: 0.95rem;
+  }
+  
+  .header-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  
+  .language-selector {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .user-info {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .user-email {
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  
+  .collection-btn,
+  .subscription-btn,
+  .logout-btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+  
+  /* Main content mobile */
   main {
+    padding: 1rem;
+  }
+  
+  /* Instructions mobile */
+  .instructions-section {
+    padding: 1.5rem;
+  }
+  
+  .instructions-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .instruction-steps p {
+    font-size: 0.9rem;
+  }
+  
+  .important-note {
+    font-size: 0.95rem !important;
+  }
+  
+  /* Upload section mobile */
+  .upload-section {
+    flex-direction: column;
     padding: 1.5rem 1rem;
+    gap: 1rem;
+  }
+  
+  .upload-btn, .preload-btn {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+  }
+  
+  .card-count {
+    width: 100%;
+    text-align: center;
+  }
+  
+  /* Filters mobile */
+  .filters-section {
+    padding: 1.5rem 1rem;
+  }
+  
+  .filters-section h3 {
+    font-size: 1.2rem;
+  }
+  
+  .filter-group label {
+    font-size: 0.9rem;
+  }
+  
+  .color-filters {
+    justify-content: center;
+    gap: 0.75rem;
+  }
+  
+  .color-btn {
+    width: 45px;
+    height: 45px;
+    font-size: 1.3rem;
+  }
+  
+  .format-filters,
+  .deck-source-filters {
+    justify-content: center;
+  }
+  
+  .format-btn,
+  .source-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Generate button mobile */
+  .generate-btn {
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    margin: 1.5rem 0;
+  }
+  
+  /* Decks grid mobile */
+  .decks-section h2 {
+    font-size: 1.5rem;
   }
   
   .decks-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
   
-  .cards-list {
-    grid-template-columns: 1fr;
+  .deck-card {
+    padding: 1.25rem;
   }
   
-  .upload-section {
-    flex-direction: column;
+  .deck-header {
+    gap: 0.5rem;
   }
   
-  .generate-btn {
-    padding: 1.2rem 2.5rem;
+  .deck-header h3 {
     font-size: 1.1rem;
+  }
+  
+  .deck-format,
+  .deck-source-badge {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.7rem;
+  }
+  
+  .deck-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Deck detail mobile */
+  .deck-detail {
+    padding: 1.5rem 1rem;
+    margin-top: 2rem;
   }
   
   .deck-detail-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 1rem;
   }
   
-  .import-deck-btn {
+  .deck-detail-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .deck-actions-group {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .import-deck-btn,
+  .save-deck-btn {
     width: 100%;
     justify-content: center;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+  }
+  
+  .deck-info {
+    padding: 1.25rem;
+  }
+  
+  .deck-info p {
+    font-size: 1rem;
+  }
+  
+  .deck-detail h3 {
+    font-size: 1.2rem;
+    margin: 1.5rem 0 1rem;
+  }
+  
+  /* Cards list mobile */
+  .cards-list {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .card-item {
+    padding: 0.65rem;
+    font-size: 0.9rem;
+  }
+  
+  .card-qty {
+    min-width: 30px;
+    font-size: 0.9rem;
+  }
+  
+  .card-name {
+    font-size: 0.9rem;
+  }
+  
+  .card-type {
+    font-size: 0.8rem;
+  }
+  
+  .card-status {
+    font-size: 0.85rem;
+  }
+  
+  /* Missing list mobile */
+  .missing-list {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Modal mobile */
+  .modal-overlay {
+    padding: 1rem;
+  }
+  
+  .modal-content {
+    padding: 1.5rem;
+    max-height: 85vh;
+  }
+  
+  .modal-content h2 {
+    font-size: 1.4rem;
+  }
+  
+  .modal-subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .mapping-grid {
+    gap: 1rem;
+  }
+  
+  .mapping-row label {
+    font-size: 0.85rem;
+  }
+  
+  .mapping-row select {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.9rem;
+  }
+  
+  .preview-table {
+    font-size: 0.8rem;
+  }
+  
+  .preview-table th,
+  .preview-table td {
+    padding: 0.5rem;
+  }
+  
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+  }
+  
+  .cancel-btn,
+  .confirm-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+  }
+  
+  /* Collection selector mobile */
+  .collection-source-options {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .source-option {
+    padding: 1.5rem 1rem;
+  }
+  
+  .source-icon {
+    font-size: 2.5rem;
+  }
+  
+  .source-title {
+    font-size: 1rem;
+  }
+  
+  .source-desc {
+    font-size: 0.8rem;
+  }
+  
+  .collections-list {
+    max-height: 250px;
+  }
+  
+  .collection-item {
+    padding: 0.875rem 1rem;
+  }
+  
+  .collection-item-name {
+    font-size: 0.95rem;
+  }
+  
+  .collection-item-stats {
+    font-size: 0.8rem;
+  }
+  
+  /* Message mobile */
+  .message {
+    padding: 1rem;
+    font-size: 0.95rem;
+  }
+  
+  /* Footer mobile */
+  footer {
+    padding: 1.5rem 1rem;
+    margin-top: 2rem;
+  }
+  
+  /* Bug report button mobile */
+  .bug-report-btn {
+    bottom: 1rem;
+    right: 1rem;
+    padding: 0.7rem 1.2rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Extra small devices (phones in portrait, less than 576px) */
+@media (max-width: 576px) {
+  header h1 {
+    font-size: 1.5rem;
+  }
+  
+  header p {
+    font-size: 0.85rem;
+  }
+  
+  .lang-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .filters-section h3 {
+    font-size: 1.1rem;
+  }
+  
+  .color-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+  
+  .format-btn,
+  .source-btn {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .deck-card {
+    padding: 1rem;
+  }
+  
+  .deck-header h3 {
+    font-size: 1rem;
+  }
+  
+  .deck-detail {
+    padding: 1.25rem 0.875rem;
+  }
+  
+  .deck-detail-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .card-item {
+    padding: 0.5rem;
+  }
+  
+  .modal-content {
+    padding: 1.25rem;
+  }
+  
+  .modal-content h2 {
+    font-size: 1.2rem;
+  }
+  
+  .bug-report-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -842,6 +1238,48 @@ footer {
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+/* Scrollbar mobile - più sottile */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+}
+
+/* Touch feedback per elementi interattivi */
+@media (hover: none) and (pointer: coarse) {
+  /* Dispositivi touch */
+  button,
+  .deck-card,
+  .card-item,
+  .collection-item,
+  .source-option {
+    -webkit-tap-highlight-color: rgba(102, 126, 234, 0.2);
+  }
+  
+  /* Rimuovi hover effects su touch devices */
+  .deck-card:hover,
+  .card-item:hover,
+  .collection-item:hover {
+    transform: none;
+  }
+  
+  /* Aggiungi active states per feedback tattile */
+  .deck-card:active {
+    transform: scale(0.98);
+    transition: transform 0.1s;
+  }
+  
+  button:active {
+    transform: scale(0.95);
+    transition: transform 0.1s;
+  }
+  
+  .card-item:active {
+    transform: translateX(3px);
+    transition: transform 0.1s;
+  }
 }
 
 /* Animazioni */
@@ -1232,6 +1670,17 @@ footer {
   overflow-x: auto;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.3);
+  /* Migliora lo scrolling orizzontale su mobile */
+  -webkit-overflow-scrolling: touch;
+  /* Mostra sempre la scrollbar su mobile per indicare che è scrollabile */
+  scrollbar-width: thin;
+}
+
+@media (max-width: 768px) {
+  .preview-table-container {
+    /* Aggiungi un'ombra per indicare che c'è contenuto scrollabile */
+    box-shadow: inset -10px 0 10px -10px rgba(0, 0, 0, 0.5);
+  }
 }
 
 .preview-table {
@@ -1486,6 +1935,18 @@ footer {
   gap: 0.75rem;
   max-height: 300px;
   overflow-y: auto;
+  /* Migliora lo scrolling su iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Padding per evitare che il contenuto si nasconda sotto la scrollbar */
+  padding-right: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .collections-list {
+    max-height: 250px;
+    /* Rimuovi padding su mobile per massimizzare lo spazio */
+    padding-right: 0;
+  }
 }
 
 .collection-item {

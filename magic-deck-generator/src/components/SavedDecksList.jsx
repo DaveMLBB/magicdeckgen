@@ -12,6 +12,8 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
   const [deckToDelete, setDeckToDelete] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null)
+  const [showLimitModal, setShowLimitModal] = useState(false)
   const [newDeck, setNewDeck] = useState({
     name: '',
     description: '',
@@ -20,6 +22,16 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
     archetype: '',
     cardsText: ''
   })
+
+  // Limiti mazzi per tipo abbonamento
+  const DECK_LIMITS = {
+    'free': 3,
+    'premium': 5,
+    'premium_monthly': 5,
+    'premium_30': 10,
+    'premium_annual': -1, // illimitato
+    'lifetime': -1 // illimitato
+  }
 
   const translations = {
     it: {
@@ -56,7 +68,17 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
       cancel: 'Annulla',
       errorCreating: 'Errore nella creazione del mazzo',
       deckNameRequired: 'Il nome del mazzo è obbligatorio',
-      deckCardsRequired: 'Devi inserire almeno una carta'
+      deckCardsRequired: 'Devi inserire almeno una carta',
+      limitReached: 'Limite Mazzi Raggiunto',
+      limitReachedMessage: 'Hai raggiunto il limite di {limit} mazzi per il tuo piano {plan}.',
+      limitReachedUpgrade: 'Aggiorna il tuo abbonamento per salvare più mazzi:',
+      limitPremium: '• Premium (10 caricamenti/mese): fino a 5 mazzi',
+      limitPremium30: '• Premium (30 caricamenti/mese): fino a 10 mazzi',
+      limitAnnual: '• Premium Annuale: mazzi illimitati',
+      limitLifetime: '• Lifetime: mazzi illimitati',
+      upgradeNow: 'Aggiorna Ora',
+      deckCount: '{current} di {limit} mazzi salvati',
+      deckCountUnlimited: '{current} mazzi salvati'
     },
     en: {
       title: 'My Decks',
@@ -92,7 +114,17 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
       cancel: 'Cancel',
       errorCreating: 'Error creating deck',
       deckNameRequired: 'Deck name is required',
-      deckCardsRequired: 'You must enter at least one card'
+      deckCardsRequired: 'You must enter at least one card',
+      limitReached: 'Deck Limit Reached',
+      limitReachedMessage: 'You have reached the limit of {limit} decks for your {plan} plan.',
+      limitReachedUpgrade: 'Upgrade your subscription to save more decks:',
+      limitPremium: '• Premium (10 uploads/month): up to 5 decks',
+      limitPremium30: '• Premium (30 uploads/month): up to 10 decks',
+      limitAnnual: '• Premium Annual: unlimited decks',
+      limitLifetime: '• Lifetime: unlimited decks',
+      upgradeNow: 'Upgrade Now',
+      deckCount: '{current} of {limit} decks saved',
+      deckCountUnlimited: '{current} decks saved'
     }
   }
 
@@ -100,7 +132,18 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
 
   useEffect(() => {
     loadDecks()
+    loadSubscriptionStatus()
   }, [])
+
+  const loadSubscriptionStatus = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/subscriptions/status?token=${user.token}`)
+      const data = await res.json()
+      setSubscriptionStatus(data)
+    } catch (err) {
+      console.error('Error loading subscription status:', err)
+    }
+  }
 
   const loadDecks = async () => {
     setLoading(true)
@@ -138,6 +181,15 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
   }
 
   const handleCreateDeck = async () => {
+    // Controlla limiti prima di creare
+    if (subscriptionStatus) {
+      const limit = DECK_LIMITS[subscriptionStatus.subscription_type] || 3
+      if (limit !== -1 && decks.length >= limit) {
+        setShowLimitModal(true)
+        return
+      }
+    }
+
     // Validazione
     if (!newDeck.name.trim()) {
       alert(t.deckNameRequired)
@@ -258,6 +310,34 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
     return '#f5576c' // red
   }
 
+  const getDeckLimit = () => {
+    if (!subscriptionStatus) return 3
+    return DECK_LIMITS[subscriptionStatus.subscription_type] || 3
+  }
+
+  const canCreateDeck = () => {
+    const limit = getDeckLimit()
+    return limit === -1 || decks.length < limit
+  }
+
+  const getDeckCountText = () => {
+    const limit = getDeckLimit()
+    if (limit === -1) {
+      return t.deckCountUnlimited.replace('{current}', decks.length)
+    }
+    return t.deckCount.replace('{current}', decks.length).replace('{limit}', limit)
+  }
+
+  const getPlanName = () => {
+    if (!subscriptionStatus) return 'Free'
+    const type = subscriptionStatus.subscription_type
+    if (type === 'premium' || type === 'premium_monthly') return 'Premium (10/mese)'
+    if (type === 'premium_30') return 'Premium (30/mese)'
+    if (type === 'premium_annual') return 'Premium Annuale'
+    if (type === 'lifetime') return 'Lifetime'
+    return 'Free'
+  }
+
   return (
     <div className="saved-decks-list-page">
       <header className="decks-header">
@@ -271,9 +351,27 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
         </div>
         <div className="header-title-row">
           <h1>{t.title}</h1>
-          <button className="create-deck-btn" onClick={() => setShowCreateModal(true)}>
-            {t.createNewDeck}
-          </button>
+          <div className="header-right">
+            {subscriptionStatus && (
+              <div className="deck-counter">
+                {getDeckCountText()}
+              </div>
+            )}
+            <button 
+              className="create-deck-btn" 
+              onClick={() => {
+                if (canCreateDeck()) {
+                  setShowCreateModal(true)
+                } else {
+                  setShowLimitModal(true)
+                }
+              }}
+              disabled={!canCreateDeck()}
+              title={!canCreateDeck() ? t.limitReached : ''}
+            >
+              {t.createNewDeck}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -508,6 +606,48 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
                 ) : (
                   <>✓ {t.createDeck}</>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLimitModal && subscriptionStatus && (
+        <div className="modal-overlay" onClick={() => setShowLimitModal(false)}>
+          <div className="modal-content limit-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>⚠️ {t.limitReached}</h2>
+            <div className="limit-modal-content">
+              <p className="limit-message">
+                {t.limitReachedMessage
+                  .replace('{limit}', getDeckLimit())
+                  .replace('{plan}', getPlanName())}
+              </p>
+              <div className="upgrade-info">
+                <p className="upgrade-title">{t.limitReachedUpgrade}</p>
+                <ul className="upgrade-list">
+                  <li>{t.limitPremium}</li>
+                  <li>{t.limitPremium30}</li>
+                  <li>{t.limitAnnual}</li>
+                  <li>{t.limitLifetime}</li>
+                </ul>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button 
+                className="cancel-btn"
+                onClick={() => setShowLimitModal(false)}
+              >
+                {t.cancel}
+              </button>
+              <button 
+                className="upgrade-btn"
+                onClick={() => {
+                  setShowLimitModal(false)
+                  // Qui potresti aprire la modale subscriptions
+                  // onShowSubscriptions() se passi la prop
+                }}
+              >
+                💎 {t.upgradeNow}
               </button>
             </div>
           </div>

@@ -5,7 +5,7 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
   : 'http://localhost:8000'
 
-function Subscriptions({ user, onClose, language }) {
+function Subscriptions({ user, onBack, language }) {
   const [plans, setPlans] = useState([])
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -14,17 +14,18 @@ function Subscriptions({ user, onClose, language }) {
   const translations = {
     it: {
       title: 'Abbonamenti',
+      backToMain: '← Torna Indietro',
       currentPlan: 'Piano Attuale',
       uploads: 'Caricamenti',
       remaining: 'Rimanenti',
       collections: 'Collezioni',
       deckSearches: 'Ricerche Mazzi',
+      savedDecks: 'Mazzi Salvati',
       expiresAt: 'Scade il',
       lifetime: 'A vita',
       selectPlan: 'Scegli Piano',
       purchase: 'Acquista',
       purchasing: 'Acquisto in corso...',
-      close: 'Chiudi',
       month: 'mese',
       year: 'anno',
       forever: 'per sempre',
@@ -44,38 +45,34 @@ function Subscriptions({ user, onClose, language }) {
         'Yearly Unlimited': 'Annuale Illimitato',
         'Lifetime Unlimited': 'A Vita Illimitato'
       },
-      // Plan descriptions
+      // Plan descriptions with deck limits
       planDescriptions: {
         '3 free uploads': '3 caricamenti gratuiti',
         '10 uploads for 1 month': '10 caricamenti per 1 mese',
         '30 uploads for 1 month': '30 caricamenti per 1 mese',
         'Unlimited uploads for 1 year': 'Caricamenti illimitati per 1 anno',
         'Unlimited uploads forever': 'Caricamenti illimitati per sempre',
-        '3 uploads • 5 collections • 20 unique cards per collection': '3 caricamenti • 5 collezioni • 20 carte uniche per collezione',
-        '10 uploads/month • 10 collections • Unlimited cards': '10 caricamenti/mese • 10 collezioni • Carte illimitate',
-        '30 uploads/month • 50 collections • Unlimited cards': '30 caricamenti/mese • 50 collezioni • Carte illimitate',
-        'Unlimited uploads • Unlimited collections • Unlimited cards': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate',
-        'Unlimited uploads • Unlimited collections • Unlimited cards • Forever': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate • Per sempre',
-        '3 uploads • 5 collections • 20 unique cards per collection • 10 deck results': '3 caricamenti • 5 collezioni • 20 carte uniche per collezione • 10 risultati mazzi',
-        '10 uploads/month • 10 collections • Unlimited cards • 20 deck results': '10 caricamenti/mese • 10 collezioni • Carte illimitate • 20 risultati mazzi',
-        '30 uploads/month • 50 collections • Unlimited cards • 30 deck results': '30 caricamenti/mese • 50 collezioni • Carte illimitate • 30 risultati mazzi',
-        'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate • Risultati mazzi illimitati',
-        'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results • Forever': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate • Risultati mazzi illimitati • Per sempre'
+        '3 uploads • 5 collections • 20 unique cards per collection': '3 caricamenti • 5 collezioni • 20 carte uniche • 3 mazzi salvabili',
+        '10 uploads/month • 10 collections • Unlimited cards': '10 caricamenti/mese • 10 collezioni • Carte illimitate • 5 mazzi salvabili',
+        '30 uploads/month • 50 collections • Unlimited cards': '30 caricamenti/mese • 50 collezioni • Carte illimitate • 10 mazzi salvabili',
+        'Unlimited uploads • Unlimited collections • Unlimited cards': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate • Mazzi illimitati',
+        'Unlimited uploads • Unlimited collections • Unlimited cards • Forever': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate • Mazzi illimitati'
       }
     },
     en: {
       title: 'Subscriptions',
+      backToMain: '← Back',
       currentPlan: 'Current Plan',
       uploads: 'Uploads',
       remaining: 'Remaining',
       collections: 'Collections',
       deckSearches: 'Deck Searches',
+      savedDecks: 'Saved Decks',
       expiresAt: 'Expires on',
       lifetime: 'Lifetime',
       selectPlan: 'Choose Plan',
       purchase: 'Purchase',
       purchasing: 'Purchasing...',
-      close: 'Close',
       month: 'month',
       year: 'year',
       forever: 'forever',
@@ -87,7 +84,7 @@ function Subscriptions({ user, onClose, language }) {
       purchaseSuccess: '✅ Subscription activated successfully!',
       purchaseError: '❌ Error: ',
       purchaseErrorGeneric: '❌ Error during purchase',
-      // Plan names (no translation needed for English)
+      // Plan names
       planNames: {
         'Free': 'Free',
         '10 Uploads': '10 Uploads',
@@ -95,23 +92,18 @@ function Subscriptions({ user, onClose, language }) {
         'Yearly Unlimited': 'Yearly Unlimited',
         'Lifetime Unlimited': 'Lifetime Unlimited'
       },
-      // Plan descriptions (no translation needed for English)
+      // Plan descriptions with deck limits
       planDescriptions: {
         '3 free uploads': '3 free uploads',
         '10 uploads for 1 month': '10 uploads for 1 month',
         '30 uploads for 1 month': '30 uploads for 1 month',
         'Unlimited uploads for 1 year': 'Unlimited uploads for 1 year',
         'Unlimited uploads forever': 'Unlimited uploads forever',
-        '3 uploads • 5 collections • 20 unique cards per collection': '3 uploads • 5 collections • 20 unique cards per collection',
-        '10 uploads/month • 10 collections • Unlimited cards': '10 uploads/month • 10 collections • Unlimited cards',
-        '30 uploads/month • 50 collections • Unlimited cards': '30 uploads/month • 50 collections • Unlimited cards',
-        'Unlimited uploads • Unlimited collections • Unlimited cards': 'Unlimited uploads • Unlimited collections • Unlimited cards',
-        'Unlimited uploads • Unlimited collections • Unlimited cards • Forever': 'Unlimited uploads • Unlimited collections • Unlimited cards • Forever',
-        '3 uploads • 5 collections • 20 unique cards per collection • 10 deck results': '3 uploads • 5 collections • 20 unique cards per collection • 10 deck results',
-        '10 uploads/month • 10 collections • Unlimited cards • 20 deck results': '10 uploads/month • 10 collections • Unlimited cards • 20 deck results',
-        '30 uploads/month • 50 collections • Unlimited cards • 30 deck results': '30 uploads/month • 50 collections • Unlimited cards • 30 deck results',
-        'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results': 'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results',
-        'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results • Forever': 'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results • Forever'
+        '3 uploads • 5 collections • 20 unique cards per collection': '3 uploads • 5 collections • 20 unique cards • 3 saved decks',
+        '10 uploads/month • 10 collections • Unlimited cards': '10 uploads/month • 10 collections • Unlimited cards • 5 saved decks',
+        '30 uploads/month • 50 collections • Unlimited cards': '30 uploads/month • 50 collections • Unlimited cards • 10 saved decks',
+        'Unlimited uploads • Unlimited collections • Unlimited cards': 'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited decks',
+        'Unlimited uploads • Unlimited collections • Unlimited cards • Forever': 'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited decks'
       }
     }
   }
@@ -137,6 +129,56 @@ function Subscriptions({ user, onClose, language }) {
       console.error('Errore caricamento dati:', err)
     }
     setLoading(false)
+  }
+
+  // Funzione per tradurre e arricchire le descrizioni con i limiti mazzi
+  const translateDescription = (description, planId) => {
+    // Mappa dei limiti mazzi per piano
+    const deckLimits = {
+      'free': '3 mazzi salvabili',
+      'premium': '5 mazzi salvabili',
+      'premium_monthly': '5 mazzi salvabili',
+      'premium_30': '10 mazzi salvabili',
+      'premium_annual': 'Mazzi illimitati',
+      'lifetime': 'Mazzi illimitati'
+    }
+    
+    const deckLimitsEn = {
+      'free': '3 saved decks',
+      'premium': '5 saved decks',
+      'premium_monthly': '5 saved decks',
+      'premium_30': '10 saved decks',
+      'premium_annual': 'Unlimited decks',
+      'lifetime': 'Unlimited decks'
+    }
+    
+    // Traduzioni base
+    let translated = description
+    
+    if (language === 'it') {
+      translated = translated
+        .replace(/uploads/gi, 'caricamenti')
+        .replace(/collections/gi, 'collezioni')
+        .replace(/Unlimited/gi, 'Illimitate')
+        .replace(/unlimited/gi, 'illimitate')
+        .replace(/cards/gi, 'carte')
+        .replace(/unique/gi, 'uniche')
+        .replace(/per collection/gi, 'per collezione')
+        .replace(/month/gi, 'mese')
+        .replace(/year/gi, 'anno')
+        .replace(/forever/gi, 'per sempre')
+        .replace(/free/gi, 'gratuiti')
+      
+      // Aggiungi limite mazzi
+      const deckLimit = deckLimits[planId] || 'Mazzi illimitati'
+      translated = `${translated} • ${deckLimit}`
+    } else {
+      // Aggiungi limite mazzi in inglese
+      const deckLimit = deckLimitsEn[planId] || 'Unlimited decks'
+      translated = `${translated} • ${deckLimit}`
+    }
+    
+    return translated
   }
 
   const handlePurchase = async (planId) => {
@@ -170,64 +212,66 @@ function Subscriptions({ user, onClose, language }) {
 
   if (loading) {
     return (
-      <div className="modal-overlay">
-        <div className="modal-content subscriptions-modal">
-          <div className="spinner" style={{ width: '50px', height: '50px', margin: '2rem auto' }}></div>
+      <div className="subscriptions-page">
+        <div className="loading-container">
+          <div className="spinner" style={{ width: '50px', height: '50px' }}></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content subscriptions-modal">
-        <button className="close-modal-btn" onClick={onClose}>✕</button>
-        
-        <h2>{t.title}</h2>
+    <div className="subscriptions-page">
+      <header className="subscriptions-header">
+        <div className="header-top">
+          <button className="back-btn" onClick={onBack}>
+            {t.backToMain}
+          </button>
+          <div className="header-actions">
+            <span className="user-email">{user.email}</span>
+          </div>
+        </div>
+        <h1>{t.title}</h1>
+      </header>
 
+      <main className="subscriptions-main">
         {status && (
           <div className="current-subscription">
             <h3>{t.currentPlan}: {status.plan_name}</h3>
             <div className="subscription-stats">
               {/* Uploads */}
               <div className="stat">
-                <span className="stat-label">{t.uploads}:</span>
+                <span className="stat-label">{t.uploads}</span>
                 <span className="stat-value">{status.uploads_count} / {status.uploads_limit}</span>
               </div>
               
               {/* Collections */}
-              {status.collections_limit && (
+              {status.collections_limit ? (
                 <div className="stat">
-                  <span className="stat-label">{t.collections}:</span>
+                  <span className="stat-label">{t.collections}</span>
                   <span className="stat-value">{status.collections_count} / {status.collections_limit}</span>
                 </div>
-              )}
-              
-              {!status.collections_limit && (
+              ) : (
                 <div className="stat">
-                  <span className="stat-label">{t.collections}:</span>
+                  <span className="stat-label">{t.collections}</span>
                   <span className="stat-value highlight">{status.collections_count} / {t.unlimited}</span>
                 </div>
               )}
               
-              {/* Deck Searches */}
-              {status.searches_limit && (
-                <div className="stat">
-                  <span className="stat-label">{t.deckSearches}:</span>
-                  <span className="stat-value">{status.searches_count} / {status.searches_limit}</span>
-                </div>
-              )}
-              
-              {!status.searches_limit && (
-                <div className="stat">
-                  <span className="stat-label">{t.deckSearches}:</span>
-                  <span className="stat-value highlight">{status.searches_count} / {t.unlimited}</span>
-                </div>
-              )}
+              {/* Saved Decks */}
+              <div className="stat">
+                <span className="stat-label">{t.savedDecks}</span>
+                <span className="stat-value highlight">
+                  {status.subscription_type === 'free' ? '3' : 
+                   status.subscription_type === 'premium' || status.subscription_type === 'premium_monthly' ? '5' :
+                   status.subscription_type === 'premium_30' ? '10' :
+                   t.unlimited}
+                </span>
+              </div>
               
               {status.expires_at && (
                 <div className="stat">
-                  <span className="stat-label">{t.expiresAt}:</span>
+                  <span className="stat-label">{t.expiresAt}</span>
                   <span className="stat-value">{new Date(status.expires_at).toLocaleDateString()}</span>
                 </div>
               )}
@@ -240,22 +284,20 @@ function Subscriptions({ user, onClose, language }) {
           </div>
         )}
 
-        <h3 className="plans-title">{t.selectPlan}</h3>
+        <h2 className="plans-title">{t.selectPlan}</h2>
         
         <div className="plans-grid">
           {plans
             .filter(plan => {
-              // Se l'utente è free, mostra tutti i piani (incluso free per confronto)
               if (status?.subscription_type === 'free') {
                 return true
               }
-              // Se l'utente ha un abbonamento attivo, nascondi il piano free
               return plan.id !== 'free'
             })
             .map(plan => {
-              // Parse description to extract features
-              const descriptionText = t.planDescriptions[plan.description] || plan.description
-              const features = descriptionText.split(' • ')
+              // Traduci e arricchisci la descrizione
+              const descriptionText = translateDescription(plan.description, plan.id)
+              const features = descriptionText.split(' • ').filter(f => f.trim())
               
               return (
                 <div 
@@ -309,9 +351,11 @@ function Subscriptions({ user, onClose, language }) {
               )
             })}
         </div>
+      </main>
 
-        <button className="close-btn" onClick={onClose}>{t.close}</button>
-      </div>
+      <footer className="subscriptions-footer">
+        <p>Magic Deck Builder © 2026</p>
+      </footer>
     </div>
   )
 }
