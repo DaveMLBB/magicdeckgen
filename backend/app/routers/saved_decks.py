@@ -56,16 +56,13 @@ def get_user_decks(
     # Format response
     decks_data = []
     for deck in decks:
-        # Count cards
-        total_cards = db.query(SavedDeckCard).filter(
+        # Calcolo basato sulle quantità (coerente con ricerca compatibilità)
+        deck_cards = db.query(SavedDeckCard).filter(
             SavedDeckCard.deck_id == deck.id
-        ).count()
+        ).all()
         
-        # Count owned cards
-        owned_cards = db.query(SavedDeckCard).filter(
-            SavedDeckCard.deck_id == deck.id,
-            SavedDeckCard.is_owned == True
-        ).count()
+        total_cards = sum(c.quantity for c in deck_cards)
+        owned_cards = sum(min(c.quantity_owned, c.quantity) for c in deck_cards)
         
         # Calculate completion
         completion = int((owned_cards / total_cards * 100)) if total_cards > 0 else 0
@@ -182,10 +179,10 @@ def create_deck(
         db.commit()
     
     # Add cards and check ownership
-    owned_count = 0
+    total_cards_needed = 0
+    cards_owned_qty = 0
     for card_input in deck_input.cards:
         # Check if user owns this card in ANY of the linked collections
-        is_owned = False
         quantity_owned = 0
         
         if deck_input.collection_ids:
@@ -197,7 +194,6 @@ def create_deck(
                     Card.name == card_input.card_name
                 ).first()
                 if owned_card:
-                    is_owned = True
                     quantity_owned += owned_card.quantity_owned
         else:
             # Check in all user's cards if no collections linked
@@ -206,11 +202,11 @@ def create_deck(
                 Card.name == card_input.card_name
             ).first()
             if owned_card:
-                is_owned = True
                 quantity_owned = owned_card.quantity_owned
         
-        if is_owned:
-            owned_count += 1
+        # Calcolo basato sulle quantità (coerente con ricerca compatibilità)
+        total_cards_needed += card_input.quantity
+        cards_owned_qty += min(quantity_owned, card_input.quantity)
         
         # Enrich with MTG data if available
         mtg_card = db.query(MTGCard).filter(MTGCard.name == card_input.card_name).first()
@@ -233,14 +229,13 @@ def create_deck(
             colors=colors,
             mana_cost=mana_cost,
             rarity=rarity,
-            is_owned=is_owned,
+            is_owned=quantity_owned >= card_input.quantity,
             quantity_owned=quantity_owned
         )
         db.add(deck_card)
     
-    # Update completion percentage
-    total_cards = len(deck_input.cards)
-    deck.completion_percentage = int((owned_count / total_cards * 100)) if total_cards > 0 else 0
+    # Update completion percentage (basato sulle quantità, coerente con ricerca compatibilità)
+    deck.completion_percentage = int((cards_owned_qty / total_cards_needed * 100)) if total_cards_needed > 0 else 0
     
     db.commit()
     db.refresh(deck)
@@ -249,8 +244,8 @@ def create_deck(
         "id": deck.id,
         "name": deck.name,
         "completion_percentage": deck.completion_percentage,
-        "total_cards": total_cards,
-        "owned_cards": owned_count
+        "total_cards": total_cards_needed,
+        "owned_cards": cards_owned_qty
     }
 
 @router.get("/{deck_id}")
@@ -290,8 +285,8 @@ def get_deck_details(
     cards = db.query(SavedDeckCard).filter(SavedDeckCard.deck_id == deck_id).all()
     
     cards_data = []
-    owned_count = 0
-    missing_count = 0
+    total_cards_needed = 0
+    cards_owned_qty = 0
     
     for card in cards:
         # Calculate ownership if user_id provided
@@ -318,10 +313,12 @@ def get_deck_details(
             "quantity_missing": quantity_missing
         })
         
-        if is_owned:
-            owned_count += 1
-        else:
-            missing_count += 1
+        # Calcolo basato sulle quantità (coerente con ricerca compatibilità)
+        total_cards_needed += card.quantity
+        cards_owned_qty += min(owned_qty, card.quantity)
+    
+    # Ricalcola completion percentage in modo coerente
+    completion = int((cards_owned_qty / total_cards_needed * 100)) if total_cards_needed > 0 else 0
     
     return {
         "id": deck.id,
@@ -334,10 +331,10 @@ def get_deck_details(
         "is_public": deck.is_public,
         "collection_ids": collection_ids,
         "collection_names": collection_names,
-        "completion_percentage": deck.completion_percentage,
-        "total_cards": len(cards),
-        "owned_cards": owned_count,
-        "missing_cards": missing_count,
+        "completion_percentage": completion,
+        "total_cards": total_cards_needed,
+        "owned_cards": cards_owned_qty,
+        "missing_cards": max(0, total_cards_needed - cards_owned_qty),
         "cards": cards_data,
         "created_at": deck.created_at.isoformat(),
         "updated_at": deck.updated_at.isoformat()
@@ -457,7 +454,8 @@ def refresh_deck_ownership(
     # Get all deck cards
     deck_cards = db.query(SavedDeckCard).filter(SavedDeckCard.deck_id == deck_id).all()
     
-    owned_count = 0
+    total_cards_needed = 0
+    cards_owned_qty = 0
     for deck_card in deck_cards:
         # Check if user owns this card in ANY of the linked collections
         is_owned = False
@@ -484,23 +482,23 @@ def refresh_deck_ownership(
                 is_owned = True
                 quantity_owned = owned_card.quantity_owned
         
-        deck_card.is_owned = is_owned
+        deck_card.is_owned = quantity_owned >= deck_card.quantity
         deck_card.quantity_owned = quantity_owned
         
-        if is_owned:
-            owned_count += 1
+        # Calcolo basato sulle quantità (coerente con ricerca compatibilità)
+        total_cards_needed += deck_card.quantity
+        cards_owned_qty += min(quantity_owned, deck_card.quantity)
     
-    # Update completion percentage
-    total_cards = len(deck_cards)
-    deck.completion_percentage = int((owned_count / total_cards * 100)) if total_cards > 0 else 0
+    # Update completion percentage (basato sulle quantità, non sul conteggio booleano)
+    deck.completion_percentage = int((cards_owned_qty / total_cards_needed * 100)) if total_cards_needed > 0 else 0
     deck.updated_at = datetime.utcnow()
     
     db.commit()
     
     return {
         "completion_percentage": deck.completion_percentage,
-        "owned_cards": owned_count,
-        "total_cards": total_cards
+        "owned_cards": cards_owned_qty,
+        "total_cards": total_cards_needed
     }
 
 @router.get("/by-collection/{collection_id}")
@@ -587,7 +585,8 @@ def search_public_decks(
             SavedDeckCard.deck_id == deck.id
         ).all()
         
-        total_cards = len(deck_cards)
+        # Calcolo basato sulle quantità (coerente con ricerca compatibilità)
+        total_cards = sum(dc.quantity for dc in deck_cards)
         
         # Calculate match if user_id provided
         match_percentage = 0
@@ -598,10 +597,9 @@ def search_public_decks(
         if user_id and user_cards_dict:
             for deck_card in deck_cards:
                 owned_qty = user_cards_dict.get(deck_card.card_name, 0)
-                if owned_qty >= deck_card.quantity:
-                    cards_owned += 1
-                else:
-                    missing_cards_count += 1
+                cards_owned += min(owned_qty, deck_card.quantity)
+                missing_qty = max(0, deck_card.quantity - owned_qty)
+                missing_cards_count += missing_qty
             
             if total_cards > 0:
                 match_percentage = int((cards_owned / total_cards) * 100)

@@ -61,7 +61,7 @@ const CardImage = React.memo(function CardImage({ card }) {
           img.onerror = async () => {
             // Se l'immagine locale non esiste, carica da Scryfall
             if (mounted && !abortController.signal.aborted) {
-              const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
+              const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId)
               if (mounted) {
                 setImageUrl(scryfallUrl)
                 setLoading(false)
@@ -72,7 +72,7 @@ const CardImage = React.memo(function CardImage({ card }) {
         } else {
           // Carica direttamente da Scryfall
           if (!abortController.signal.aborted) {
-            const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
+            const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId)
             if (mounted) {
               setImageUrl(scryfallUrl)
               setLoading(false)
@@ -93,7 +93,7 @@ const CardImage = React.memo(function CardImage({ card }) {
       mounted = false
       abortController.abort()
     }
-  }, [isVisible, card.name, card.image_url, card.scryfallId])
+  }, [isVisible, card.name, card.name_en, card.image_url, card.scryfallId])
 
   if (!isVisible || loading) {
     return (
@@ -1040,7 +1040,7 @@ const CardDetailImage = React.memo(function CardDetailImage({ card }) {
           }
           img.onerror = async () => {
             if (mounted && !abortController.signal.aborted) {
-              const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
+              const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId)
               if (mounted) {
                 setImageUrl(scryfallUrl)
                 setLoading(false)
@@ -1050,7 +1050,7 @@ const CardDetailImage = React.memo(function CardDetailImage({ card }) {
           img.src = card.image_url
         } else {
           if (!abortController.signal.aborted) {
-            const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
+            const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId)
             if (mounted) {
               setImageUrl(scryfallUrl)
               setLoading(false)
@@ -1071,7 +1071,7 @@ const CardDetailImage = React.memo(function CardDetailImage({ card }) {
       mounted = false
       abortController.abort()
     }
-  }, [card.name, card.image_url, card.scryfallId])
+  }, [card.name, card.name_en, card.image_url, card.scryfallId])
 
   if (loading) {
     return (

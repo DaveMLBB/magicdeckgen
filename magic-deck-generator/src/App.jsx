@@ -289,6 +289,38 @@ function App() {
     }
   }
 
+  // Gestione verifica email da URL (/verify?token=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const verifyToken = params.get('token')
+    const isVerifyPage = window.location.pathname === '/verify'
+
+    if (isVerifyPage && verifyToken) {
+      const verifyEmail = async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/auth/verify/${verifyToken}`, {
+            method: 'POST'
+          })
+          const data = await res.json()
+          if (res.ok) {
+            setMessage('✅ Email verificata con successo! Ora puoi effettuare il login.')
+            localStorage.setItem('isVerified', 'true')
+            // Aggiorna user se già loggato
+            setUser(prev => prev ? { ...prev, isVerified: true } : prev)
+          } else {
+            setMessage(`❌ ${data.detail || 'Errore nella verifica'}`)
+          }
+        } catch (err) {
+          console.error('Errore verifica email:', err)
+          setMessage('❌ Errore nella verifica email')
+        }
+        // Pulisci URL
+        window.history.replaceState({}, '', '/')
+      }
+      verifyEmail()
+    }
+  }, [])
+
   // Verifica autenticazione all'avvio
   useEffect(() => {
     const checkAuth = async () => {

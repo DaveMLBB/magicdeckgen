@@ -39,8 +39,11 @@ def search_cards(
     """
     Ricerca avanzata carte MTG con filtri multipli
     """
-    # Base query
-    q = db.query(MTGCard)
+    # Base query - escludi carte senza immagine
+    q = db.query(MTGCard).filter(
+        MTGCard.image_url.isnot(None),
+        MTGCard.image_url != ''
+    )
     
     # Filtro per nome (cerca in entrambe le lingue)
     if query:

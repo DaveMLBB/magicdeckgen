@@ -39,13 +39,6 @@ function Auth({ onLogin, language, setLanguage }) {
       privacyPolicy: 'Privacy Policy',
       mustAcceptTerms: 'Devi accettare i Termini di Servizio e la Privacy Policy per registrarti',
       loginAcceptance: 'Effettuando il login accetti automaticamente i nostri',
-      testAccounts: 'Account di Test',
-      freeAccount: 'Account Free',
-      premiumAccount: 'Account Premium',
-      lifetimeAccount: 'Account Lifetime',
-      freeDesc: '3 caricamenti',
-      premiumDesc: '10 caricamenti/mese',
-      lifetimeDesc: 'Tutto illimitato',
       desktopRecommended: '💻 Per un\'esperienza ottimale, consigliamo l\'utilizzo su PC desktop',
       desktopRecommendedShort: 'Consigliato: PC Desktop'
     },
@@ -70,13 +63,6 @@ function Auth({ onLogin, language, setLanguage }) {
       privacyPolicy: 'Privacy Policy',
       mustAcceptTerms: 'You must accept the Terms of Service and Privacy Policy to register',
       loginAcceptance: 'By logging in, you automatically accept our',
-      testAccounts: 'Test Accounts',
-      freeAccount: 'Free Account',
-      premiumAccount: 'Premium Account',
-      lifetimeAccount: 'Lifetime Account',
-      freeDesc: '3 uploads',
-      premiumDesc: '10 uploads/month',
-      lifetimeDesc: 'Everything unlimited',
       desktopRecommended: '💻 For the best experience, we recommend using a desktop PC',
       desktopRecommendedShort: 'Recommended: Desktop PC'
     }
@@ -169,19 +155,6 @@ function Auth({ onLogin, language, setLanguage }) {
     setLoading(false)
   }
 
-  const useTestAccount = (accountType) => {
-    if (accountType === 'free') {
-      setEmail('test@example.com')
-      setPassword('test123')
-    } else if (accountType === 'premium') {
-      setEmail('premium@example.com')
-      setPassword('premium123')
-    } else if (accountType === 'lifetime') {
-      setEmail('lifetime@example.com')
-      setPassword('lifetime123')
-    }
-    setIsLogin(true)
-  }
 
   const [showAuthForm, setShowAuthForm] = useState(false)
 
@@ -688,43 +661,6 @@ function Auth({ onLogin, language, setLanguage }) {
             {isLogin ? t.switchToRegister : t.switchToLogin}
           </button>
 
-          <div className="test-accounts-section">
-            <p className="test-label">{t.testAccounts}</p>
-            <div className="test-accounts-grid">
-              <button 
-                className="test-account-btn free" 
-                onClick={() => useTestAccount('free')}
-                disabled={loading}
-              >
-                <div className="test-account-icon">🆓</div>
-                <div className="test-account-title">{t.freeAccount}</div>
-                <div className="test-account-desc">{t.freeDesc}</div>
-                <div className="test-account-email">test@example.com</div>
-              </button>
-              
-              <button 
-                className="test-account-btn premium" 
-                onClick={() => useTestAccount('premium')}
-                disabled={loading}
-              >
-                <div className="test-account-icon">💎</div>
-                <div className="test-account-title">{t.premiumAccount}</div>
-                <div className="test-account-desc">{t.premiumDesc}</div>
-                <div className="test-account-email">premium@example.com</div>
-              </button>
-
-              <button 
-                className="test-account-btn lifetime" 
-                onClick={() => useTestAccount('lifetime')}
-                disabled={loading}
-              >
-                <div className="test-account-icon">⭐</div>
-                <div className="test-account-title">{t.lifetimeAccount}</div>
-                <div className="test-account-desc">{t.lifetimeDesc}</div>
-                <div className="test-account-email">lifetime@example.com</div>
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
