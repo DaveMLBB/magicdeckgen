@@ -95,7 +95,7 @@
   text-decoration: underline;
 }
 
-.modal-overlay {
+.legal-pages .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -108,7 +108,7 @@
   z-index: 10000;
 }
 
-.modal-content {
+.legal-pages .modal-content {
   background: white;
   border-radius: 12px;
   padding: 2rem;
@@ -117,12 +117,12 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.modal-content h2 {
+.legal-pages .modal-content h2 {
   margin: 0 0 1rem 0;
   color: #333;
 }
 
-.modal-content p {
+.legal-pages .modal-content p {
   color: #666;
   margin: 1rem 0;
   line-height: 1.6;
@@ -216,7 +216,7 @@
     font-size: 1.1rem;
   }
 
-  .modal-content {
+  .legal-pages .modal-content {
     padding: 1.5rem;
   }
 

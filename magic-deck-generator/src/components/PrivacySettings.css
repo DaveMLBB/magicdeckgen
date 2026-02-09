@@ -278,7 +278,7 @@ input:disabled + .toggle-slider {
   color: #721c24;
 }
 
-.modal-overlay {
+.privacy-settings .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -291,7 +291,7 @@ input:disabled + .toggle-slider {
   z-index: 10000;
 }
 
-.modal-content {
+.privacy-settings .modal-content {
   background: white;
   border-radius: 12px;
   padding: 2rem;
@@ -300,7 +300,7 @@ input:disabled + .toggle-slider {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.modal-content h2 {
+.privacy-settings .modal-content h2 {
   margin: 0 0 1rem 0;
   color: #333;
 }
@@ -422,7 +422,7 @@ input:disabled + .toggle-slider {
     gap: 1rem;
   }
 
-  .modal-content {
+  .privacy-settings .modal-content {
     padding: 1.5rem;
   }
 

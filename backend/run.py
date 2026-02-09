@@ -1,5 +1,9 @@
 import uvicorn
 import os
+from dotenv import load_dotenv
+
+# Carica variabili d'ambiente da .env
+load_dotenv()
 
 # Crea cartella data se non esiste
 os.makedirs("data", exist_ok=True)

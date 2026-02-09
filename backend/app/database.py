@@ -6,19 +6,27 @@ from pathlib import Path
 
 # Ottieni il path assoluto della cartella backend
 BACKEND_DIR = Path(__file__).parent.parent
-DB_PATH = BACKEND_DIR / "data" / "magic.db"
 
-# SQLite con persistenza su file (come H2 file mode)
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
+# Database URL da variabile d'ambiente (default: PostgreSQL locale)
+SQLALCHEMY_DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql://magicdeckgen:magicdeckgen_dev@localhost:5432/magicdeckgen"
+)
 
 # Log per debug
 print(f"🔍 Backend directory: {BACKEND_DIR}")
-print(f"🔍 Database path: {DB_PATH}")
+print(f"🔍 Database URL: {SQLALCHEMY_DATABASE_URL.split('@')[0]}@***")
 print(f"🔍 Current working directory: {os.getcwd()}")
 
+# Configurazione engine in base al tipo di database
+connect_args = {}
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, 
-    connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL,
+    connect_args=connect_args,
+    pool_pre_ping=True,
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
