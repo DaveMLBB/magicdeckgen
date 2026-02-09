@@ -560,6 +560,9 @@ function App() {
       setCards(formattedCards)
       setMessage(`✓ ${t.collectionLoaded}: ${formattedCards.length} ${t.cardsLoaded}`)
       setShowCollectionSelector(false)
+      
+      // Imposta la collezione caricata come filtro di ricerca predefinito
+      setFilters(prev => ({ ...prev, collectionId: collectionId }))
     } catch (err) {
       console.error('Error loading collection:', err)
       setMessage(t.errorUploading)
@@ -646,6 +649,9 @@ function App() {
       loadCards()
       loadSearchCollections()
       loadSubscriptionStatus()
+      
+      // Imposta la collezione appena creata come filtro di ricerca predefinito
+      setFilters(prev => ({ ...prev, collectionId: newCollection.id }))
       
       // Chiudi il mapper
       setShowColumnMapper(false)

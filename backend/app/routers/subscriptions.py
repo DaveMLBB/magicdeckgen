@@ -413,6 +413,55 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     
     return {"status": "ok"}
 
+@router.post("/verify-session")
+def verify_stripe_session(token: str, session_id: str = None, plan: str = None, db: Session = Depends(get_db)):
+    """Verifica una Stripe Checkout Session e attiva l'abbonamento.
+    Fallback per quando il webhook non è raggiungibile (es. sviluppo locale)."""
+    user = get_current_user(token, db)
+    
+    if session_id and STRIPE_SECRET_KEY:
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            if session.payment_status == 'paid':
+                metadata = session.metadata or {}
+                plan_id = metadata.get('plan_id', plan)
+                session_user_id = metadata.get('user_id')
+                
+                # Verifica che la sessione appartenga a questo utente
+                if session_user_id and int(session_user_id) == user.id:
+                    if plan_id and plan_id in SUBSCRIPTION_PLANS and user.subscription_type != plan_id:
+                        activate_subscription(user, plan_id, db)
+                        logger.info(f"Session verified: user={user.id}, plan={plan_id}")
+                        return {"status": "activated", "plan": plan_id}
+                    return {"status": "already_active", "plan": user.subscription_type}
+                else:
+                    raise HTTPException(status_code=403, detail="Session does not belong to this user")
+            else:
+                return {"status": "not_paid", "payment_status": session.payment_status}
+        except stripe.StripeError as e:
+            logger.error(f"Stripe verify error: {e}")
+            raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
+    
+    # Fallback: se non c'è session_id ma c'è plan, verifica via Stripe customer
+    if plan and plan in SUBSCRIPTION_PLANS and user.stripe_customer_id and STRIPE_SECRET_KEY:
+        try:
+            sessions = stripe.checkout.Session.list(
+                customer=user.stripe_customer_id,
+                limit=5
+            )
+            for s in sessions.data:
+                if s.payment_status == 'paid':
+                    meta_plan = (s.metadata or {}).get('plan_id', '')
+                    if meta_plan == plan and user.subscription_type != plan:
+                        activate_subscription(user, plan, db)
+                        logger.info(f"Session found by customer: user={user.id}, plan={plan}")
+                        return {"status": "activated", "plan": plan}
+            return {"status": "no_paid_session_found"}
+        except stripe.StripeError as e:
+            logger.error(f"Stripe list sessions error: {e}")
+    
+    return {"status": "no_action", "current_plan": user.subscription_type}
+
 @router.get("/stripe-config")
 def get_stripe_config():
     """Restituisce la publishable key per il frontend"""

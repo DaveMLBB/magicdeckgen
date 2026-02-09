@@ -206,11 +206,24 @@ function Subscriptions({ user, onBack, language }) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const stripeStatus = params.get('stripe_status')
+    const plan = params.get('plan')
     if (stripeStatus === 'success') {
-      alert(t.paymentSuccess)
-      // Pulisci URL
-      window.history.replaceState({}, '', window.location.pathname)
-      loadData()
+      // Verifica la sessione Stripe e attiva l'abbonamento
+      const verifySession = async () => {
+        try {
+          const verifyRes = await fetch(`${API_URL}/api/subscriptions/verify-session?token=${user.token}&plan=${plan || ''}`, {
+            method: 'POST'
+          })
+          const verifyData = await verifyRes.json()
+          console.log('Stripe verify result:', verifyData)
+        } catch (err) {
+          console.error('Error verifying Stripe session:', err)
+        }
+        alert(t.paymentSuccess)
+        window.history.replaceState({}, '', window.location.pathname)
+        loadData()
+      }
+      verifySession()
     } else if (stripeStatus === 'cancel') {
       alert(t.paymentCancelled)
       window.history.replaceState({}, '', window.location.pathname)
