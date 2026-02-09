@@ -27,6 +27,14 @@ class CreateDeckInput(BaseModel):
     collection_ids: List[int] = []  # Lista di collezioni collegate
     cards: List[DeckCardInput]
 
+class EditDeckInput(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    format: Optional[str] = None
+    colors: Optional[str] = None
+    archetype: Optional[str] = None
+    cards: Optional[List[DeckCardInput]] = None
+
 @router.get("/user/{user_id}")
 def get_user_decks(
     user_id: int,
@@ -414,6 +422,170 @@ def update_deck(
     
     return {"message": "Deck updated successfully"}
 
+@router.put("/{deck_id}/edit")
+def edit_deck(
+    deck_id: int,
+    user_id: int,
+    deck_input: EditDeckInput,
+    db: Session = Depends(get_db)
+):
+    """Modifica completa di un mazzo: metadati e/o carte"""
+    deck = db.query(SavedDeck).filter(SavedDeck.id == deck_id).first()
+    if not deck:
+        raise HTTPException(status_code=404, detail="Deck not found")
+    if deck.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Aggiorna metadati (solo se forniti)
+    if deck_input.name is not None:
+        deck.name = deck_input.name
+    if deck_input.description is not None:
+        deck.description = deck_input.description
+    if deck_input.format is not None:
+        deck.format = deck_input.format
+    if deck_input.colors is not None:
+        deck.colors = deck_input.colors
+    if deck_input.archetype is not None:
+        deck.archetype = deck_input.archetype
+    
+    # Aggiorna carte (se fornite)
+    if deck_input.cards is not None:
+        # Elimina carte esistenti
+        db.query(SavedDeckCard).filter(SavedDeckCard.deck_id == deck_id).delete()
+        
+        # Inserisci nuove carte
+        for card_input in deck_input.cards:
+            mtg_card = db.query(MTGCard).filter(MTGCard.name == card_input.card_name).first()
+            if mtg_card:
+                card_type = mtg_card.types.split(',')[0].strip() if mtg_card.types else card_input.card_type
+                colors = mtg_card.colors or card_input.colors
+                mana_cost = mtg_card.mana_cost or card_input.mana_cost
+                rarity = mtg_card.rarity or card_input.rarity
+            else:
+                card_type = card_input.card_type
+                colors = card_input.colors
+                mana_cost = card_input.mana_cost
+                rarity = card_input.rarity
+            
+            deck_card = SavedDeckCard(
+                deck_id=deck.id,
+                card_name=card_input.card_name,
+                quantity=card_input.quantity,
+                card_type=card_type,
+                colors=colors,
+                mana_cost=mana_cost,
+                rarity=rarity,
+                is_owned=False,
+                quantity_owned=0
+            )
+            db.add(deck_card)
+    
+    deck.updated_at = datetime.utcnow()
+    db.commit()
+    
+    # Refresh ownership dopo modifica
+    from app.models import saved_deck_collections
+    linked_collection_ids = db.query(saved_deck_collections.c.collection_id).filter(
+        saved_deck_collections.c.deck_id == deck_id
+    ).all()
+    linked_collection_ids = [c[0] for c in linked_collection_ids]
+    
+    if linked_collection_ids or deck_input.cards is not None:
+        refresh_deck_ownership(deck_id, user_id, db)
+    
+    return {"message": "Deck updated successfully", "id": deck.id}
+
+@router.post("/{deck_id}/duplicate")
+def duplicate_deck(
+    deck_id: int,
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """Duplica un mazzo esistente"""
+    # Verifica utente
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verifica limiti
+    saved_decks_limits = {
+        'free': 3,
+        'monthly_10': 10,
+        'monthly_30': 30,
+        'yearly': 50,
+        'lifetime': None
+    }
+    saved_decks_limit = saved_decks_limits.get(user.subscription_type, 3)
+    current_decks_count = db.query(SavedDeck).filter(SavedDeck.user_id == user_id).count()
+    if saved_decks_limit is not None and current_decks_count >= saved_decks_limit:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Deck limit reached ({saved_decks_limit}). Upgrade to save more decks."
+        )
+    
+    # Carica mazzo originale
+    original = db.query(SavedDeck).filter(SavedDeck.id == deck_id).first()
+    if not original:
+        raise HTTPException(status_code=404, detail="Deck not found")
+    
+    # Crea copia
+    new_deck = SavedDeck(
+        name=f"{original.name} (copy)",
+        description=original.description,
+        format=original.format,
+        colors=original.colors,
+        archetype=original.archetype,
+        source=original.source,
+        is_public=False,
+        user_id=user_id,
+        completion_percentage=0,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    db.add(new_deck)
+    db.flush()  # Per ottenere l'ID
+    
+    # Copia carte
+    original_cards = db.query(SavedDeckCard).filter(SavedDeckCard.deck_id == deck_id).all()
+    for card in original_cards:
+        new_card = SavedDeckCard(
+            deck_id=new_deck.id,
+            card_name=card.card_name,
+            quantity=card.quantity,
+            card_type=card.card_type,
+            colors=card.colors,
+            mana_cost=card.mana_cost,
+            rarity=card.rarity,
+            is_owned=False,
+            quantity_owned=0
+        )
+        db.add(new_card)
+    
+    # Copia collezioni collegate
+    from app.models import saved_deck_collections
+    linked = db.query(saved_deck_collections.c.collection_id).filter(
+        saved_deck_collections.c.deck_id == deck_id
+    ).all()
+    for (coll_id,) in linked:
+        db.execute(
+            saved_deck_collections.insert().values(
+                deck_id=new_deck.id,
+                collection_id=coll_id
+            )
+        )
+    
+    db.commit()
+    
+    # Refresh ownership sulla copia
+    if linked:
+        refresh_deck_ownership(new_deck.id, user_id, db)
+    
+    return {
+        "message": "Deck duplicated successfully",
+        "id": new_deck.id,
+        "name": new_deck.name
+    }
+
 @router.post("/{deck_id}/collections")
 def update_deck_collections(
     deck_id: int,
@@ -570,6 +742,7 @@ def search_public_decks(
     user_id: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
     colors: Optional[str] = Query(None),
+    collection_id: Optional[int] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)
@@ -597,7 +770,10 @@ def search_public_decks(
     # Get user's cards if user_id provided (for match calculation)
     user_cards_dict = {}
     if user_id:
-        user_cards = db.query(Card).filter(Card.user_id == user_id).all()
+        cards_q = db.query(Card).filter(Card.user_id == user_id)
+        if collection_id:
+            cards_q = cards_q.filter(Card.collection_id == collection_id)
+        user_cards = cards_q.all()
         for card in user_cards:
             if card.name in user_cards_dict:
                 user_cards_dict[card.name] += card.quantity_owned

@@ -19,6 +19,12 @@ function SavedDeck({ user, deck, onBack, language }) {
   const [loadingCollections, setLoadingCollections] = useState(false)
   const [updatingCollections, setUpdatingCollections] = useState(false)
   
+  // Edit/Duplicate states
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editData, setEditData] = useState({ name: '', description: '', format: '', colors: '', archetype: '', cardsText: '' })
+  const [saving, setSaving] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
+  
   // Card preview states
   const [hoveredCard, setHoveredCard] = useState(null)
   const [cardImageUrl, setCardImageUrl] = useState(null)
@@ -56,7 +62,22 @@ function SavedDeck({ user, deck, onBack, language }) {
       missing: 'Mancante',
       quantity: 'Quantità',
       have: 'Hai',
-      need: 'Servono'
+      need: 'Servono',
+      editDeck: 'Modifica',
+      duplicateDeck: 'Duplica',
+      editDeckTitle: 'Modifica Mazzo',
+      deckName: 'Nome Mazzo',
+      deckDescription: 'Descrizione',
+      deckFormat: 'Formato',
+      deckColors: 'Colori',
+      deckArchetype: 'Archetipo',
+      deckCards: 'Carte',
+      deckCardsHelp: 'Formato: "4 Lightning Bolt" (una carta per riga)',
+      saveChanges: 'Salva Modifiche',
+      savingChanges: 'Salvando...',
+      duplicating: 'Duplicando...',
+      duplicateSuccess: 'Mazzo duplicato!',
+      editSuccess: 'Mazzo aggiornato!'
     },
     en: {
       backToDecks: '← Back to Decks',
@@ -89,7 +110,22 @@ function SavedDeck({ user, deck, onBack, language }) {
       missing: 'Missing',
       quantity: 'Quantity',
       have: 'Have',
-      need: 'Need'
+      need: 'Need',
+      editDeck: 'Edit',
+      duplicateDeck: 'Duplicate',
+      editDeckTitle: 'Edit Deck',
+      deckName: 'Deck Name',
+      deckDescription: 'Description',
+      deckFormat: 'Format',
+      deckColors: 'Colors',
+      deckArchetype: 'Archetype',
+      deckCards: 'Cards',
+      deckCardsHelp: 'Format: "4 Lightning Bolt" (one card per line)',
+      saveChanges: 'Save Changes',
+      savingChanges: 'Saving...',
+      duplicating: 'Duplicating...',
+      duplicateSuccess: 'Deck duplicated!',
+      editSuccess: 'Deck updated!'
     }
   }
 
@@ -179,6 +215,85 @@ function SavedDeck({ user, deck, onBack, language }) {
     setUpdatingPublic(false)
   }
 
+  const handleOpenEdit = () => {
+    if (!deckDetails) return
+    const cardsText = deckDetails.cards
+      .map(c => `${c.quantity} ${c.card_name}`)
+      .join('\n')
+    setEditData({
+      name: deckDetails.name || '',
+      description: deckDetails.description || '',
+      format: deckDetails.format || '',
+      colors: deckDetails.colors || '',
+      archetype: deckDetails.archetype || '',
+      cardsText
+    })
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = async () => {
+    setSaving(true)
+    try {
+      const cards = editData.cardsText
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line)
+        .map(line => {
+          const match = line.match(/^(\d+)x?\s+(.+)$/i)
+          if (match) {
+            return { card_name: match[2].trim(), quantity: parseInt(match[1]) }
+          }
+          return null
+        })
+        .filter(Boolean)
+
+      const body = {}
+      if (editData.name !== deckDetails.name) body.name = editData.name
+      if (editData.description !== (deckDetails.description || '')) body.description = editData.description
+      if (editData.format !== (deckDetails.format || '')) body.format = editData.format
+      if (editData.colors !== (deckDetails.colors || '')) body.colors = editData.colors
+      if (editData.archetype !== (deckDetails.archetype || '')) body.archetype = editData.archetype
+      if (cards.length > 0) body.cards = cards
+
+      const res = await fetch(
+        `${API_URL}/api/saved-decks/${deck.id}/edit?user_id=${user.userId}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        }
+      )
+
+      if (res.ok) {
+        setShowEditModal(false)
+        await loadDeckDetails()
+      }
+    } catch (err) {
+      console.error('Error editing deck:', err)
+    }
+    setSaving(false)
+  }
+
+  const handleDuplicate = async () => {
+    setDuplicating(true)
+    try {
+      const res = await fetch(
+        `${API_URL}/api/saved-decks/${deck.id}/duplicate?user_id=${user.userId}`,
+        { method: 'POST' }
+      )
+      const data = await res.json()
+      if (res.ok) {
+        alert(t.duplicateSuccess)
+        onBack()
+      } else {
+        alert(data.detail || 'Error')
+      }
+    } catch (err) {
+      console.error('Error duplicating deck:', err)
+    }
+    setDuplicating(false)
+  }
+
   const handleRefreshOwnership = async () => {
     setRefreshing(true)
     try {
@@ -256,13 +371,28 @@ function SavedDeck({ user, deck, onBack, language }) {
           <button className="back-btn" onClick={onBack}>
             {t.backToDecks}
           </button>
-          <button 
-            className="refresh-btn"
-            onClick={handleRefreshOwnership}
-            disabled={refreshing}
-          >
-            {refreshing ? t.refreshing : t.refreshOwnership}
-          </button>
+          <div className="header-buttons">
+            <button 
+              className="edit-btn"
+              onClick={handleOpenEdit}
+            >
+              ✏️ {t.editDeck}
+            </button>
+            <button 
+              className="duplicate-btn"
+              onClick={handleDuplicate}
+              disabled={duplicating}
+            >
+              {duplicating ? t.duplicating : `📋 ${t.duplicateDeck}`}
+            </button>
+            <button 
+              className="refresh-btn"
+              onClick={handleRefreshOwnership}
+              disabled={refreshing}
+            >
+              {refreshing ? t.refreshing : t.refreshOwnership}
+            </button>
+          </div>
         </div>
 
         <div className="deck-title-section">
@@ -537,6 +667,103 @@ function SavedDeck({ user, deck, onBack, language }) {
                   </>
                 ) : (
                   <>✓ {t.saveCollections}</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Deck Modal */}
+      {showEditModal && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-content edit-deck-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>{t.editDeckTitle}</h2>
+            
+            <div className="form-group">
+              <label>{t.deckName}</label>
+              <input
+                type="text"
+                value={editData.name}
+                onChange={(e) => setEditData({...editData, name: e.target.value})}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>{t.deckDescription}</label>
+              <input
+                type="text"
+                value={editData.description}
+                onChange={(e) => setEditData({...editData, description: e.target.value})}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>{t.deckFormat}</label>
+                <input
+                  type="text"
+                  value={editData.format}
+                  onChange={(e) => setEditData({...editData, format: e.target.value})}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>{t.deckColors}</label>
+                <input
+                  type="text"
+                  value={editData.colors}
+                  onChange={(e) => setEditData({...editData, colors: e.target.value})}
+                  className="form-input"
+                  placeholder="W,U,B,R,G"
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>{t.deckArchetype}</label>
+              <input
+                type="text"
+                value={editData.archetype}
+                onChange={(e) => setEditData({...editData, archetype: e.target.value})}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>{t.deckCards}</label>
+              <textarea
+                value={editData.cardsText}
+                onChange={(e) => setEditData({...editData, cardsText: e.target.value})}
+                className="form-textarea"
+                rows="12"
+              />
+              <small className="form-help">{t.deckCardsHelp}</small>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                className="cancel-btn"
+                onClick={() => setShowEditModal(false)}
+                disabled={saving}
+              >
+                {t.cancel}
+              </button>
+              <button 
+                className="confirm-btn"
+                onClick={handleSaveEdit}
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <span className="spinner"></span>
+                    {t.savingChanges}
+                  </>
+                ) : (
+                  <>✓ {t.saveChanges}</>
                 )}
               </button>
             </div>

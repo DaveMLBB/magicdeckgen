@@ -38,12 +38,14 @@ function App() {
   const [loadedDeckIds, setLoadedDeckIds] = useState(new Set()) // Track which decks have been loaded
   const [filters, setFilters] = useState({
     colors: [],
-    minMatch: 10,
+    minMatch: 80,
     buildableOnly: false,
     formats: [],
-    deckSource: 'system' // 'system', 'users', 'both'
+    deckSource: 'system', // 'system', 'users', 'both'
+    collectionId: null // collezione specifica per la ricerca
   })
   const [availableFormats, setAvailableFormats] = useState([])
+  const [searchCollections, setSearchCollections] = useState([])
   
   // Stati per il mapping delle colonne
   const [showColumnMapper, setShowColumnMapper] = useState(false)
@@ -71,7 +73,7 @@ function App() {
       title: '🃏 Magic Deck Matcher',
       subtitle: 'Carica le tue carte e scopri quali mazzi competitivi puoi costruire',
       uploadBtn: '📁 Carica Collezione (Excel/CSV)',
-      uploading: 'Caricamento...',
+      uploading: 'Ricerca...',
       cardsLoaded: 'carte caricate',
       searchFilters: '🔍 Filtri di Ricerca',
       colors: 'Colori:',
@@ -80,8 +82,10 @@ function App() {
       buildableOnly: 'Solo mazzi costruibili (≥90%)',
       resetFilters: '🔄 Reset Filtri',
       findDecks: '🔍 Trova Mazzi Compatibili',
-      analyzing: 'Analizzando mazzi...',
+      analyzing: 'Ricerca...',
       deckSearchDisclaimer: 'Una singola richiesta può richiedere fino a 10 minuti se molto estesa.',
+      searchCollection: 'Collezione:',
+      allCollections: 'Tutte le collezioni',
       deckSource: 'Fonte Mazzi:',
       deckSourceSystem: 'Solo Sistema',
       deckSourceUsers: 'Solo Utenti',
@@ -175,8 +179,10 @@ function App() {
       buildableOnly: 'Buildable decks only (≥90%)',
       resetFilters: '🔄 Reset Filters',
       findDecks: '🔍 Find Compatible Decks',
-      analyzing: 'Analyzing decks...',
+      analyzing: 'Loading...',
       deckSearchDisclaimer: 'A single request can take up to 10 minutes if very extensive.',
+      searchCollection: 'Collection:',
+      allCollections: 'All collections',
       deckSource: 'Deck Source:',
       deckSourceSystem: 'System Only',
       deckSourceUsers: 'Users Only',
@@ -289,6 +295,15 @@ function App() {
     }
   }
 
+  // Gestione ritorno da Stripe Checkout
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const stripeStatus = params.get('stripe_status')
+    if (stripeStatus) {
+      setCurrentView('subscriptions')
+    }
+  }, [])
+
   // Gestione verifica email da URL (/verify?token=...)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -349,6 +364,7 @@ function App() {
     if (user) {
       loadAvailableFormats()
       loadSubscriptionStatus()
+      loadSearchCollections()
     }
   }, [language, user])
 
@@ -597,6 +613,7 @@ function App() {
       const data = await uploadRes.json()
       setMessage(`✓ ${data.message}`)
       loadCards()
+      loadSearchCollections()
       loadSubscriptionStatus()
       
       // Chiudi il mapper
@@ -635,6 +652,16 @@ function App() {
     }
   }
 
+  const loadSearchCollections = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/collections/user/${user.userId}`)
+      const data = await res.json()
+      setSearchCollections(data.collections || data || [])
+    } catch (err) {
+      console.error('Errore caricamento collezioni per ricerca:', err)
+    }
+  }
+
   const generateDecks = async () => {
     // Se non è selezionato un formato, mostra avviso
     if (filters.formats.length === 0) {
@@ -670,6 +697,10 @@ function App() {
           params.append('buildable_only', 'true')
         }
         
+        if (filters.collectionId) {
+          params.append('collection_id', filters.collectionId)
+        }
+        
         const url = `${API_URL}/api/decks/match/${user.userId}?${params.toString()}`
         console.log('🔍 Ricerca mazzi sistema:', url)
         
@@ -697,6 +728,10 @@ function App() {
         }
         
         params.append('page_size', '100') // Prendi più risultati
+        
+        if (filters.collectionId) {
+          params.append('collection_id', filters.collectionId)
+        }
         
         const url = `${API_URL}/api/saved-decks/public/search?${params.toString()}`
         console.log('🔍 Ricerca mazzi utenti:', url)
@@ -786,8 +821,9 @@ function App() {
   const resetFilters = () => {
     setFilters({
       colors: [],
-      minMatch: 10,
+      minMatch: 80,
       buildableOnly: false,
+      collectionId: null,
       formats: [],
       deckSource: 'system'
     })
@@ -1322,6 +1358,24 @@ function App() {
                 </div>
               </div>
 
+              {searchCollections.length > 0 && (
+                <div className="filter-group">
+                  <label>{t.searchCollection}</label>
+                  <select
+                    className="collection-select"
+                    value={filters.collectionId || ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, collectionId: e.target.value ? parseInt(e.target.value) : null }))}
+                  >
+                    <option value="">{t.allCollections}</option>
+                    {searchCollections.map(col => (
+                      <option key={col.id} value={col.id}>
+                        {col.name} ({col.card_count || 0})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="filter-group">
                 <label>{t.deckSource}</label>
                 <div className="deck-source-filters">
@@ -1372,7 +1426,7 @@ function App() {
                 </label>
               </div>
 
-              {(filters.colors.length > 0 || filters.minMatch > 10 || filters.buildableOnly || filters.formats.length > 0 || filters.deckSource !== 'system') && (
+              {(filters.colors.length > 0 || filters.minMatch > 10 || filters.buildableOnly || filters.formats.length > 0 || filters.deckSource !== 'system' || filters.collectionId) && (
                 <button className="reset-filters-btn-inline" onClick={resetFilters}>
                   🔄 Reset Filtri
                 </button>
@@ -1389,7 +1443,7 @@ function App() {
             <button className="generate-btn" onClick={generateDecks} disabled={deckLoading}>
               {deckLoading ? (
                 <>
-                  <span className="spinner"></span>
+                  <span style={{ alignItems: 'center' }} className="spinner"></span>
                   {t.analyzing}
                 </>
               ) : (

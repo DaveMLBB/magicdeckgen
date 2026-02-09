@@ -4,7 +4,7 @@ from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional
 from app.database import get_db
-from app.models import CardCollection, Card, User
+from app.models import CardCollection, Card, User, saved_deck_collections
 from datetime import datetime
 
 router = APIRouter()
@@ -179,6 +179,9 @@ def delete_collection(collection_id: int, db: Session = Depends(get_db)):
     collection = db.query(CardCollection).filter(CardCollection.id == collection_id).first()
     if not collection:
         raise HTTPException(status_code=404, detail="Collection not found")
+    
+    # Delete saved_deck_collections associations
+    db.execute(saved_deck_collections.delete().where(saved_deck_collections.c.collection_id == collection_id))
     
     # Delete all cards in this collection
     db.query(Card).filter(Card.collection_id == collection_id).delete()

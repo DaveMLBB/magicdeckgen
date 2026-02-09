@@ -1,15 +1,34 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from app.database import get_db
 from app.models import User
 from jose import JWTError, jwt
+import stripe
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 SECRET_KEY = "your-secret-key-change-in-production"
 ALGORITHM = "HS256"
+
+# Stripe configuration
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+
+# Frontend URLs for redirect after checkout
+FRONTEND_URL = os.environ.get(
+    "FRONTEND_URL",
+    "https://magicdeckbuilder.app.cloudsw.site" if os.environ.get("PRODUCTION") else "http://localhost:5173"
+)
+
+if STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
 
 # Subscription plans
 SUBSCRIPTION_PLANS = {
@@ -48,6 +67,15 @@ SUBSCRIPTION_PLANS = {
         'duration_days': None,  # No expiration
         'description': 'Unlimited uploads • Unlimited collections • Unlimited saved decks • Unlimited cards • Unlimited deck results • Forever'
     }
+}
+
+# Stripe Price IDs mapping (set via env vars or Stripe Dashboard)
+# Format: STRIPE_PRICE_MONTHLY_10=price_xxx
+STRIPE_PRICE_IDS = {
+    'monthly_10': os.environ.get('STRIPE_PRICE_MONTHLY_10', ''),
+    'monthly_30': os.environ.get('STRIPE_PRICE_MONTHLY_30', ''),
+    'yearly': os.environ.get('STRIPE_PRICE_YEARLY', ''),
+    'lifetime': os.environ.get('STRIPE_PRICE_LIFETIME', ''),
 }
 
 class SubscriptionPurchase(BaseModel):
@@ -182,27 +210,12 @@ def get_subscription_status(token: str, db: Session = Depends(get_db)):
         "can_upload": user.uploads_count < user.uploads_limit
     }
 
-@router.post("/purchase")
-def purchase_subscription(
-    purchase: SubscriptionPurchase,
-    token: str,
-    db: Session = Depends(get_db)
-):
-    """Purchase subscription (simulated - to be integrated with Stripe/PayPal)"""
-    user = get_current_user(token, db)
+def activate_subscription(user: User, plan_id: str, db: Session):
+    """Attiva un abbonamento per l'utente (usato sia da checkout che da webhook)"""
+    plan = SUBSCRIPTION_PLANS.get(plan_id)
+    if not plan:
+        return
     
-    if purchase.plan not in SUBSCRIPTION_PLANS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid plan"
-        )
-    
-    plan = SUBSCRIPTION_PLANS[purchase.plan]
-    
-    # TODO: Integrate with Stripe/PayPal for real payment
-    # For now we simulate successful payment
-    
-    # Determine search limit based on plan
     search_limits = {
         'free': 10,
         'monthly_10': 20,
@@ -211,20 +224,43 @@ def purchase_subscription(
         'lifetime': 999999
     }
     
-    # Update user subscription
-    user.subscription_type = purchase.plan
+    user.subscription_type = plan_id
     user.uploads_limit = plan['uploads_limit']
-    user.uploads_count = 0  # Reset counter
-    user.searches_limit = search_limits.get(purchase.plan, 10)
-    user.searches_count = 0  # Reset search counter
+    user.uploads_count = 0
+    user.searches_limit = search_limits.get(plan_id, 10)
+    user.searches_count = 0
     
-    # Set expiration
     if plan['duration_days']:
         user.subscription_expires_at = datetime.utcnow() + timedelta(days=plan['duration_days'])
     else:
-        user.subscription_expires_at = None  # Lifetime
+        user.subscription_expires_at = None
     
     db.commit()
+
+@router.post("/purchase")
+def purchase_subscription(
+    purchase: SubscriptionPurchase,
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """Purchase subscription - solo per piano free (downgrade)"""
+    user = get_current_user(token, db)
+    
+    if purchase.plan not in SUBSCRIPTION_PLANS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid plan"
+        )
+    
+    # Solo il piano free può essere attivato senza pagamento
+    if purchase.plan != 'free':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use /create-checkout-session for paid plans"
+        )
+    
+    activate_subscription(user, purchase.plan, db)
+    plan = SUBSCRIPTION_PLANS[purchase.plan]
     
     return {
         "message": "Subscription activated successfully!",
@@ -232,6 +268,157 @@ def purchase_subscription(
         "plan_name": plan['name'],
         "uploads_limit": user.uploads_limit,
         "expires_at": user.subscription_expires_at.isoformat() if user.subscription_expires_at else None
+    }
+
+@router.post("/create-checkout-session")
+def create_checkout_session(
+    purchase: SubscriptionPurchase,
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """Crea una Stripe Checkout Session per il pagamento"""
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Stripe not configured"
+        )
+    
+    user = get_current_user(token, db)
+    
+    if purchase.plan not in SUBSCRIPTION_PLANS or purchase.plan == 'free':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid plan for checkout"
+        )
+    
+    plan = SUBSCRIPTION_PLANS[purchase.plan]
+    stripe_price_id = STRIPE_PRICE_IDS.get(purchase.plan)
+    
+    # Crea o recupera Stripe Customer
+    if not user.stripe_customer_id:
+        customer = stripe.Customer.create(
+            email=user.email,
+            metadata={'user_id': str(user.id)}
+        )
+        user.stripe_customer_id = customer.id
+        db.commit()
+    
+    # Determina il tipo di pagamento
+    # Lifetime = one-time payment, altri = subscription
+    is_recurring = purchase.plan in ('monthly_10', 'monthly_30', 'yearly')
+    
+    checkout_params = {
+        'customer': user.stripe_customer_id,
+        'success_url': f"{FRONTEND_URL}?stripe_status=success&plan={purchase.plan}",
+        'cancel_url': f"{FRONTEND_URL}?stripe_status=cancel",
+        'metadata': {
+            'user_id': str(user.id),
+            'plan_id': purchase.plan
+        },
+    }
+    
+    if stripe_price_id:
+        # Usa Price ID pre-configurato da Stripe Dashboard
+        checkout_params['line_items'] = [{
+            'price': stripe_price_id,
+            'quantity': 1,
+        }]
+        checkout_params['mode'] = 'subscription' if is_recurring else 'payment'
+    else:
+        # Crea price al volo (per test)
+        checkout_params['line_items'] = [{
+            'price_data': {
+                'currency': 'eur',
+                'product_data': {
+                    'name': f"Magic Deck Builder - {plan['name']}",
+                    'description': plan['description'],
+                },
+                'unit_amount': int(plan['price'] * 100),  # Stripe usa centesimi
+                **({
+                    'recurring': {
+                        'interval': 'month' if plan['duration_days'] == 30 else 'year'
+                    }
+                } if is_recurring else {}),
+            },
+            'quantity': 1,
+        }]
+        checkout_params['mode'] = 'subscription' if is_recurring else 'payment'
+    
+    try:
+        session = stripe.checkout.Session.create(**checkout_params)
+        return {
+            'checkout_url': session.url,
+            'session_id': session.id
+        }
+    except stripe.StripeError as e:
+        logger.error(f"Stripe error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Stripe error: {str(e)}"
+        )
+
+@router.post("/webhook")
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+    """Webhook Stripe per conferma pagamento"""
+    payload = await request.body()
+    sig_header = request.headers.get('stripe-signature', '')
+    
+    if STRIPE_WEBHOOK_SECRET:
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, STRIPE_WEBHOOK_SECRET
+            )
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid payload")
+        except stripe.SignatureVerificationError:
+            raise HTTPException(status_code=400, detail="Invalid signature")
+    else:
+        # In test senza webhook secret, accetta tutto
+        import json
+        event = json.loads(payload)
+    
+    event_type = event.get('type', '') if isinstance(event, dict) else event['type']
+    data = event.get('data', {}).get('object', {}) if isinstance(event, dict) else event['data']['object']
+    
+    logger.info(f"Stripe webhook received: {event_type}")
+    
+    if event_type == 'checkout.session.completed':
+        # Pagamento completato
+        metadata = data.get('metadata', {})
+        user_id = metadata.get('user_id')
+        plan_id = metadata.get('plan_id')
+        
+        if user_id and plan_id:
+            user = db.query(User).filter(User.id == int(user_id)).first()
+            if user:
+                activate_subscription(user, plan_id, db)
+                logger.info(f"Subscription activated: user={user_id}, plan={plan_id}")
+    
+    elif event_type == 'customer.subscription.deleted':
+        # Abbonamento cancellato/scaduto
+        customer_id = data.get('customer')
+        if customer_id:
+            user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+            if user:
+                activate_subscription(user, 'free', db)
+                logger.info(f"Subscription cancelled: user={user.id}, reset to free")
+    
+    elif event_type == 'invoice.payment_failed':
+        # Pagamento fallito
+        customer_id = data.get('customer')
+        if customer_id:
+            user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+            if user:
+                logger.warning(f"Payment failed for user={user.id}")
+    
+    return {"status": "ok"}
+
+@router.get("/stripe-config")
+def get_stripe_config():
+    """Restituisce la publishable key per il frontend"""
+    return {
+        "publishable_key": STRIPE_PUBLISHABLE_KEY,
+        "stripe_enabled": bool(STRIPE_SECRET_KEY)
     }
 
 @router.post("/increment-upload")

@@ -31,6 +31,9 @@ class User(Base):
     searches_count = Column(Integer, default=0)  # Deck search counter
     searches_limit = Column(Integer, default=10)  # Deck search limit (10 for free)
     
+    # Stripe
+    stripe_customer_id = Column(String, nullable=True, unique=True)
+    
     # GDPR-related fields
     last_login_at = Column(DateTime, nullable=True)
     inactive_warning_sent_at = Column(DateTime, nullable=True)

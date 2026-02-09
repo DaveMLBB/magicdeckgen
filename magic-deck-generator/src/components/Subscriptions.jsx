@@ -10,6 +10,7 @@ function Subscriptions({ user, onBack, language }) {
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [purchasing, setPurchasing] = useState(null)
+  const [stripeEnabled, setStripeEnabled] = useState(false)
 
   const translations = {
     it: {
@@ -38,6 +39,11 @@ function Subscriptions({ user, onBack, language }) {
       purchaseSuccess: '✅ Abbonamento attivato con successo!',
       purchaseError: '❌ Errore: ',
       purchaseErrorGeneric: '❌ Errore durante l\'acquisto',
+      redirectingToPayment: 'Reindirizzamento al pagamento...',
+      stripeNotConfigured: 'Pagamenti non ancora configurati. Riprova più tardi.',
+      paymentSuccess: '✅ Pagamento completato! Il tuo abbonamento è stato attivato.',
+      paymentCancelled: 'Pagamento annullato.',
+      processing: 'Elaborazione...',
       // Plan names
       planNames: {
         'Free': 'Gratuito',
@@ -46,18 +52,44 @@ function Subscriptions({ user, onBack, language }) {
         'Yearly Unlimited': 'Annuale Illimitato',
         'Lifetime Unlimited': 'A Vita Illimitato'
       },
-      // Plan descriptions with deck limits
-      planDescriptions: {
-        '3 free uploads': '3 caricamenti gratuiti',
-        '10 uploads for 1 month': '10 caricamenti per 1 mese',
-        '30 uploads for 1 month': '30 caricamenti per 1 mese',
-        'Unlimited uploads for 1 year': 'Caricamenti illimitati per 1 anno',
-        'Unlimited uploads forever': 'Caricamenti illimitati per sempre',
-        '10 uploads • 5 collections • 3 saved decks • 20 unique cards per collection • 10 deck results': '10 caricamenti • 5 collezioni • 3 mazzi salvati • 20 carte uniche • 10 risultati',
-        '30 uploads/month • 10 collections • 10 saved decks • Unlimited cards • 20 deck results': '30 caricamenti/mese • 10 collezioni • 5 mazzi salvati • Carte illimitate • 20 risultati',
-        '50 uploads/month • 50 collections • 30 saved decks • Unlimited cards • 30 deck results': '50 caricamenti/mese • 50 collezioni • 30 mazzi salvati • Carte illimitate • 30 risultati',
-        'Unlimited uploads • Unlimited collections • 50 saved decks • Unlimited cards • Unlimited deck results': 'Caricamenti illimitati • Collezioni illimitate • 50 mazzi salvati • Carte illimitate • Risultati illimitati',
-        'Unlimited uploads • Unlimited collections • Unlimited saved decks • Unlimited cards • Unlimited deck results • Forever': 'Caricamenti illimitati • Collezioni illimitate • Mazzi illimitati • Carte illimitate • Risultati illimitati'
+      // Feature per piano
+      planFeatures: {
+        'free': [
+          '10 caricamenti',
+          '5 collezioni',
+          '3 mazzi salvati',
+          '20 carte uniche per collezione',
+          '10 risultati ricerca mazzi'
+        ],
+        'monthly_10': [
+          '30 caricamenti/mese',
+          '10 collezioni',
+          '10 mazzi salvati',
+          'Carte illimitate',
+          '20 risultati ricerca mazzi'
+        ],
+        'monthly_30': [
+          '50 caricamenti/mese',
+          '50 collezioni',
+          '30 mazzi salvati',
+          'Carte illimitate',
+          '30 risultati ricerca mazzi'
+        ],
+        'yearly': [
+          'Caricamenti illimitati',
+          'Collezioni illimitate',
+          '50 mazzi salvati',
+          'Carte illimitate',
+          'Risultati ricerca illimitati'
+        ],
+        'lifetime': [
+          'Caricamenti illimitati',
+          'Collezioni illimitate',
+          'Mazzi salvati illimitati',
+          'Carte illimitate',
+          'Risultati ricerca illimitati',
+          'Per sempre'
+        ]
       }
     },
     en: {
@@ -86,6 +118,11 @@ function Subscriptions({ user, onBack, language }) {
       purchaseSuccess: '✅ Subscription activated successfully!',
       purchaseError: '❌ Error: ',
       purchaseErrorGeneric: '❌ Error during purchase',
+      redirectingToPayment: 'Redirecting to payment...',
+      stripeNotConfigured: 'Payments not yet configured. Please try again later.',
+      paymentSuccess: '✅ Payment completed! Your subscription has been activated.',
+      paymentCancelled: 'Payment cancelled.',
+      processing: 'Processing...',
       // Plan names
       planNames: {
         'Free': 'Free',
@@ -94,18 +131,44 @@ function Subscriptions({ user, onBack, language }) {
         'Yearly Unlimited': 'Yearly Unlimited',
         'Lifetime Unlimited': 'Lifetime Unlimited'
       },
-      // Plan descriptions with deck limits
-      planDescriptions: {
-        '3 free uploads': '3 free uploads',
-        '10 uploads for 1 month': '10 uploads for 1 month',
-        '30 uploads for 1 month': '30 uploads for 1 month',
-        'Unlimited uploads for 1 year': 'Unlimited uploads for 1 year',
-        'Unlimited uploads forever': 'Unlimited uploads forever',
-        '10 uploads • 5 collections • 3 saved decks • 20 unique cards per collection • 10 deck results': '10 uploads • 5 collections • 3 saved decks • 20 unique cards • 10 results',
-        '30 uploads/month • 10 collections • 10 saved decks • Unlimited cards • 20 deck results': '30 uploads/month • 10 collections • 5 saved decks • Unlimited cards • 20 results',
-        '50 uploads/month • 50 collections • 30 saved decks • Unlimited cards • 30 deck results': '50 uploads/month • 50 collections • 30 saved decks • Unlimited cards • 30 results',
-        'Unlimited uploads • Unlimited collections • 50 saved decks • Unlimited cards • Unlimited deck results': 'Unlimited uploads • Unlimited collections • 50 saved decks • Unlimited cards • Unlimited results',
-        'Unlimited uploads • Unlimited collections • Unlimited saved decks • Unlimited cards • Unlimited deck results • Forever': 'Unlimited uploads • Unlimited collections • Unlimited decks • Unlimited cards • Unlimited results'
+      // Features per plan
+      planFeatures: {
+        'free': [
+          '10 uploads',
+          '5 collections',
+          '3 saved decks',
+          '20 unique cards per collection',
+          '10 deck search results'
+        ],
+        'monthly_10': [
+          '30 uploads/month',
+          '10 collections',
+          '10 saved decks',
+          'Unlimited cards',
+          '20 deck search results'
+        ],
+        'monthly_30': [
+          '50 uploads/month',
+          '50 collections',
+          '30 saved decks',
+          'Unlimited cards',
+          '30 deck search results'
+        ],
+        'yearly': [
+          'Unlimited uploads',
+          'Unlimited collections',
+          '50 saved decks',
+          'Unlimited cards',
+          'Unlimited deck results'
+        ],
+        'lifetime': [
+          'Unlimited uploads',
+          'Unlimited collections',
+          'Unlimited saved decks',
+          'Unlimited cards',
+          'Unlimited deck results',
+          'Forever'
+        ]
       }
     }
   }
@@ -128,103 +191,77 @@ function Subscriptions({ user, onBack, language }) {
       const statusRes = await fetch(`${API_URL}/api/subscriptions/status?token=${user.token}`)
       const statusData = await statusRes.json()
       setStatus(statusData)
+
+      // Controlla se Stripe è configurato
+      const stripeRes = await fetch(`${API_URL}/api/subscriptions/stripe-config`)
+      const stripeData = await stripeRes.json()
+      setStripeEnabled(stripeData.stripe_enabled)
     } catch (err) {
       console.error('Errore caricamento dati:', err)
     }
     setLoading(false)
   }
 
-  // Funzione per tradurre e arricchire le descrizioni con i limiti mazzi
-  const translateDescription = (description, planId) => {
-    console.log('Plan ID:', planId, 'Description:', description) // Debug per vedere gli ID reali
-    
-    // Se planId è undefined o null, ritorna la descrizione originale
-    if (!planId) {
-      console.warn('planId is undefined or null')
-      return description
+  // Gestisci ritorno da Stripe Checkout
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const stripeStatus = params.get('stripe_status')
+    if (stripeStatus === 'success') {
+      alert(t.paymentSuccess)
+      // Pulisci URL
+      window.history.replaceState({}, '', window.location.pathname)
+      loadData()
+    } else if (stripeStatus === 'cancel') {
+      alert(t.paymentCancelled)
+      window.history.replaceState({}, '', window.location.pathname)
     }
-    
-    // Normalizza l'ID del piano (lowercase per matching)
-    const normalizedId = planId.toLowerCase()
-    
-    // Mappa dei limiti mazzi per piano - CORRETTI
-    const getDeckLimit = (id) => {
-      // Free - 3 mazzi
-      if (id === 'free') return language === 'it' ? '3 mazzi salvabili' : '3 saved decks'
-      
-      // Premium 10 caricamenti/mese - 3 mazzi
-      if (id === 'premium' || id === 'premium_monthly' || id === 'premium_10' || 
-          id === '10_uploads' || id === 'monthly_10' || id.includes('10')) {
-        return language === 'it' ? '3 mazzi salvabili' : '3 saved decks'
-      }
-      
-      // Premium 30 caricamenti/mese - 5 mazzi
-      if (id === 'premium_30' || id === '30_uploads' || id === 'premium_30_monthly' || 
-          id === 'monthly_30' || id.includes('30')) {
-        return language === 'it' ? '5 mazzi salvabili' : '5 saved decks'
-      }
-      
-      // Premium Annuale - 50 mazzi
-      if (id === 'premium_annual' || id === 'yearly' || id === 'annual' || 
-          id === 'yearly_unlimited' || id.includes('year') || id.includes('annual')) {
-        return language === 'it' ? '50 mazzi salvabili' : '50 saved decks'
-      }
-      
-      // Lifetime - illimitati
-      if (id === 'lifetime' || id === 'lifetime_unlimited' || id.includes('lifetime')) {
-        return language === 'it' ? 'Mazzi illimitati' : 'Unlimited decks'
-      }
-      
-      // Default fallback
-      return language === 'it' ? '3 mazzi salvabili' : '3 saved decks'
-    }
-    
-    // Traduzioni base
-    let translated = description
-    
-    if (language === 'it') {
-      translated = translated
-        .replace(/uploads/gi, 'caricamenti')
-        .replace(/collections/gi, 'collezioni')
-        .replace(/Unlimited/gi, 'Illimitate')
-        .replace(/unlimited/gi, 'illimitate')
-        .replace(/cards/gi, 'carte')
-        .replace(/unique/gi, 'uniche')
-        .replace(/per collection/gi, 'per collezione')
-        .replace(/month/gi, 'mese')
-        .replace(/year/gi, 'anno')
-        .replace(/forever/gi, 'per sempre')
-        .replace(/free/gi, 'gratuiti')
-    }
-    
-    // Aggiungi limite mazzi
-    const deckLimit = getDeckLimit(normalizedId)
-    console.log('Deck limit for', planId, ':', deckLimit) // Debug
-    translated = `${translated} • ${deckLimit}`
-    
-    return translated
+  }, [])
+
+  // Ottieni le feature tradotte per un piano
+  const getPlanFeatures = (planId) => {
+    return t.planFeatures[planId] || t.planFeatures['free']
   }
 
   const handlePurchase = async (planId) => {
     setPurchasing(planId)
 
     try {
-      const res = await fetch(`${API_URL}/api/subscriptions/purchase?token=${user.token}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan: planId,
-          payment_method: 'stripe'
+      if (planId === 'free') {
+        // Downgrade a free - nessun pagamento
+        const res = await fetch(`${API_URL}/api/subscriptions/purchase?token=${user.token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: planId, payment_method: 'stripe' })
         })
-      })
-
-      const data = await res.json()
-
-      if (res.ok) {
-        alert(t.purchaseSuccess)
-        loadData()
+        const data = await res.json()
+        if (res.ok) {
+          alert(t.purchaseSuccess)
+          loadData()
+        } else {
+          alert(t.purchaseError + data.detail)
+        }
       } else {
-        alert(t.purchaseError + data.detail)
+        // Piano a pagamento - usa Stripe Checkout
+        if (!stripeEnabled) {
+          alert(t.stripeNotConfigured)
+          setPurchasing(null)
+          return
+        }
+
+        const res = await fetch(`${API_URL}/api/subscriptions/create-checkout-session?token=${user.token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: planId, payment_method: 'stripe' })
+        })
+        const data = await res.json()
+
+        if (res.ok && data.checkout_url) {
+          // Redirect a Stripe Checkout
+          window.location.href = data.checkout_url
+          return
+        } else {
+          alert(t.purchaseError + (data.detail || 'Unknown error'))
+        }
       }
     } catch (err) {
       console.error('Errore acquisto:', err)
@@ -337,9 +374,7 @@ function Subscriptions({ user, onBack, language }) {
               return plan.id !== 'free'
             })
             .map(plan => {
-              // Traduci la descrizione
-              const descriptionText = translateDescription(plan.description)
-              const features = descriptionText.split(' • ').filter(f => f.trim())
+              const features = getPlanFeatures(plan.id)
               
               return (
                 <div 

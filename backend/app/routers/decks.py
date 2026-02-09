@@ -202,6 +202,7 @@ def match_decks(
     colors: str = None,  # Colori separati da virgola: "W,U,B"
     min_match: int = 10,  # Percentuale minima di match
     buildable_only: bool = False,  # Solo mazzi costruibili (>=90%)
+    collection_id: int = None,  # OPZIONALE - Filtra per collezione specifica
     db: Session = Depends(get_db)
 ):
     """Trova mazzi template che puoi costruire con le tue carte"""
@@ -261,8 +262,11 @@ def match_decks(
         
         return name
     
-    # Carica le carte dell'utente
-    user_cards = db.query(Card).filter(Card.user_id == user_id).all()
+    # Carica le carte dell'utente (filtrate per collezione se specificata)
+    cards_query = db.query(Card).filter(Card.user_id == user_id)
+    if collection_id:
+        cards_query = cards_query.filter(Card.collection_id == collection_id)
+    user_cards = cards_query.all()
     
     if not user_cards:
         return {"decks": [], "message": "No cards found. Please upload a file first."}
