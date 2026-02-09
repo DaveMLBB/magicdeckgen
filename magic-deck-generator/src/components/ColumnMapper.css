@@ -524,3 +524,138 @@ div[class*="collection-selector-modal"] {
     font-size: 0.8rem !important;
   }
 }
+
+
+/* ========================================= */
+/* FORMAT WARNING MODAL - DARK THEME */
+/* ========================================= */
+
+/* Overlay */
+div.format-warning-overlay,
+.format-warning-overlay.format-warning-overlay,
+div[class="format-warning-overlay"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(5px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 99999 !important;
+  padding: 2rem !important;
+  overflow-y: auto !important;
+}
+
+/* Modal content */
+div.format-warning-modal,
+.format-warning-modal.format-warning-modal,
+div[class*="format-warning-modal"] {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  border-radius: 20px !important;
+  padding: 2.5rem !important;
+  max-width: 500px !important;
+  width: 100% !important;
+  border: 2px solid rgba(251, 191, 36, 0.3) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+  text-align: center !important;
+}
+
+/* Title with warning color */
+.format-warning-modal h2 {
+  margin-bottom: 1.5rem !important;
+  font-size: 1.5rem !important;
+  color: #fbbf24 !important;
+  text-align: center !important;
+}
+
+/* Warning message */
+.format-warning-modal .warning-message {
+  color: #cbd5e0 !important;
+  font-size: 1rem !important;
+  line-height: 1.6 !important;
+  margin-bottom: 2rem !important;
+}
+
+/* Modal actions */
+.format-warning-modal .modal-actions {
+  display: flex !important;
+  gap: 1rem !important;
+  justify-content: center !important;
+  margin-top: 2rem !important;
+}
+
+/* Buttons */
+.format-warning-modal .cancel-btn,
+.format-warning-modal .confirm-btn {
+  padding: 0.875rem 2rem !important;
+  border-radius: 10px !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.format-warning-modal .cancel-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+}
+
+.format-warning-modal .cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.format-warning-modal .confirm-btn.warning-btn {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4) !important;
+}
+
+.format-warning-modal .confirm-btn.warning-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 25px rgba(251, 191, 36, 0.6) !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .format-warning-overlay {
+    padding: 1rem !important;
+  }
+  
+  .format-warning-modal {
+    padding: 1.5rem !important;
+    max-width: 90vw !important;
+  }
+  
+  .format-warning-modal h2 {
+    font-size: 1.3rem !important;
+  }
+  
+  .format-warning-modal .warning-message {
+    font-size: 0.9rem !important;
+  }
+  
+  .format-warning-modal .modal-actions {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  
+  .format-warning-modal .cancel-btn,
+  .format-warning-modal .confirm-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+
+/* ========================================= */
+/* GLOBAL MODAL OVERRIDE - REMOVED */
+/* Gli stili globali sono stati rimossi per evitare conflitti */
+/* Ogni modale ora ha i suoi stili specifici sopra */
+/* ========================================= */

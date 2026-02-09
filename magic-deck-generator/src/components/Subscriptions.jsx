@@ -138,6 +138,12 @@ function Subscriptions({ user, onBack, language }) {
   const translateDescription = (description, planId) => {
     console.log('Plan ID:', planId, 'Description:', description) // Debug per vedere gli ID reali
     
+    // Se planId è undefined o null, ritorna la descrizione originale
+    if (!planId) {
+      console.warn('planId is undefined or null')
+      return description
+    }
+    
     // Normalizza l'ID del piano (lowercase per matching)
     const normalizedId = planId.toLowerCase()
     

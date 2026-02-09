@@ -118,7 +118,7 @@ function App() {
       searchCards: '🔍 Cerca Carte',
       viewDecks: '🃏 Mazzi Salvati',
       complete: 'completo',
-      saveDeck: '💾 Salva Mazzo',
+      saveDeck: 'Salva Mazzo',
       saving: 'Salvando...',
       deckSaved: 'Mazzo salvato con successo!',
       errorSaving: 'Errore nel salvataggio del mazzo',
@@ -213,7 +213,7 @@ function App() {
       searchCards: '🔍 Search Cards',
       viewDecks: '🃏 Saved Decks',
       complete: 'complete',
-      saveDeck: '💾 Save Deck',
+      saveDeck: 'Save Deck',
       saving: 'Saving...',
       deckSaved: 'Deck saved successfully!',
       errorSaving: 'Error saving deck',
@@ -1536,8 +1536,8 @@ function App() {
         
         {/* Format Warning Modal */}
         {showFormatWarning && (
-          <div className="modal-overlay" onClick={() => setShowFormatWarning(false)}>
-            <div className="modal-content format-warning-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="format-warning-overlay" onClick={() => setShowFormatWarning(false)}>
+            <div className="format-warning-modal" onClick={(e) => e.stopPropagation()}>
               <h2>{t.formatWarningTitle}</h2>
               <p className="warning-message">{t.formatWarningMessage}</p>
               <div className="modal-actions">
