@@ -18,6 +18,15 @@
 - **Scadenza**: 30 giorni dalla creazione
 - **Script**: `python3 create_premium_test_user.py`
 
+### 3. Utente Lifetime
+- **Email**: `lifetime@example.com`
+- **Password**: `lifetime123`
+- **Piano**: Lifetime
+- **Caricamenti**: 0/999999 (illimitati)
+- **Ricerche**: 0/999999 (illimitate)
+- **Scadenza**: Nessuna (per sempre)
+- **Script**: `python3 create_lifetime_test_user.py`
+
 ## Come Creare Utenti di Test
 
 ### Utente Free
@@ -34,6 +43,13 @@ source venv/bin/activate
 python3 create_premium_test_user.py
 ```
 
+### Utente Lifetime
+```bash
+cd backend
+source venv/bin/activate
+python3 create_lifetime_test_user.py
+```
+
 ## Ricreare Database
 Se hai bisogno di ricreare completamente il database:
 
@@ -43,6 +59,7 @@ source venv/bin/activate
 python3 recreate_db.py
 python3 create_test_user.py
 python3 create_premium_test_user.py
+python3 create_lifetime_test_user.py
 ```
 
 ## Piani Disponibili

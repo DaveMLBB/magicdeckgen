@@ -382,6 +382,17 @@ main {
   white-space: nowrap;
 }
 
+.deck-source-badge {
+  padding: 0.35rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .deck-archetype {
   color: #a0aec0;
   text-transform: uppercase;
@@ -470,6 +481,46 @@ main {
 }
 
 .import-deck-btn .spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.deck-actions-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.save-deck-btn {
+  padding: 0.875rem 1.75rem;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.save-deck-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+}
+
+.save-deck-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.save-deck-btn .spinner {
   width: 16px;
   height: 16px;
   border-width: 2px;
@@ -1040,6 +1091,43 @@ footer {
   background: rgba(102, 126, 234, 0.3);
   color: #fff;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Deck Source Filters */
+.deck-source-filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.source-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.05);
+  color: #cbd5e0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.source-btn:hover {
+  border-color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+}
+
+.source-btn.active {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.3);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
   transform: translateY(-2px);
 }
 
@@ -1622,5 +1710,56 @@ footer {
 @media (max-width: 768px) {
   .card-preview-tooltip {
     display: none; /* Nascondi su mobile per non coprire la lista */
+  }
+}
+
+/* Deck Search Disclaimer */
+.deck-search-disclaimer {
+  background: rgba(139, 92, 246, 0.15);
+  border: 2px solid rgba(139, 92, 246, 0.4);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+.deck-search-disclaimer .info-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.deck-search-disclaimer .info-text {
+  color: #a78bfa;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .deck-search-disclaimer {
+    padding: 0.875rem 1rem;
+    margin: 1rem 0;
+  }
+
+  .deck-search-disclaimer .info-icon {
+    font-size: 1.25rem;
+  }
+
+  .deck-search-disclaimer .info-text {
+    font-size: 0.85rem;
   }
 }

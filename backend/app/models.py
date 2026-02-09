@@ -64,6 +64,46 @@ class Deck(Base):
     format = Column(String, default="standard")  # standard, modern, commander
     user_id = Column(Integer, ForeignKey('users.id'), index=True)  # FK verso User
 
+class SavedDeck(Base):
+    """Mazzi salvati dall'utente con tutte le carte"""
+    __tablename__ = "saved_decks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, index=True)
+    description = Column(String, nullable=True)
+    format = Column(String, nullable=True)  # standard, modern, commander, etc.
+    colors = Column(String, nullable=True)  # W,U,B,R,G
+    archetype = Column(String, nullable=True)  # aggro, control, midrange, combo
+    source = Column(String, nullable=True)  # "imported", "manual", "from_search"
+    completion_percentage = Column(Integer, default=0)  # % di carte possedute
+    is_public = Column(Boolean, default=False)  # Se il mazzo è pubblico e ricercabile
+    user_id = Column(Integer, ForeignKey('users.id'), index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Tabella di associazione many-to-many tra SavedDeck e CardCollection
+saved_deck_collections = Table(
+    'saved_deck_collections',
+    Base.metadata,
+    Column('deck_id', Integer, ForeignKey('saved_decks.id'), primary_key=True),
+    Column('collection_id', Integer, ForeignKey('card_collections.id'), primary_key=True)
+)
+
+class SavedDeckCard(Base):
+    """Carte in un mazzo salvato"""
+    __tablename__ = "saved_deck_cards"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    deck_id = Column(Integer, ForeignKey('saved_decks.id'), index=True, nullable=False)
+    card_name = Column(String, nullable=False, index=True)
+    quantity = Column(Integer, default=1)
+    card_type = Column(String, nullable=True)  # Creature, Instant, etc
+    colors = Column(String, nullable=True)
+    mana_cost = Column(String, nullable=True)
+    rarity = Column(String, nullable=True)
+    is_owned = Column(Boolean, default=False)  # Se l'utente possiede questa carta
+    quantity_owned = Column(Integer, default=0)  # Quante ne possiede
+
 class DeckTemplate(Base):
     __tablename__ = "deck_templates"
     

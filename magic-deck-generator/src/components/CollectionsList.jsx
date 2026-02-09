@@ -13,6 +13,10 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
   const [newCollectionName, setNewCollectionName] = useState('')
   const [newCollectionDesc, setNewCollectionDesc] = useState('')
   const [creating, setCreating] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [collectionToDelete, setCollectionToDelete] = useState(null)
+  const [linkedDecks, setLinkedDecks] = useState([])
+  const [loadingLinkedDecks, setLoadingLinkedDecks] = useState(false)
 
   const translations = {
     it: {
@@ -38,7 +42,16 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
       limitReachedDesc: 'Hai raggiunto il limite di',
       collectionsForPlan: 'collezioni per il tuo piano',
       upgradeToCreate: 'Aggiorna il tuo piano per creare più collezioni',
-      collectionsRemaining: 'collezioni rimanenti'
+      collectionsRemaining: 'collezioni rimanenti',
+      deleteModalTitle: 'Elimina Collezione',
+      deleteModalMessage: 'Sei sicuro di voler eliminare questa collezione?',
+      deleteModalWarning: 'Questa azione eliminerà tutte le carte contenute e non può essere annullata.',
+      linkedDecksWarning: 'Attenzione: Questa collezione è collegata a',
+      linkedDecksSingular: 'mazzo salvato',
+      linkedDecksPlural: 'mazzi salvati',
+      linkedDecksWillBeDeleted: 'che verranno eliminati insieme alla collezione:',
+      confirmDelete: 'Sì, Elimina',
+      cancelDelete: 'Annulla'
     },
     en: {
       title: 'My Collections',
@@ -63,7 +76,16 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
       limitReachedDesc: 'You have reached the limit of',
       collectionsForPlan: 'collections for your plan',
       upgradeToCreate: 'Upgrade your plan to create more collections',
-      collectionsRemaining: 'collections remaining'
+      collectionsRemaining: 'collections remaining',
+      deleteModalTitle: 'Delete Collection',
+      deleteModalMessage: 'Are you sure you want to delete this collection?',
+      deleteModalWarning: 'This action will delete all contained cards and cannot be undone.',
+      linkedDecksWarning: 'Warning: This collection is linked to',
+      linkedDecksSingular: 'saved deck',
+      linkedDecksPlural: 'saved decks',
+      linkedDecksWillBeDeleted: 'that will be deleted along with the collection:',
+      confirmDelete: 'Yes, Delete',
+      cancelDelete: 'Cancel'
     }
   }
 
@@ -134,15 +156,34 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
     setCreating(false)
   }
 
-  const handleDeleteCollection = async (collectionId, collectionName) => {
-    if (!confirm(`${language === 'it' ? 'Eliminare' : 'Delete'} "${collectionName}"?`)) return
+  const openDeleteModal = async (collection) => {
+    setCollectionToDelete(collection)
+    setLoadingLinkedDecks(true)
+    setShowDeleteModal(true)
+    
+    // Carica i mazzi collegati a questa collezione
+    try {
+      const res = await fetch(`${API_URL}/api/saved-decks/by-collection/${collection.id}`)
+      const data = await res.json()
+      setLinkedDecks(data.decks || [])
+    } catch (err) {
+      console.error('Error loading linked decks:', err)
+      setLinkedDecks([])
+    }
+    setLoadingLinkedDecks(false)
+  }
+
+  const handleDeleteCollection = async () => {
+    if (!collectionToDelete) return
 
     try {
-      const res = await fetch(`${API_URL}/api/collections/${collectionId}`, {
+      const res = await fetch(`${API_URL}/api/collections/${collectionToDelete.id}`, {
         method: 'DELETE'
       })
 
       if (res.ok) {
+        setShowDeleteModal(false)
+        setCollectionToDelete(null)
         loadCollections()
       }
     } catch (err) {
@@ -240,7 +281,7 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
                   </button>
                   <button 
                     className="delete-btn"
-                    onClick={() => handleDeleteCollection(collection.id, collection.name)}
+                    onClick={() => openDeleteModal(collection)}
                   >
                     🗑️
                   </button>
@@ -292,6 +333,65 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
                 disabled={!newCollectionName.trim() || creating}
               >
                 {creating ? t.creating : t.create}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && collectionToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content delete-collection-modal">
+            <h2>{t.deleteModalTitle}</h2>
+            <div className="delete-modal-content">
+              <div className="warning-icon-large">⚠️</div>
+              <p className="delete-message">{t.deleteModalMessage}</p>
+              <div className="collection-to-delete">
+                <strong>{collectionToDelete.name}</strong>
+                <span className="collection-stats">
+                  {collectionToDelete.card_count} {language === 'it' ? 'carte uniche' : 'unique cards'} • {collectionToDelete.total_cards} {language === 'it' ? 'carte totali' : 'total cards'}
+                </span>
+              </div>
+              
+              {loadingLinkedDecks ? (
+                <div className="linked-decks-loading">
+                  <div className="spinner"></div>
+                  <p>{language === 'it' ? 'Controllo mazzi collegati...' : 'Checking linked decks...'}</p>
+                </div>
+              ) : linkedDecks.length > 0 && (
+                <div className="linked-decks-warning">
+                  <p className="linked-decks-title">
+                    {t.linkedDecksWarning} <strong>{linkedDecks.length}</strong> {linkedDecks.length === 1 ? t.linkedDecksSingular : t.linkedDecksPlural} {t.linkedDecksWillBeDeleted}
+                  </p>
+                  <ul className="linked-decks-list">
+                    {linkedDecks.map(deck => (
+                      <li key={deck.id}>
+                        <span className="deck-name">{deck.name}</span>
+                        <span className="deck-info">({deck.total_cards} {language === 'it' ? 'carte' : 'cards'} • {deck.completion_percentage}%)</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              <p className="delete-warning">{t.deleteModalWarning}</p>
+            </div>
+            <div className="modal-actions">
+              <button 
+                className="cancel-btn"
+                onClick={() => {
+                  setShowDeleteModal(false)
+                  setCollectionToDelete(null)
+                  setLinkedDecks([])
+                }}
+              >
+                {t.cancelDelete}
+              </button>
+              <button 
+                className="delete-confirm-btn"
+                onClick={handleDeleteCollection}
+              >
+                {t.confirmDelete}
               </button>
             </div>
           </div>

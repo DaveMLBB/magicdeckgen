@@ -396,3 +396,153 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Delete Collection Modal */
+.delete-collection-modal {
+  max-width: 500px;
+}
+
+.delete-modal-content {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.warning-icon-large {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.delete-message {
+  font-size: 1.1rem;
+  color: #e2e8f0;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+.collection-to-delete {
+  background: rgba(245, 87, 108, 0.1);
+  border: 2px solid rgba(245, 87, 108, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1.5rem 0;
+}
+
+.collection-to-delete strong {
+  display: block;
+  font-size: 1.2rem;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.collection-stats {
+  display: block;
+  font-size: 0.9rem;
+  color: #a0aec0;
+}
+
+.delete-warning {
+  font-size: 0.95rem;
+  color: #f5576c;
+  font-weight: 600;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(245, 87, 108, 0.1);
+  border-radius: 8px;
+}
+
+.linked-decks-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: #a0aec0;
+}
+
+.linked-decks-loading .spinner {
+  width: 30px;
+  height: 30px;
+  border-width: 3px;
+}
+
+.linked-decks-warning {
+  background: rgba(251, 191, 36, 0.1);
+  border: 2px solid rgba(251, 191, 36, 0.4);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.linked-decks-title {
+  color: #fbbf24;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  font-size: 0.95rem;
+}
+
+.linked-decks-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.linked-decks-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.linked-decks-list .deck-name {
+  color: #fff;
+  font-weight: 600;
+}
+
+.linked-decks-list .deck-info {
+  color: #a0aec0;
+  font-size: 0.85rem;
+}
+
+.delete-confirm-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: linear-gradient(135deg, #f5576c 0%, #e63946 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+}
+
+.delete-confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(245, 87, 108, 0.6);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.modal-actions button {
+  flex: 1;
+}

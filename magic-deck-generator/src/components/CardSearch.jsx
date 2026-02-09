@@ -1,9 +1,85 @@
 import { useState, useEffect } from 'react'
 import './CardSearch.css'
+import { cardImageCache } from '../utils/cardImageCache'
 
 const API_URL = import.meta.env.PROD 
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
   : 'http://localhost:8000'
+
+// Componente per caricare le immagini delle carte
+function CardImage({ card }) {
+  const [imageUrl, setImageUrl] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadImage = async () => {
+      // Prova prima con l'immagine locale se disponibile
+      if (card.image_url && card.image_url.startsWith('/card-images/')) {
+        // Verifica se l'immagine locale esiste
+        const img = new Image()
+        img.onload = () => {
+          if (mounted) {
+            setImageUrl(card.image_url)
+            setLoading(false)
+          }
+        }
+        img.onerror = async () => {
+          // Se l'immagine locale non esiste, carica da Scryfall
+          if (mounted) {
+            const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
+            setImageUrl(scryfallUrl)
+            setLoading(false)
+          }
+        }
+        img.src = card.image_url
+      } else {
+        // Carica direttamente da Scryfall
+        const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
+        if (mounted) {
+          setImageUrl(scryfallUrl)
+          setLoading(false)
+        }
+      }
+    }
+
+    loadImage()
+
+    return () => {
+      mounted = false
+    }
+  }, [card.name, card.image_url, card.scryfallId])
+
+  if (loading) {
+    return (
+      <img 
+        src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="223" height="310"%3E%3Crect width="223" height="310" fill="%23333"/%3E%3Ctext x="50%25" y="50%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="14"%3ELoading...%3C/text%3E%3C/svg%3E'
+        alt={card.name}
+        className="card-image"
+      />
+    )
+  }
+
+  if (!imageUrl) {
+    return (
+      <img 
+        src={`data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="223" height="310"%3E%3Crect width="223" height="310" fill="%23333"/%3E%3Ctext x="50%25" y="45%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="12"%3E${encodeURIComponent(card.name.substring(0, 30))}%3C/text%3E%3Ctext x="50%25" y="55%25" fill="%23666" text-anchor="middle" dy=".3em" font-family="Arial" font-size="10"%3EImage Not Found%3C/text%3E%3C/svg%3E`}
+        alt={card.name}
+        className="card-image"
+      />
+    )
+  }
+
+  return (
+    <img 
+      src={imageUrl}
+      alt={card.name}
+      className="card-image"
+      loading="lazy"
+    />
+  )
+}
 
 function CardSearch({ user, onBack, language }) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -16,13 +92,32 @@ function CardSearch({ user, onBack, language }) {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [filters, setFilters] = useState({
     colors: [],
+    colorIdentity: [],
     types: [],
+    subtypes: '',
+    supertypes: '',
     rarity: '',
     cmcMin: '',
     cmcMax: '',
-    format: ''
+    format: '',
+    text: '',
+    power: '',
+    toughness: '',
+    keywords: '',
+    setCode: '',
+    artist: '',
+    layout: '',
+    loyalty: '',
+    defense: ''
   })
   const [showFilters, setShowFilters] = useState(false)
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const [showAddToCollectionModal, setShowAddToCollectionModal] = useState(false)
+  const [cardToAdd, setCardToAdd] = useState(null)
+  const [collections, setCollections] = useState([])
+  const [selectedCollectionId, setSelectedCollectionId] = useState(null)
+  const [addQuantity, setAddQuantity] = useState(1)
+  const [addMessage, setAddMessage] = useState('')
 
   const translations = {
     it: {
@@ -31,11 +126,21 @@ function CardSearch({ user, onBack, language }) {
       search: 'Cerca',
       filters: 'Filtri',
       hideFilters: 'Nascondi Filtri',
+      advancedFilters: 'Filtri Avanzati',
+      showAdvanced: 'Mostra Avanzati',
+      hideAdvanced: 'Nascondi Avanzati',
       colors: 'Colori',
+      colorIdentity: 'Identità Colore',
       type: 'Tipo',
+      subtypes: 'Sottotipi',
+      supertypes: 'Supertipi',
       rarity: 'Rarità',
       cmc: 'Costo Mana Convertito',
       format: 'Formato',
+      cardText: 'Testo Carta',
+      power: 'Forza',
+      toughness: 'Costituzione',
+      keywords: 'Parole Chiave',
       min: 'Min',
       max: 'Max',
       reset: 'Reset',
@@ -58,7 +163,23 @@ function CardSearch({ user, onBack, language }) {
       legalities: 'Legalità',
       artist: 'Artista',
       set: 'Set',
-      close: 'Chiudi'
+      setCode: 'Codice Set',
+      layout: 'Layout',
+      loyalty: 'Fedeltà',
+      defense: 'Difesa',
+      close: 'Chiudi',
+      addToCollection: 'Aggiungi alla Collezione',
+      selectCollection: 'Seleziona Collezione',
+      createNewCollection: '+ Crea Nuova Collezione',
+      quantity: 'Quantità',
+      add: 'Aggiungi',
+      cancel: 'Annulla',
+      cardAdded: '✓ Carta aggiunta alla collezione',
+      errorAddingCard: 'Errore nell\'aggiunta della carta',
+      noCollections: 'Nessuna collezione disponibile',
+      createFirst: 'Crea prima una collezione dalla pagina principale',
+      italianWarning: 'Non tutte le carte sono disponibili in italiano. Per risultati migliori, cerca usando il nome inglese della carta.',
+      uniqueCardsDisclaimer: 'La ricerca non punta a trovare carte specifiche di set. Le carte caricate nel database sono uniche, quindi molte carte sono disponibili solo in una versione.'
     },
     en: {
       title: '🔍 Card Search',
@@ -66,11 +187,21 @@ function CardSearch({ user, onBack, language }) {
       search: 'Search',
       filters: 'Filters',
       hideFilters: 'Hide Filters',
+      advancedFilters: 'Advanced Filters',
+      showAdvanced: 'Show Advanced',
+      hideAdvanced: 'Hide Advanced',
       colors: 'Colors',
+      colorIdentity: 'Color Identity',
       type: 'Type',
+      subtypes: 'Subtypes',
+      supertypes: 'Supertypes',
       rarity: 'Rarity',
       cmc: 'Converted Mana Cost',
       format: 'Format',
+      cardText: 'Card Text',
+      power: 'Power',
+      toughness: 'Toughness',
+      keywords: 'Keywords',
       min: 'Min',
       max: 'Max',
       reset: 'Reset',
@@ -93,7 +224,23 @@ function CardSearch({ user, onBack, language }) {
       legalities: 'Legalities',
       artist: 'Artist',
       set: 'Set',
-      close: 'Close'
+      setCode: 'Set Code',
+      layout: 'Layout',
+      loyalty: 'Loyalty',
+      defense: 'Defense',
+      close: 'Close',
+      addToCollection: 'Add to Collection',
+      selectCollection: 'Select Collection',
+      createNewCollection: '+ Create New Collection',
+      quantity: 'Quantity',
+      add: 'Add',
+      cancel: 'Cancel',
+      cardAdded: '✓ Card added to collection',
+      errorAddingCard: 'Error adding card',
+      noCollections: 'No collections available',
+      createFirst: 'Create a collection first from the main page',
+      italianWarning: 'Not all cards are available in Italian. For best results, search using the English card name.',
+      uniqueCardsDisclaimer: 'The search does not aim to find set-specific cards. Cards loaded in the database are unique, so many cards are available in only one version.'
     }
   }
 
@@ -110,10 +257,69 @@ function CardSearch({ user, onBack, language }) {
   const typeOptions = ['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land']
   const rarityOptions = ['common', 'uncommon', 'rare', 'mythic']
   const formatOptions = ['standard', 'modern', 'legacy', 'vintage', 'commander', 'pioneer', 'pauper']
+  const layoutOptions = ['normal', 'split', 'flip', 'transform', 'modal_dfc', 'meld', 'leveler', 'saga', 'adventure', 'planar', 'scheme', 'vanguard', 'token', 'double_faced_token', 'emblem', 'augment', 'host', 'art_series', 'reversible_card']
 
   useEffect(() => {
     searchCards()
   }, [page])
+
+  useEffect(() => {
+    if (user) {
+      loadCollections()
+    }
+  }, [user])
+
+  const loadCollections = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/collections/user/${user.userId}`)
+      const data = await res.json()
+      setCollections(data.collections || [])
+    } catch (err) {
+      console.error('Error loading collections:', err)
+    }
+  }
+
+  const openAddToCollectionModal = (card) => {
+    setCardToAdd(card)
+    setAddQuantity(1)
+    setAddMessage('')
+    setSelectedCollectionId(collections.length > 0 ? collections[0].id : null)
+    setShowAddToCollectionModal(true)
+  }
+
+  const handleAddToCollection = async () => {
+    if (!cardToAdd || !selectedCollectionId) return
+
+    try {
+      const res = await fetch(`${API_URL}/api/cards/add/${user.userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: cardToAdd.name_en || cardToAdd.name,
+          mana_cost: cardToAdd.mana_cost,
+          card_type: cardToAdd.type,
+          colors: cardToAdd.colors,
+          rarity: cardToAdd.rarity,
+          quantity_owned: addQuantity,
+          collection_id: selectedCollectionId
+        })
+      })
+
+      if (res.ok) {
+        setAddMessage(t.cardAdded)
+        setTimeout(() => {
+          setShowAddToCollectionModal(false)
+          setCardToAdd(null)
+          setAddMessage('')
+        }, 1500)
+      } else {
+        setAddMessage(t.errorAddingCard)
+      }
+    } catch (err) {
+      console.error('Error adding card:', err)
+      setAddMessage(t.errorAddingCard)
+    }
+  }
 
   // Autocomplete suggestions
   useEffect(() => {
@@ -150,11 +356,23 @@ function CardSearch({ user, onBack, language }) {
       const params = new URLSearchParams()
       if (searchQuery) params.append('query', searchQuery)
       if (filters.colors.length > 0) params.append('colors', filters.colors.join(','))
+      if (filters.colorIdentity.length > 0) params.append('color_identity', filters.colorIdentity.join(','))
       if (filters.types.length > 0) params.append('types', filters.types.join(','))
+      if (filters.subtypes) params.append('subtypes', filters.subtypes)
+      if (filters.supertypes) params.append('supertypes', filters.supertypes)
       if (filters.rarity) params.append('rarity', filters.rarity)
       if (filters.cmcMin) params.append('cmc_min', filters.cmcMin)
       if (filters.cmcMax) params.append('cmc_max', filters.cmcMax)
       if (filters.format) params.append('format', filters.format)
+      if (filters.text) params.append('text', filters.text)
+      if (filters.power) params.append('power', filters.power)
+      if (filters.toughness) params.append('toughness', filters.toughness)
+      if (filters.keywords) params.append('keywords', filters.keywords)
+      if (filters.setCode) params.append('set_code', filters.setCode)
+      if (filters.artist) params.append('artist', filters.artist)
+      if (filters.layout) params.append('layout', filters.layout)
+      if (filters.loyalty) params.append('loyalty', filters.loyalty)
+      if (filters.defense) params.append('defense', filters.defense)
       params.append('language', language)
       params.append('page', page)
       params.append('page_size', 24)
@@ -202,14 +420,35 @@ function CardSearch({ user, onBack, language }) {
     }))
   }
 
+  const toggleColorIdentity = (color) => {
+    setFilters(prev => ({
+      ...prev,
+      colorIdentity: prev.colorIdentity.includes(color)
+        ? prev.colorIdentity.filter(c => c !== color)
+        : [...prev.colorIdentity, color]
+    }))
+  }
+
   const resetFilters = () => {
     setFilters({
       colors: [],
+      colorIdentity: [],
       types: [],
+      subtypes: '',
+      supertypes: '',
       rarity: '',
       cmcMin: '',
       cmcMax: '',
-      format: ''
+      format: '',
+      text: '',
+      power: '',
+      toughness: '',
+      keywords: '',
+      setCode: '',
+      artist: '',
+      layout: '',
+      loyalty: '',
+      defense: ''
     })
     setSearchQuery('')
     setPage(1)
@@ -233,6 +472,22 @@ function CardSearch({ user, onBack, language }) {
       </header>
 
       <div className="search-container">
+        {language === 'it' && (
+          <div className="language-warning">
+            <span className="warning-icon">⚠️</span>
+            <span className="warning-text">
+              {t.italianWarning}
+            </span>
+          </div>
+        )}
+
+        <div className="info-disclaimer">
+          <span className="info-icon">ℹ️</span>
+          <span className="info-text">
+            {t.uniqueCardsDisclaimer}
+          </span>
+        </div>
+        
         <form onSubmit={handleSearch} className="search-form">
           <div className="search-input-wrapper">
             <input
@@ -355,6 +610,168 @@ function CardSearch({ user, onBack, language }) {
               </div>
             </div>
 
+            <div className="advanced-filters-toggle">
+              <button 
+                type="button" 
+                className="advanced-toggle-btn"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              >
+                {showAdvancedFilters ? t.hideAdvanced : t.showAdvanced}
+              </button>
+            </div>
+
+            {showAdvancedFilters && (
+              <div className="advanced-filters-section">
+                <div className="filter-group">
+                  <label>{t.colorIdentity}</label>
+                  <div className="color-filters">
+                    {colorOptions.map(color => (
+                      <button
+                        key={color.value}
+                        className={`color-btn ${filters.colorIdentity.includes(color.value) ? 'active' : ''}`}
+                        onClick={() => toggleColorIdentity(color.value)}
+                        title={color.name}
+                      >
+                        {color.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="filter-row">
+                  <div className="filter-group">
+                    <label>{t.subtypes}</label>
+                    <input
+                      type="text"
+                      placeholder="Human, Wizard, Equipment..."
+                      value={filters.subtypes}
+                      onChange={(e) => setFilters({...filters, subtypes: e.target.value})}
+                      className="filter-input"
+                    />
+                  </div>
+
+                  <div className="filter-group">
+                    <label>{t.supertypes}</label>
+                    <input
+                      type="text"
+                      placeholder="Legendary, Snow, Basic..."
+                      value={filters.supertypes}
+                      onChange={(e) => setFilters({...filters, supertypes: e.target.value})}
+                      className="filter-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="filter-group">
+                  <label>{t.cardText}</label>
+                  <input
+                    type="text"
+                    placeholder={language === 'it' ? 'Cerca nel testo della carta...' : 'Search in card text...'}
+                    value={filters.text}
+                    onChange={(e) => setFilters({...filters, text: e.target.value})}
+                    className="filter-input"
+                  />
+                </div>
+
+                <div className="filter-row">
+                  <div className="filter-group">
+                    <label>{t.power}</label>
+                    <input
+                      type="text"
+                      placeholder="*,0,1,2..."
+                      value={filters.power}
+                      onChange={(e) => setFilters({...filters, power: e.target.value})}
+                      className="filter-input-small"
+                    />
+                  </div>
+
+                  <div className="filter-group">
+                    <label>{t.toughness}</label>
+                    <input
+                      type="text"
+                      placeholder="*,0,1,2..."
+                      value={filters.toughness}
+                      onChange={(e) => setFilters({...filters, toughness: e.target.value})}
+                      className="filter-input-small"
+                    />
+                  </div>
+
+                  <div className="filter-group">
+                    <label>{t.loyalty}</label>
+                    <input
+                      type="text"
+                      placeholder="1,2,3,4..."
+                      value={filters.loyalty}
+                      onChange={(e) => setFilters({...filters, loyalty: e.target.value})}
+                      className="filter-input-small"
+                    />
+                  </div>
+
+                  <div className="filter-group">
+                    <label>{t.defense}</label>
+                    <input
+                      type="text"
+                      placeholder="0,1,2,3..."
+                      value={filters.defense}
+                      onChange={(e) => setFilters({...filters, defense: e.target.value})}
+                      className="filter-input-small"
+                    />
+                  </div>
+                </div>
+
+                <div className="filter-row">
+                  <div className="filter-group">
+                    <label>{t.keywords}</label>
+                    <input
+                      type="text"
+                      placeholder="Flying, Haste, Trample..."
+                      value={filters.keywords}
+                      onChange={(e) => setFilters({...filters, keywords: e.target.value})}
+                      className="filter-input"
+                    />
+                  </div>
+
+                  <div className="filter-group">
+                    <label>{t.setCode}</label>
+                    <input
+                      type="text"
+                      placeholder="MH3, BLB, OTJ..."
+                      value={filters.setCode}
+                      onChange={(e) => setFilters({...filters, setCode: e.target.value})}
+                      className="filter-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="filter-row">
+                  <div className="filter-group">
+                    <label>{t.artist}</label>
+                    <input
+                      type="text"
+                      placeholder={language === 'it' ? 'Nome artista...' : 'Artist name...'}
+                      value={filters.artist}
+                      onChange={(e) => setFilters({...filters, artist: e.target.value})}
+                      className="filter-input"
+                    />
+                  </div>
+
+                  <div className="filter-group">
+                    <label>{t.layout}</label>
+                    <select 
+                      value={filters.layout} 
+                      onChange={(e) => setFilters({...filters, layout: e.target.value})}
+                      className="filter-select"
+                    >
+                      <option value="">All</option>
+                      {layoutOptions.map(l => (
+                        <option key={l} value={l}>{l.replace(/_/g, ' ')}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <button className="reset-btn" onClick={resetFilters}>{t.reset}</button>
           </div>
         )}
@@ -376,21 +793,20 @@ function CardSearch({ user, onBack, language }) {
               <div 
                 key={card.uuid} 
                 className="card-item"
-                onClick={() => openCardDetail(card.uuid)}
               >
-                <img 
-                  src={card.image_url && card.image_url.startsWith('/card-images/') 
-                    ? card.image_url 
-                    : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="223" height="310"%3E%3Crect width="223" height="310" fill="%23333"/%3E%3Ctext x="50%25" y="50%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="14"%3ELoading...%3C/text%3E%3C/svg%3E'
-                  } 
-                  alt={card.name}
-                  className="card-image"
-                  loading="lazy"
-                  onError={(e) => {
-                    // Se l'immagine locale non esiste, mostra placeholder
-                    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="223" height="310"%3E%3Crect width="223" height="310" fill="%23333"/%3E%3Ctext x="50%25" y="50%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="14"%3EImage%3C/text%3E%3Ctext x="50%25" y="55%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="14"%3ENot Ready%3C/text%3E%3C/svg%3E'
+                <div onClick={() => openCardDetail(card.uuid)}>
+                  <CardImage card={card} />
+                </div>
+                <button 
+                  className="add-to-collection-btn"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    openAddToCollectionModal(card)
                   }}
-                />
+                  title={t.addToCollection}
+                >
+                  + 📚
+                </button>
               </div>
             ))}
           </div>
@@ -425,17 +841,7 @@ function CardSearch({ user, onBack, language }) {
             <button className="close-modal-btn" onClick={() => setSelectedCard(null)}>✕</button>
             
             <div className="card-detail-content">
-              <img 
-                src={selectedCard.image_url && selectedCard.image_url.startsWith('/card-images/') 
-                  ? selectedCard.image_url 
-                  : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="488" height="680"%3E%3Crect width="488" height="680" fill="%23333"/%3E%3Ctext x="50%25" y="50%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="20"%3EImage Not Ready%3C/text%3E%3C/svg%3E'
-                } 
-                alt={selectedCard.name}
-                className="card-detail-image"
-                onError={(e) => {
-                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="488" height="680"%3E%3Crect width="488" height="680" fill="%23333"/%3E%3Ctext x="50%25" y="50%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="20"%3EImage Not Ready%3C/text%3E%3C/svg%3E'
-                }}
-              />
+              <CardDetailImage card={selectedCard} />
               
               <div className="card-detail-info">
                 <h2>{selectedCard.name}</h2>
@@ -485,7 +891,151 @@ function CardSearch({ user, onBack, language }) {
           </div>
         </div>
       )}
+
+      {showAddToCollectionModal && (
+        <div className="modal-overlay" onClick={() => setShowAddToCollectionModal(false)}>
+          <div className="modal-content add-to-collection-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>{t.addToCollection}</h2>
+            
+            {addMessage && (
+              <div className={`add-message ${addMessage.includes('✓') ? 'success' : 'error'}`}>
+                {addMessage}
+              </div>
+            )}
+            
+            {cardToAdd && (
+              <div className="card-to-add-info">
+                <strong>{cardToAdd.name}</strong>
+                <span className="card-type-small">{cardToAdd.type}</span>
+              </div>
+            )}
+            
+            {collections.length === 0 ? (
+              <div className="no-collections-message">
+                <p>{t.noCollections}</p>
+                <p><small>{t.createFirst}</small></p>
+              </div>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label>{t.selectCollection}</label>
+                  <select 
+                    value={selectedCollectionId || ''} 
+                    onChange={(e) => setSelectedCollectionId(parseInt(e.target.value))}
+                    className="collection-select"
+                  >
+                    {collections.map(col => (
+                      <option key={col.id} value={col.id}>
+                        {col.name} ({col.card_count} {language === 'it' ? 'carte' : 'cards'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label>{t.quantity}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={addQuantity}
+                    onChange={(e) => setAddQuantity(parseInt(e.target.value) || 1)}
+                    className="quantity-input"
+                  />
+                </div>
+              </>
+            )}
+            
+            <div className="modal-actions">
+              <button 
+                className="cancel-btn"
+                onClick={() => setShowAddToCollectionModal(false)}
+              >
+                {t.cancel}
+              </button>
+              {collections.length > 0 && (
+                <button 
+                  className="add-btn"
+                  onClick={handleAddToCollection}
+                  disabled={!selectedCollectionId}
+                >
+                  {t.add}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+// Componente per le immagini nel modal di dettaglio
+function CardDetailImage({ card }) {
+  const [imageUrl, setImageUrl] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadImage = async () => {
+      if (card.image_url && card.image_url.startsWith('/card-images/')) {
+        const img = new Image()
+        img.onload = () => {
+          if (mounted) {
+            setImageUrl(card.image_url)
+            setLoading(false)
+          }
+        }
+        img.onerror = async () => {
+          if (mounted) {
+            const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
+            setImageUrl(scryfallUrl)
+            setLoading(false)
+          }
+        }
+        img.src = card.image_url
+      } else {
+        const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
+        if (mounted) {
+          setImageUrl(scryfallUrl)
+          setLoading(false)
+        }
+      }
+    }
+
+    loadImage()
+
+    return () => {
+      mounted = false
+    }
+  }, [card.name, card.image_url, card.scryfallId])
+
+  if (loading) {
+    return (
+      <img 
+        src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="488" height="680"%3E%3Crect width="488" height="680" fill="%23333"/%3E%3Ctext x="50%25" y="50%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="20"%3ELoading...%3C/text%3E%3C/svg%3E'
+        alt={card.name}
+        className="card-detail-image"
+      />
+    )
+  }
+
+  if (!imageUrl) {
+    return (
+      <img 
+        src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="488" height="680"%3E%3Crect width="488" height="680" fill="%23333"/%3E%3Ctext x="50%25" y="50%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="20"%3EImage Not Found%3C/text%3E%3C/svg%3E'
+        alt={card.name}
+        className="card-detail-image"
+      />
+    )
+  }
+
+  return (
+    <img 
+      src={imageUrl}
+      alt={card.name}
+      className="card-detail-image"
+    />
   )
 }
 

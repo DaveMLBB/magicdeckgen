@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './Collection.css'
+import { cardImageCache } from '../utils/cardImageCache'
 
 const API_URL = import.meta.env.PROD 
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
@@ -15,6 +16,16 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
   const [sortBy, setSortBy] = useState('name')
   const [sortOrder, setSortOrder] = useState('asc')
   const [showUploadModal, setShowUploadModal] = useState(false)
+  
+  // Filters
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({
+    colors: [],
+    types: [],
+    rarity: '',
+    cmcMin: '',
+    cmcMax: ''
+  })
   
   // Upload states
   const [uploading, setUploading] = useState(false)
@@ -103,7 +114,26 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       editQuantity: 'Modifica Quantità',
       remove: 'Rimuovi',
       quantityUpdated: 'Quantità aggiornata',
-      cardRemoved: 'Carta rimossa'
+      cardRemoved: 'Carta rimossa',
+      filters: 'Filtri',
+      hideFilters: 'Nascondi Filtri',
+      colors: 'Colori',
+      rarity: 'Rarità',
+      cmc: 'CMC',
+      min: 'Min',
+      max: 'Max',
+      reset: 'Reset',
+      creature: 'Creatura',
+      instant: 'Istantaneo',
+      sorcery: 'Stregoneria',
+      enchantment: 'Incantesimo',
+      artifact: 'Artefatto',
+      planeswalker: 'Planeswalker',
+      land: 'Terra',
+      common: 'Comune',
+      uncommon: 'Non Comune',
+      rare: 'Rara',
+      mythic: 'Mitica'
     },
     en: {
       title: 'Collection',
@@ -164,16 +194,46 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       editQuantity: 'Edit Quantity',
       remove: 'Remove',
       quantityUpdated: 'Quantity updated',
-      cardRemoved: 'Card removed'
+      cardRemoved: 'Card removed',
+      filters: 'Filters',
+      hideFilters: 'Hide Filters',
+      colors: 'Colors',
+      rarity: 'Rarity',
+      cmc: 'CMC',
+      min: 'Min',
+      max: 'Max',
+      reset: 'Reset',
+      creature: 'Creature',
+      instant: 'Instant',
+      sorcery: 'Sorcery',
+      enchantment: 'Enchantment',
+      artifact: 'Artifact',
+      planeswalker: 'Planeswalker',
+      land: 'Land',
+      common: 'Common',
+      uncommon: 'Uncommon',
+      rare: 'Rare',
+      mythic: 'Mythic'
     }
   }
 
   const t = translations[language]
 
+  const colorOptions = [
+    { value: 'W', label: '⚪', name: 'White' },
+    { value: 'U', label: '🔵', name: 'Blue' },
+    { value: 'B', label: '⚫', name: 'Black' },
+    { value: 'R', label: '🔴', name: 'Red' },
+    { value: 'G', label: '🟢', name: 'Green' }
+  ]
+
+  const typeOptions = ['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land']
+  const rarityOptions = ['common', 'uncommon', 'rare', 'mythic']
+
   useEffect(() => {
     loadCollection()
     loadStats()
-  }, [page, search, sortBy, sortOrder])
+  }, [page, search, sortBy, sortOrder, filters])
 
   const loadCollection = async () => {
     setLoading(true)
@@ -191,6 +251,23 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       
       if (search) {
         params.append('search', search)
+      }
+
+      // Add filters
+      if (filters.colors.length > 0) {
+        params.append('colors', filters.colors.join(','))
+      }
+      if (filters.types.length > 0) {
+        params.append('types', filters.types.join(','))
+      }
+      if (filters.rarity) {
+        params.append('rarity', filters.rarity)
+      }
+      if (filters.cmcMin) {
+        params.append('cmc_min', filters.cmcMin)
+      }
+      if (filters.cmcMax) {
+        params.append('cmc_max', filters.cmcMax)
       }
 
       const res = await fetch(`${API_URL}/api/cards/collection/${user.userId}?${params}`)
@@ -231,6 +308,37 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       setSortBy(field)
       setSortOrder('asc')
     }
+    setPage(1)
+  }
+
+  const toggleColor = (color) => {
+    setFilters(prev => ({
+      ...prev,
+      colors: prev.colors.includes(color)
+        ? prev.colors.filter(c => c !== color)
+        : [...prev.colors, color]
+    }))
+    setPage(1)
+  }
+
+  const toggleType = (type) => {
+    setFilters(prev => ({
+      ...prev,
+      types: prev.types.includes(type)
+        ? prev.types.filter(t => t !== type)
+        : [...prev.types, type]
+    }))
+    setPage(1)
+  }
+
+  const resetFilters = () => {
+    setFilters({
+      colors: [],
+      types: [],
+      rarity: '',
+      cmcMin: '',
+      cmcMax: ''
+    })
     setPage(1)
   }
 
@@ -415,21 +523,10 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
     setImageLoading(true)
     setCardImageUrl(null)
     
-    try {
-      // Cerca l'immagine nella cartella public/card-images
-      // Il nome del file è l'UUID della carta, quindi dobbiamo fare una ricerca
-      // Per ora usiamo l'API Scryfall come fallback
-      const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        setCardImageUrl(data.image_uris?.normal || data.image_uris?.small)
-      }
-    } catch (err) {
-      console.error('Error loading card image:', err)
-    } finally {
-      setImageLoading(false)
-    }
+    // Usa la cache per ottenere l'immagine
+    const imageUrl = await cardImageCache.getCardImage(cardName)
+    setCardImageUrl(imageUrl)
+    setImageLoading(false)
   }
 
   const handleCardLeave = () => {
@@ -557,7 +654,90 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
               {sortOrder === 'asc' ? '↑' : '↓'}
             </button>
           </div>
+
+          <button 
+            className="filters-toggle-btn"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            {showFilters ? t.hideFilters : t.filters}
+          </button>
         </div>
+
+        {showFilters && (
+          <div className="filters-panel">
+            <div className="filter-group">
+              <label>{t.colors}</label>
+              <div className="color-filters">
+                {colorOptions.map(color => (
+                  <button
+                    key={color.value}
+                    className={`color-btn ${filters.colors.includes(color.value) ? 'active' : ''}`}
+                    onClick={() => toggleColor(color.value)}
+                    title={color.name}
+                  >
+                    {color.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <label>{t.type}</label>
+              <div className="type-filters">
+                {typeOptions.map(type => (
+                  <button
+                    key={type}
+                    className={`type-btn ${filters.types.includes(type) ? 'active' : ''}`}
+                    onClick={() => toggleType(type)}
+                  >
+                    {t[type.toLowerCase()] || type}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-row">
+              <div className="filter-group">
+                <label>{t.rarity}</label>
+                <select 
+                  value={filters.rarity} 
+                  onChange={(e) => { setFilters({...filters, rarity: e.target.value}); setPage(1); }}
+                  className="filter-select"
+                >
+                  <option value="">All</option>
+                  {rarityOptions.map(r => (
+                    <option key={r} value={r}>{t[r] || r}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label>{t.cmc}</label>
+                <div className="cmc-inputs">
+                  <input
+                    type="number"
+                    placeholder={t.min}
+                    value={filters.cmcMin}
+                    onChange={(e) => { setFilters({...filters, cmcMin: e.target.value}); setPage(1); }}
+                    className="cmc-input"
+                    min="0"
+                  />
+                  <span>-</span>
+                  <input
+                    type="number"
+                    placeholder={t.max}
+                    value={filters.cmcMax}
+                    onChange={(e) => { setFilters({...filters, cmcMax: e.target.value}); setPage(1); }}
+                    className="cmc-input"
+                    min="0"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button className="reset-btn" onClick={resetFilters}>{t.reset}</button>
+          </div>
+        )}
 
         {loading ? (
           <div className="loading-spinner">

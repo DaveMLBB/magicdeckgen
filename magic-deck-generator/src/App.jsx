@@ -5,6 +5,9 @@ import Subscriptions from './components/Subscriptions'
 import Collection from './components/Collection'
 import CollectionsList from './components/CollectionsList'
 import CardSearch from './components/CardSearch'
+import SavedDecksList from './components/SavedDecksList'
+import SavedDeck from './components/SavedDeck'
+import { cardImageCache } from './utils/cardImageCache'
 
 const API_URL = import.meta.env.PROD 
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
@@ -20,15 +23,19 @@ function App() {
   const [selectedDeck, setSelectedDeck] = useState(null)
   const [message, setMessage] = useState('')
   const [showSubscriptions, setShowSubscriptions] = useState(false)
-  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search'
+  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search', 'saved-decks', 'saved-deck-detail'
   const [selectedCollection, setSelectedCollection] = useState(null)
+  const [selectedSavedDeck, setSelectedSavedDeck] = useState(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState(null)
   const [hasShownSubscriptionModal, setHasShownSubscriptionModal] = useState(false)
+  const [loadingDeckCards, setLoadingDeckCards] = useState(false)
+  const [loadedDeckIds, setLoadedDeckIds] = useState(new Set()) // Track which decks have been loaded
   const [filters, setFilters] = useState({
     colors: [],
     minMatch: 10,
     buildableOnly: false,
-    formats: []
+    formats: [],
+    deckSource: 'system' // 'system', 'users', 'both'
   })
   const [availableFormats, setAvailableFormats] = useState([])
   
@@ -68,6 +75,14 @@ function App() {
       resetFilters: '🔄 Reset Filtri',
       findDecks: '🔍 Trova Mazzi Compatibili',
       analyzing: 'Analizzando mazzi...',
+      deckSearchDisclaimer: 'Una singola richiesta può richiedere fino a 10 minuti se molto estesa.',
+      deckSource: 'Fonte Mazzi:',
+      deckSourceSystem: 'Solo Sistema',
+      deckSourceUsers: 'Solo Utenti',
+      deckSourceBoth: 'Entrambi',
+      deckSourceSystemDesc: 'Mazzi competitivi del database',
+      deckSourceUsersDesc: 'Mazzi pubblici degli utenti',
+      deckSourceBothDesc: 'Sistema + Utenti',
       compatibleDecks: 'Mazzi Compatibili',
       match: 'Match:',
       cardsOwned: 'Carte possedute:',
@@ -95,7 +110,12 @@ function App() {
       uploadsRemaining: 'caricamenti',
       viewCollection: '📚 Collezione',
       searchCards: '🔍 Cerca Carte',
+      viewDecks: '🃏 Mazzi Salvati',
       complete: 'completo',
+      saveDeck: '💾 Salva Mazzo',
+      saving: 'Salvando...',
+      deckSaved: 'Mazzo salvato con successo!',
+      errorSaving: 'Errore nel salvataggio del mazzo',
       cards: 'carte',
       noCardsFound: '⚠️ Nessuna carta trovata per questo mazzo',
       errorAnalyzing: 'Errore: Impossibile analizzare il file',
@@ -118,7 +138,7 @@ function App() {
       noDecksFound: 'Nessun deck trovato con i filtri selezionati',
       selectCollectionSource: 'Seleziona Origine Collezione',
       formatWarningTitle: '⚠️ Nessun Formato Selezionato',
-      formatWarningMessage: 'Non hai selezionato un formato. La ricerca potrebbe richiedere fino a 5 minuti per analizzare tutti i 7200+ mazzi disponibili.',
+      formatWarningMessage: 'Non hai selezionato un formato. La ricerca potrebbe richiedere fino a 10 minuti per analizzare tutti i 7200+ mazzi disponibili.',
       formatWarningContinue: 'Continua Comunque',
       formatWarningCancel: 'Annulla',
       uploadNewFile: '📁 Carica Nuovo File',
@@ -150,6 +170,14 @@ function App() {
       resetFilters: '🔄 Reset Filters',
       findDecks: '🔍 Find Compatible Decks',
       analyzing: 'Analyzing decks...',
+      deckSearchDisclaimer: 'A single request can take up to 10 minutes if very extensive.',
+      deckSource: 'Deck Source:',
+      deckSourceSystem: 'System Only',
+      deckSourceUsers: 'Users Only',
+      deckSourceBoth: 'Both',
+      deckSourceSystemDesc: 'Competitive decks from database',
+      deckSourceUsersDesc: 'Public user decks',
+      deckSourceBothDesc: 'System + Users',
       compatibleDecks: 'Compatible Decks',
       match: 'Match:',
       cardsOwned: 'Cards owned:',
@@ -176,7 +204,13 @@ function App() {
       unverified: '⚠️ Unverified',
       uploadsRemaining: 'uploads',
       viewCollection: '📚 Collection',
+      searchCards: '🔍 Search Cards',
+      viewDecks: '🃏 Saved Decks',
       complete: 'complete',
+      saveDeck: '💾 Save Deck',
+      saving: 'Saving...',
+      deckSaved: 'Deck saved successfully!',
+      errorSaving: 'Error saving deck',
       cards: 'cards',
       noCardsFound: '⚠️ No cards found for this deck',
       errorAnalyzing: 'Error: Unable to analyze file',
@@ -280,6 +314,51 @@ function App() {
     }
   }, [language, user])
 
+  // Carica le carte quando viene selezionato un mazzo pubblico
+  useEffect(() => {
+    const loadUserDeckCards = async () => {
+      if (!user || selectedDeck === null || !decks[selectedDeck]) return
+      
+      const deck = decks[selectedDeck]
+      
+      // Carica solo se è un mazzo utente, ha saved_deck_id, non ha già deck_list e non è già stato caricato
+      if (deck.source === 'user' && 
+          deck.saved_deck_id && 
+          (!deck.deck_list || deck.deck_list.length === 0) &&
+          !loadedDeckIds.has(deck.saved_deck_id)) {
+        
+        setLoadingDeckCards(true)
+        setLoadedDeckIds(prev => new Set([...prev, deck.saved_deck_id]))
+        
+        try {
+          const res = await fetch(`${API_URL}/api/saved-decks/${deck.saved_deck_id}?user_id=${user.userId}`)
+          const data = await res.json()
+          
+          // Aggiorna il deck con le carte caricate
+          setDecks(prevDecks => {
+            const newDecks = [...prevDecks]
+            newDecks[selectedDeck] = {
+              ...newDecks[selectedDeck],
+              deck_list: data.cards.map(card => ({
+                name: card.card_name,
+                quantity_needed: card.quantity,
+                type: card.card_type,
+                missing: card.quantity_missing
+              }))
+            }
+            return newDecks
+          })
+        } catch (err) {
+          console.error('Error loading user deck cards:', err)
+        } finally {
+          setLoadingDeckCards(false)
+        }
+      }
+    }
+    
+    loadUserDeckCards()
+  }, [selectedDeck, user]) // Rimuovi 'decks' dalle dipendenze
+
   const handleLogin = (userData) => {
     setUser(userData)
   }
@@ -303,7 +382,7 @@ function App() {
   }
 
   if (!user) {
-    return <Auth onLogin={handleLogin} language={language} />
+    return <Auth onLogin={handleLogin} language={language} setLanguage={setLanguage} />
   }
 
   const handleUpload = async (e) => {
@@ -429,7 +508,13 @@ function App() {
     setMessage('')
     
     try {
-      // 1. Crea automaticamente una collezione con la data come nome
+      // 1. Elimina tutte le carte esistenti dell'utente (per evitare duplicati nell'analisi mazzi)
+      console.log('🗑️ Eliminazione carte esistenti...')
+      await fetch(`${API_URL}/api/cards/${user.userId}`, {
+        method: 'DELETE'
+      })
+      
+      // 2. Crea automaticamente una collezione con la data come nome
       const now = new Date()
       const collectionName = now.toLocaleString(language === 'it' ? 'it-IT' : 'en-US', {
         year: 'numeric',
@@ -460,7 +545,7 @@ function App() {
       const newCollection = await createCollectionRes.json()
       console.log('✅ Collezione creata:', newCollection)
       
-      // 2. Carica le carte nella nuova collezione
+      // 3. Carica le carte nella nuova collezione
       const formData = new FormData()
       formData.append('file', fileToUpload)
       formData.append('mapping', JSON.stringify(columnMapping))
@@ -525,52 +610,107 @@ function App() {
   const performSearch = async () => {
     setShowFormatWarning(false)
     setDeckLoading(true)
+    setLoadedDeckIds(new Set()) // Reset loaded decks when performing new search
     try {
-      // Costruisci URL con parametri di filtro
-      const params = new URLSearchParams()
+      let allDecks = []
       
-      // Formato è opzionale - se selezionato, filtra per formato
-      if (filters.formats.length > 0) {
-        params.append('format', filters.formats[0])
-      }
-      
-      if (filters.colors.length > 0) {
-        params.append('colors', filters.colors.join(','))
-      }
-      
-      params.append('min_match', filters.minMatch)
-      
-      if (filters.buildableOnly) {
-        params.append('buildable_only', 'true')
-      }
-      
-      const url = `${API_URL}/api/decks/match/${user.userId}?${params.toString()}`
-      console.log('🔍 Ricerca con filtri:', url)
-      
-      const res = await fetch(url)
-      const data = await res.json()
-      setDecks(data.decks || [])
-      
-      // Mostra messaggio con info sui limiti
-      if (data.decks?.length === 0) {
-        setMessage(data.message || t.noDecksFound)
-      } else {
-        let msg = `✓ ${t.foundDecks} ${data.total_matches} ${t.decksCompatible}`
+      // Cerca nei mazzi di sistema se richiesto
+      if (filters.deckSource === 'system' || filters.deckSource === 'both') {
+        const params = new URLSearchParams()
         
-        // Se i risultati sono limitati, mostra avviso
-        if (data.limited) {
-          const limitInfo = {
-            it: `(mostrando ${data.decks.length} di ${data.total_matches} - limite piano ${data.subscription_type})`,
-            en: `(showing ${data.decks.length} of ${data.total_matches} - ${data.subscription_type} plan limit)`
-          }
-          msg += ` ${limitInfo[language]}`
-        } else {
-          msg += ` ${language === 'it' ? `(mostrando top ${data.decks.length})` : `(showing top ${data.decks.length})`}`
+        if (filters.formats.length > 0) {
+          params.append('format', filters.formats[0])
         }
         
+        if (filters.colors.length > 0) {
+          params.append('colors', filters.colors.join(','))
+        }
+        
+        params.append('min_match', filters.minMatch)
+        
+        if (filters.buildableOnly) {
+          params.append('buildable_only', 'true')
+        }
+        
+        const url = `${API_URL}/api/decks/match/${user.userId}?${params.toString()}`
+        console.log('🔍 Ricerca mazzi sistema:', url)
+        
+        const res = await fetch(url)
+        const data = await res.json()
+        
+        if (data.decks) {
+          allDecks = [...allDecks, ...data.decks.map(d => ({ ...d, source: 'system' }))]
+        }
+      }
+      
+      // Cerca nei mazzi pubblici degli utenti se richiesto
+      if (filters.deckSource === 'users' || filters.deckSource === 'both') {
+        const params = new URLSearchParams()
+        
+        // Passa user_id per calcolare la compatibilità
+        params.append('user_id', user.userId.toString())
+        
+        if (filters.formats.length > 0) {
+          params.append('format', filters.formats[0])
+        }
+        
+        if (filters.colors.length > 0) {
+          params.append('colors', filters.colors.join(','))
+        }
+        
+        params.append('page_size', '100') // Prendi più risultati
+        
+        const url = `${API_URL}/api/saved-decks/public/search?${params.toString()}`
+        console.log('🔍 Ricerca mazzi utenti:', url)
+        
+        const res = await fetch(url)
+        const data = await res.json()
+        
+        if (data.decks) {
+          // Converti formato mazzi pubblici in formato compatibile
+          const userDecks = data.decks.map(deck => ({
+            name: deck.name,
+            colors: deck.colors,
+            format: deck.format,
+            archetype: deck.archetype,
+            total_cards: deck.total_cards,
+            match_percentage: deck.match_percentage || 0,
+            cards_owned: deck.cards_owned || 0,
+            missing_cards_count: deck.missing_cards_count || deck.total_cards,
+            can_build: deck.can_build || false,
+            deck_list: [],
+            source: 'user',
+            deck_template_id: null,
+            saved_deck_id: deck.id
+          }))
+          allDecks = [...allDecks, ...userDecks]
+        }
+      }
+      
+      // Ordina per match percentage (mazzi sistema) e poi per data
+      allDecks.sort((a, b) => {
+        if (a.match_percentage !== b.match_percentage) {
+          return b.match_percentage - a.match_percentage
+        }
+        return 0
+      })
+      
+      setDecks(allDecks)
+      
+      // Mostra messaggio
+      if (allDecks.length === 0) {
+        setMessage(t.noDecksFound)
+      } else {
+        const sourceText = {
+          system: language === 'it' ? 'sistema' : 'system',
+          users: language === 'it' ? 'utenti' : 'users',
+          both: language === 'it' ? 'sistema + utenti' : 'system + users'
+        }
+        const msg = `✓ ${t.foundDecks} ${allDecks.length} ${t.decksCompatible} (${sourceText[filters.deckSource]})`
         setMessage(msg)
       }
     } catch (err) {
+      console.error('Errore ricerca:', err)
       setMessage(t.errorSearching)
     }
     setDeckLoading(false)
@@ -601,16 +741,22 @@ function App() {
     }))
   }
 
+  const setDeckSource = (source) => {
+    setFilters(prev => ({ ...prev, deckSource: source }))
+  }
+
   const resetFilters = () => {
     setFilters({
       colors: [],
       minMatch: 10,
       buildableOnly: false,
-      formats: []
+      formats: [],
+      deckSource: 'system'
     })
   }
 
   const getColorEmoji = (colors) => {
+    if (!colors) return '⚪'
     const colorMap = { W: '⚪', U: '🔵', B: '⚫', R: '🔴', G: '🟢' }
     return colors.split('/').map(c => colorMap[c] || c).join('')
   }
@@ -622,18 +768,10 @@ function App() {
     setImageLoading(true)
     setCardImageUrl(null)
     
-    try {
-      const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        setCardImageUrl(data.image_uris?.normal || data.image_uris?.small)
-      }
-    } catch (err) {
-      console.error('Error loading card image:', err)
-    } finally {
-      setImageLoading(false)
-    }
+    // Usa la cache per ottenere l'immagine
+    const imageUrl = await cardImageCache.getCardImage(cardName)
+    setCardImageUrl(imageUrl)
+    setImageLoading(false)
   }
 
   const handleCardLeave = () => {
@@ -685,6 +823,67 @@ function App() {
     }
   }
 
+  const saveDeckToSaved = async (deckIndex) => {
+    const deck = decks[deckIndex]
+    if (!deck || !deck.deck_list) {
+      setMessage(t.errorSaving)
+      return
+    }
+
+    setImporting(true)
+    try {
+      // Prepara le carte per il salvataggio
+      const cards = deck.deck_list.map(card => ({
+        card_name: card.name,
+        quantity: card.quantity_needed,
+        card_type: card.type || null,
+        colors: null,
+        mana_cost: null,
+        rarity: null
+      }))
+
+      const res = await fetch(
+        `${API_URL}/api/saved-decks/create?user_id=${user.userId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: deck.name,
+            description: `${deck.format || ''} deck - ${deck.match_percentage}% match`,
+            format: deck.format || null,
+            colors: deck.colors || null,
+            archetype: null,
+            source: 'from_search',
+            is_public: false,
+            collection_ids: [],  // Nessuna collezione collegata di default
+            cards: cards
+          })
+        }
+      )
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.detail || t.errorSaving)
+      }
+
+      setMessage(`✅ ${t.deckSaved} "${data.name}" (${data.total_cards} ${t.cards})`)
+      
+      // Opzionale: reindirizza ai mazzi salvati
+      setTimeout(() => {
+        setCurrentView('saved-decks')
+      }, 2000)
+
+    } catch (err) {
+      console.error('Errore salvataggio deck:', err)
+      setMessage(`❌ ${err.message || t.errorSaving}`)
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="app">
       {currentView === 'collections' ? (
@@ -716,6 +915,26 @@ function App() {
           onBack={() => setCurrentView('main')}
           language={language}
         />
+      ) : currentView === 'saved-decks' ? (
+        <SavedDecksList
+          user={user}
+          onBack={() => setCurrentView('main')}
+          onSelectDeck={(deck) => {
+            setSelectedSavedDeck(deck)
+            setCurrentView('saved-deck-detail')
+          }}
+          language={language}
+        />
+      ) : currentView === 'saved-deck-detail' ? (
+        <SavedDeck
+          user={user}
+          deck={selectedSavedDeck}
+          onBack={() => {
+            setSelectedSavedDeck(null)
+            setCurrentView('saved-decks')
+          }}
+          language={language}
+        />
       ) : (
         <>
           <header>
@@ -744,6 +963,9 @@ function App() {
                 </button>
                 <button className="collection-btn" onClick={() => setCurrentView('card-search')}>
                   {t.searchCards}
+                </button>
+                <button className="collection-btn" onClick={() => setCurrentView('saved-decks')}>
+                  {t.viewDecks}
                 </button>
                 {subscriptionStatus && (
                   <button className="subscription-btn" onClick={() => setShowSubscriptions(true)}>
@@ -1074,6 +1296,33 @@ function App() {
               </div>
 
               <div className="filter-group">
+                <label>{t.deckSource}</label>
+                <div className="deck-source-filters">
+                  <button
+                    className={`source-btn ${filters.deckSource === 'system' ? 'active' : ''}`}
+                    onClick={() => setDeckSource('system')}
+                    title={t.deckSourceSystemDesc}
+                  >
+                    🏛️ {t.deckSourceSystem}
+                  </button>
+                  <button
+                    className={`source-btn ${filters.deckSource === 'users' ? 'active' : ''}`}
+                    onClick={() => setDeckSource('users')}
+                    title={t.deckSourceUsersDesc}
+                  >
+                    👥 {t.deckSourceUsers}
+                  </button>
+                  <button
+                    className={`source-btn ${filters.deckSource === 'both' ? 'active' : ''}`}
+                    onClick={() => setDeckSource('both')}
+                    title={t.deckSourceBothDesc}
+                  >
+                    🌐 {t.deckSourceBoth}
+                  </button>
+                </div>
+              </div>
+
+              <div className="filter-group">
                 <label>{t.minCompletion}: {filters.minMatch}%</label>
                 <input
                   type="range"
@@ -1096,11 +1345,18 @@ function App() {
                 </label>
               </div>
 
-              {(filters.colors.length > 0 || filters.minMatch > 10 || filters.buildableOnly || filters.formats.length > 0) && (
+              {(filters.colors.length > 0 || filters.minMatch > 10 || filters.buildableOnly || filters.formats.length > 0 || filters.deckSource !== 'system') && (
                 <button className="reset-filters-btn-inline" onClick={resetFilters}>
                   🔄 Reset Filtri
                 </button>
               )}
+            </div>
+
+            <div className="deck-search-disclaimer">
+              <span className="info-icon">⏱️</span>
+              <span className="info-text">
+                {t.deckSearchDisclaimer}
+              </span>
             </div>
 
             <button className="generate-btn" onClick={generateDecks} disabled={deckLoading}>
@@ -1145,6 +1401,11 @@ function App() {
                     <span className="deck-colors">{getColorEmoji(deck.colors)}</span>
                     <h3>{deck.name}</h3>
                     {deck.format && <span className="deck-format">{deck.format}</span>}
+                    {deck.source === 'user' && (
+                      <span className="deck-source-badge">
+                        👥 {language === 'it' ? 'Utente' : 'User'}
+                      </span>
+                    )}
                   </div>
                   <div className="match-bar">
                     <div className="match-fill" style={{width: `${deck.match_percentage}%`}}></div>
@@ -1167,20 +1428,56 @@ function App() {
           <section className="deck-detail">
             <div className="deck-detail-header">
               <h2>{decks[selectedDeck].name}</h2>
-              <button 
-                className="import-deck-btn"
-                onClick={() => importDeckAsCollection(selectedDeck)}
-                disabled={importing}
-              >
-                {importing ? (
+              <div className="deck-actions-group">
+                {decks[selectedDeck].source === 'system' && (
                   <>
-                    <span className="spinner"></span>
-                    {t.importing}
+                    <button 
+                      className="save-deck-btn"
+                      onClick={() => saveDeckToSaved(selectedDeck)}
+                      disabled={importing}
+                    >
+                      {importing ? (
+                        <>
+                          <span className="spinner"></span>
+                          {t.saving}
+                        </>
+                      ) : (
+                        <>💾 {t.saveDeck}</>
+                      )}
+                    </button>
+                    <button 
+                      className="import-deck-btn"
+                      onClick={() => importDeckAsCollection(selectedDeck)}
+                      disabled={importing}
+                    >
+                      {importing ? (
+                        <>
+                          <span className="spinner"></span>
+                          {t.importing}
+                        </>
+                      ) : (
+                        <>📥 {t.importToCollection}</>
+                      )}
+                    </button>
                   </>
-                ) : (
-                  <>📥 {t.importToCollection}</>
                 )}
-              </button>
+                {decks[selectedDeck].source === 'user' && (
+                  <button 
+                    className="save-deck-btn"
+                    onClick={() => saveDeckToSaved(selectedDeck)}
+                    disabled={importing}
+                  >
+                    {importing ? (
+                      <>
+                        <span className="spinner"></span>
+                        {t.saving}
+                      </>
+                    ) : (
+                      <>💾 {t.saveDeck}</>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
             <div className="deck-info">
               {decks[selectedDeck].format && <p>{t.format}: <strong>{decks[selectedDeck].format}</strong></p>}
@@ -1189,7 +1486,12 @@ function App() {
               {decks[selectedDeck].can_build && <p className="can-build">{t.canBuild}</p>}
             </div>
             
-            {decks[selectedDeck].deck_list && decks[selectedDeck].deck_list.length > 0 ? (
+            {loadingDeckCards ? (
+              <div className="loading-cards">
+                <div className="spinner"></div>
+                <p>{language === 'it' ? 'Caricamento carte...' : 'Loading cards...'}</p>
+              </div>
+            ) : decks[selectedDeck].deck_list && decks[selectedDeck].deck_list.length > 0 ? (
               <>
                 <h3>{t.completeList} ({decks[selectedDeck].deck_list.length} {t.uniqueCards})</h3>
                 <div className="cards-list">

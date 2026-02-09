@@ -438,18 +438,59 @@ def delete_user_cards(user_id: str, db: Session = Depends(get_db)):
 @router.post("/add/{user_id}")
 def add_card(user_id: str, card_data: dict, db: Session = Depends(get_db)):
     """Aggiungi una singola carta"""
-    card = Card(
-        name=card_data.get('name'),
-        mana_cost=card_data.get('mana_cost'),
-        card_type=card_data.get('card_type'),
-        colors=card_data.get('colors'),
-        rarity=card_data.get('rarity'),
-        quantity_owned=card_data.get('quantity_owned', 1),
-        user_id=user_id
-    )
-    db.add(card)
-    db.commit()
-    return {"message": "Card added"}
+    from app.models import MTGCard
+    
+    # Cerca la carta nel database MTG per arricchire i dati
+    card_name = card_data.get('name')
+    mtg_card = db.query(MTGCard).filter(MTGCard.name == card_name).first()
+    
+    # Usa i dati dal database MTG se disponibili
+    if mtg_card:
+        card_type = mtg_card.types.split(',')[0].strip() if mtg_card.types else card_data.get('card_type', 'Unknown')
+        colors = mtg_card.colors or card_data.get('colors', '')
+        mana_cost = mtg_card.mana_cost or card_data.get('mana_cost')
+        rarity = mtg_card.rarity or card_data.get('rarity')
+    else:
+        card_type = card_data.get('card_type', 'Unknown')
+        colors = card_data.get('colors', '')
+        mana_cost = card_data.get('mana_cost')
+        rarity = card_data.get('rarity')
+    
+    # Verifica se la carta esiste già nella collezione
+    collection_id = card_data.get('collection_id')
+    existing_card = db.query(Card).filter(
+        Card.user_id == user_id,
+        Card.name == card_name,
+        Card.collection_id == collection_id
+    ).first()
+    
+    if existing_card:
+        # Incrementa la quantità
+        existing_card.quantity_owned += card_data.get('quantity_owned', 1)
+        db.commit()
+        return {
+            "message": "Card quantity updated",
+            "card_id": existing_card.id,
+            "new_quantity": existing_card.quantity_owned
+        }
+    else:
+        # Crea nuova carta
+        card = Card(
+            name=card_name,
+            mana_cost=mana_cost,
+            card_type=card_type,
+            colors=colors,
+            rarity=rarity,
+            quantity_owned=card_data.get('quantity_owned', 1),
+            user_id=user_id,
+            collection_id=collection_id
+        )
+        db.add(card)
+        db.commit()
+        return {
+            "message": "Card added",
+            "card_id": card.id
+        }
 
 @router.get("/collection/{user_id}")
 def get_user_collection(
@@ -458,6 +499,11 @@ def get_user_collection(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
     search: Optional[str] = None,
+    colors: Optional[str] = None,
+    types: Optional[str] = None,
+    rarity: Optional[str] = None,
+    cmc_min: Optional[int] = None,
+    cmc_max: Optional[int] = None,
     sort_by: str = Query("name", regex="^(name|quantity|type|colors)$"),
     sort_order: str = Query("asc", regex="^(asc|desc)$"),
     db: Session = Depends(get_db)
@@ -466,7 +512,10 @@ def get_user_collection(
     Get user's card collection with pagination and filters.
     Free plan: limited to 20 unique cards per collection
     Paid plans: unlimited
+    Cards are enriched with data from MTG database
     """
+    from app.models import MTGCard
+    
     # Get user to check subscription
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -475,7 +524,7 @@ def get_user_collection(
     # Determine display limit based on subscription (20 unique cards for free)
     unique_card_limit = 20 if user.subscription_type == 'free' else None
     
-    # Base query
+    # Base query - join with MTG cards for enrichment
     query = db.query(Card).filter(Card.user_id == user_id)
     
     # Filter by collection if specified
@@ -485,6 +534,26 @@ def get_user_collection(
     # Apply search filter
     if search:
         query = query.filter(Card.name.ilike(f"%{search}%"))
+    
+    # Apply color filter - check both Card.colors and MTGCard.colors
+    if colors:
+        color_list = colors.split(',')
+        color_conditions = []
+        for color in color_list:
+            color_conditions.append(Card.colors.like(f"%{color}%"))
+        query = query.filter(or_(*color_conditions))
+    
+    # Apply type filter
+    if types:
+        type_list = types.split(',')
+        type_conditions = []
+        for t in type_list:
+            type_conditions.append(Card.card_type.like(f"%{t}%"))
+        query = query.filter(or_(*type_conditions))
+    
+    # Apply rarity filter
+    if rarity:
+        query = query.filter(Card.rarity == rarity)
     
     # Get total count (unique cards)
     total_unique_cards = query.count()
@@ -506,30 +575,74 @@ def get_user_collection(
     elif sort_by == "colors":
         query = query.order_by(Card.colors.asc() if sort_order == "asc" else Card.colors.desc())
     
-    # Get all cards (we'll mark which ones are locked in frontend)
+    # Get all cards
     all_cards = query.all()
     
-    # Apply pagination
+    # Enrich cards with MTG database data and apply CMC filter
+    enriched_cards = []
+    for card in all_cards:
+        # Get MTG card data
+        mtg_card = db.query(MTGCard).filter(MTGCard.name == card.name).first()
+        
+        # Apply CMC filter if specified
+        if mtg_card:
+            if cmc_min is not None and (mtg_card.mana_value is None or mtg_card.mana_value < cmc_min):
+                continue
+            if cmc_max is not None and (mtg_card.mana_value is None or mtg_card.mana_value > cmc_max):
+                continue
+        else:
+            # If no MTG card found and CMC filter is active, skip
+            if cmc_min is not None or cmc_max is not None:
+                continue
+        
+        enriched_cards.append({
+            'card': card,
+            'mtg_card': mtg_card
+        })
+    
+    # Apply pagination on enriched cards
     offset = (page - 1) * page_size
-    paginated_cards = all_cards[offset:offset + page_size]
+    paginated_cards = enriched_cards[offset:offset + page_size]
     
     # Calculate total pages
-    total_pages = (len(all_cards) + page_size - 1) // page_size
+    total_pages = (len(enriched_cards) + page_size - 1) // page_size
     
     # Format response
     cards_data = []
-    for idx, card in enumerate(paginated_cards):
+    for idx, item in enumerate(paginated_cards):
+        card = item['card']
+        mtg_card = item['mtg_card']
         global_idx = offset + idx
         is_locked = unique_card_limit and global_idx >= unique_card_limit
+        
+        # Use MTG card data if available, otherwise use collection card data
+        card_type = card.card_type or "Unknown"
+        colors = card.colors or ""
+        mana_cost = card.mana_cost or ""
+        rarity = card.rarity or ""
+        mana_value = None
+        
+        if mtg_card:
+            if mtg_card.types:
+                card_type = mtg_card.types.split(',')[0].strip()
+            elif mtg_card.type_line:
+                type_parts = mtg_card.type_line.split('—')[0].strip()
+                card_type = type_parts.split()[0] if type_parts else card_type
+            
+            colors = mtg_card.colors or colors
+            mana_cost = mtg_card.mana_cost or mana_cost
+            rarity = mtg_card.rarity or rarity
+            mana_value = mtg_card.mana_value
         
         cards_data.append({
             "id": card.id,
             "name": card.name,
             "quantity": card.quantity_owned,
-            "type": card.card_type or "Unknown",
-            "colors": card.colors or "",
-            "mana_cost": card.mana_cost or "",
-            "rarity": card.rarity or "",
+            "type": card_type,
+            "colors": colors,
+            "mana_cost": mana_cost,
+            "rarity": rarity,
+            "mana_value": mana_value,
             "locked": is_locked
         })
     
@@ -538,7 +651,7 @@ def get_user_collection(
         "pagination": {
             "page": page,
             "page_size": page_size,
-            "total_cards": len(all_cards),
+            "total_cards": len(enriched_cards),
             "total_pages": total_pages,
             "has_next": page < total_pages,
             "has_prev": page > 1

@@ -21,6 +21,14 @@ def search_cards(
     cmc_max: Optional[int] = None,
     format: Optional[str] = None,  # standard, modern, etc
     text: Optional[str] = None,
+    power: Optional[str] = None,
+    toughness: Optional[str] = None,
+    keywords: Optional[str] = None,
+    set_code: Optional[str] = None,
+    artist: Optional[str] = None,
+    layout: Optional[str] = None,
+    loyalty: Optional[str] = None,
+    defense: Optional[str] = None,
     language: str = "en",  # en or it
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
@@ -98,6 +106,40 @@ def search_cards(
         else:
             q = q.filter(MTGCard.text.ilike(f"%{text}%"))
     
+    # Filtro per power
+    if power:
+        q = q.filter(MTGCard.power == power)
+    
+    # Filtro per toughness
+    if toughness:
+        q = q.filter(MTGCard.toughness == toughness)
+    
+    # Filtro per loyalty
+    if loyalty:
+        q = q.filter(MTGCard.loyalty == loyalty)
+    
+    # Filtro per defense
+    if defense:
+        q = q.filter(MTGCard.defense == defense)
+    
+    # Filtro per keywords
+    if keywords:
+        keyword_list = keywords.split(',')
+        for kw in keyword_list:
+            q = q.filter(MTGCard.keywords.like(f"%{kw.strip()}%"))
+    
+    # Filtro per set code
+    if set_code:
+        q = q.filter(MTGCard.set_code.ilike(f"%{set_code}%"))
+    
+    # Filtro per artist
+    if artist:
+        q = q.filter(MTGCard.artist.ilike(f"%{artist}%"))
+    
+    # Filtro per layout
+    if layout:
+        q = q.filter(MTGCard.layout == layout)
+    
     # Filtro per formato (legality)
     if format:
         # Cerca nelle legalità JSON
@@ -156,12 +198,14 @@ def search_cards(
             "power": card.power,
             "toughness": card.toughness,
             "loyalty": card.loyalty,
+            "defense": card.defense,
             "rarity": card.rarity,
             "set_code": card.set_code,
             "artist": card.artist,
             "image_url": card.image_url,
             "legalities": legalities,
-            "keywords": card.keywords
+            "keywords": card.keywords,
+            "layout": card.layout
         })
     
     return {
