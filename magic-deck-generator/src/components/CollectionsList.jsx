@@ -5,7 +5,7 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
   : 'http://localhost:8000'
 
-function CollectionsList({ user, onBack, onSelectCollection, language, onShowSubscriptions }) {
+function CollectionsList({ user, onBack, onSelectCollection, language, onShowSubscriptions, onLimitError }) {
   const [collections, setCollections] = useState([])
   const [subscriptionInfo, setSubscriptionInfo] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -51,7 +51,10 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
       linkedDecksPlural: 'mazzi salvati',
       linkedDecksWillBeDeleted: 'che verranno eliminati insieme alla collezione:',
       confirmDelete: 'Sì, Elimina',
-      cancelDelete: 'Annulla'
+      cancelDelete: 'Annulla',
+      lockedCollection: 'Collezione bloccata',
+      upgradeToAccess: 'Aggiorna il piano per accedere a questa collezione',
+      upgradePlan: 'Aggiorna Piano'
     },
     en: {
       title: 'My Collections',
@@ -85,7 +88,10 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
       linkedDecksPlural: 'saved decks',
       linkedDecksWillBeDeleted: 'that will be deleted along with the collection:',
       confirmDelete: 'Yes, Delete',
-      cancelDelete: 'Cancel'
+      cancelDelete: 'Cancel',
+      lockedCollection: 'Locked collection',
+      upgradeToAccess: 'Upgrade your plan to access this collection',
+      upgradePlan: 'Upgrade Plan'
     }
   }
 
@@ -145,6 +151,9 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
           total_cards: 0,
           created_at: newCollection.created_at
         })
+      } else if (res.status === 403 && onLimitError) {
+        const data = await res.json()
+        onLimitError(data.detail)
       } else {
         const data = await res.json()
         alert(data.detail || 'Error creating collection')
@@ -251,43 +260,58 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
           </div>
         ) : (
           <div className="collections-grid">
-            {collections.map((collection) => (
-              <div key={collection.id} className="collection-card">
-                <div className="collection-header">
-                  <h3>{collection.name}</h3>
-                  {collection.description && (
-                    <p className="collection-desc">{collection.description}</p>
+            {collections.map((collection, index) => {
+              const isLocked = subscriptionInfo && subscriptionInfo.collection_limit !== null && index >= subscriptionInfo.collection_limit
+              return (
+                <div key={collection.id} className={`collection-card ${isLocked ? 'collection-locked' : ''}`}>
+                  {isLocked && (
+                    <div className="locked-overlay">
+                      <div className="locked-icon">🔒</div>
+                      <p className="locked-text">{t.upgradeToAccess}</p>
+                      <button className="locked-upgrade-btn" onClick={onShowSubscriptions}>
+                        💎 {t.upgradePlan}
+                      </button>
+                    </div>
                   )}
-                </div>
-                <div className="collection-stats">
-                  <div className="stat">
-                    <span className="stat-value">{collection.card_count}</span>
-                    <span className="stat-label">{t.uniqueCards}</span>
+                  <div className="collection-header">
+                    <h3>{collection.name}</h3>
+                    {collection.description && (
+                      <p className="collection-desc">{collection.description}</p>
+                    )}
                   </div>
-                  <div className="stat">
-                    <span className="stat-value">{collection.total_cards}</span>
-                    <span className="stat-label">{t.cards}</span>
+                  <div className="collection-stats">
+                    <div className="stat">
+                      <span className="stat-value">{collection.card_count}</span>
+                      <span className="stat-label">{t.uniqueCards}</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-value">{collection.total_cards}</span>
+                      <span className="stat-label">{t.cards}</span>
+                    </div>
+                  </div>
+                  <div className="collection-date">
+                    {t.createdOn} {new Date(collection.created_at).toLocaleDateString()}
+                  </div>
+                  <div className="collection-actions">
+                    <button 
+                      className="view-btn"
+                      onClick={() => !isLocked && onSelectCollection(collection)}
+                      disabled={isLocked}
+                    >
+                      {isLocked ? `🔒 ${t.lockedCollection}` : t.viewCollection}
+                    </button>
+                    {!isLocked && (
+                      <button 
+                        className="delete-btn"
+                        onClick={() => openDeleteModal(collection)}
+                      >
+                        🗑️
+                      </button>
+                    )}
                   </div>
                 </div>
-                <div className="collection-date">
-                  {t.createdOn} {new Date(collection.created_at).toLocaleDateString()}
-                </div>
-                <div className="collection-actions">
-                  <button 
-                    className="view-btn"
-                    onClick={() => onSelectCollection(collection)}
-                  >
-                    {t.viewCollection}
-                  </button>
-                  <button 
-                    className="delete-btn"
-                    onClick={() => openDeleteModal(collection)}
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </main>

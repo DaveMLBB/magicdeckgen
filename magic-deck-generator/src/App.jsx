@@ -61,6 +61,8 @@ function App() {
   const [loadingCollections, setLoadingCollections] = useState(false)
   const [showFormatWarning, setShowFormatWarning] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [upgradeMessage, setUpgradeMessage] = useState('')
   
   // Stati per card preview
   const [hoveredCard, setHoveredCard] = useState(null)
@@ -131,6 +133,11 @@ function App() {
       errorAnalyzing: 'Errore: Impossibile analizzare il file',
       errorUploading: 'Errore nel caricamento del file',
       errorSearching: 'Errore nella ricerca dei deck',
+      limitReached: 'Limite raggiunto. Aggiorna il tuo abbonamento per continuare.',
+      upgradePlanTitle: 'Limite del piano raggiunto',
+      upgradePlanBtn: 'Vedi Piani di Abbonamento',
+      upgradePlanClose: 'Chiudi',
+      errorImporting: 'Errore nell\'importazione del mazzo',
       mustMapColumns: '⚠️ Devi mappare almeno le colonne Nome e Quantità',
       foundDecks: 'Trovati',
       decksCompatible: 'mazzi compatibili (mostrando top 20)',
@@ -228,6 +235,11 @@ function App() {
       errorAnalyzing: 'Error: Unable to analyze file',
       errorUploading: 'Error uploading file',
       errorSearching: 'Error searching for decks',
+      limitReached: 'Limit reached. Upgrade your subscription to continue.',
+      upgradePlanTitle: 'Plan Limit Reached',
+      upgradePlanBtn: 'View Subscription Plans',
+      upgradePlanClose: 'Close',
+      errorImporting: 'Error importing deck',
       mustMapColumns: '⚠️ You must map at least Name and Quantity columns',
       foundDecks: 'Found',
       decksCompatible: 'compatible decks (showing top 20)',
@@ -293,6 +305,12 @@ function App() {
     } catch (err) {
       console.error('Errore caricamento formati:', err)
     }
+  }
+
+  // Helper: mostra modale upgrade quando si raggiunge un limite
+  const showLimitError = (detail) => {
+    setUpgradeMessage(detail || t.limitReached)
+    setShowUpgradeModal(true)
   }
 
   // Gestione ritorno da Stripe Checkout
@@ -589,6 +607,12 @@ function App() {
         })
       })
       
+      if (createCollectionRes.status === 403) {
+        const errorData = await createCollectionRes.json()
+        showLimitError(errorData.detail)
+        setLoading(false)
+        return
+      }
       if (!createCollectionRes.ok) {
         const errorData = await createCollectionRes.json()
         setMessage(`${t.errorUploading}: ${errorData.detail || ''}`)
@@ -609,6 +633,13 @@ function App() {
         method: 'POST',
         body: formData
       })
+      
+      if (uploadRes.status === 403) {
+        const err = await uploadRes.json()
+        showLimitError(err.detail)
+        setLoading(false)
+        return
+      }
       
       const data = await uploadRes.json()
       setMessage(`✓ ${data.message}`)
@@ -705,6 +736,12 @@ function App() {
         console.log('🔍 Ricerca mazzi sistema:', url)
         
         const res = await fetch(url)
+        if (res.status === 403) {
+          const err = await res.json()
+          showLimitError(err.detail)
+          setDeckLoading(false)
+          return
+        }
         const data = await res.json()
         
         if (data.decks) {
@@ -733,10 +770,21 @@ function App() {
           params.append('collection_id', filters.collectionId)
         }
         
+        // Conta come ricerca solo se non abbiamo già cercato nei mazzi sistema
+        if (filters.deckSource === 'users') {
+          params.append('count_search', 'true')
+        }
+        
         const url = `${API_URL}/api/saved-decks/public/search?${params.toString()}`
         console.log('🔍 Ricerca mazzi utenti:', url)
         
         const res = await fetch(url)
+        if (res.status === 403) {
+          const err = await res.json()
+          showLimitError(err.detail)
+          setDeckLoading(false)
+          return
+        }
         const data = await res.json()
         
         if (data.decks) {
@@ -874,6 +922,12 @@ function App() {
 
       const data = await res.json()
 
+      if (res.status === 403) {
+        showLimitError(data.detail)
+        setImporting(false)
+        return
+      }
+
       if (!res.ok) {
         throw new Error(data.detail || t.errorImporting)
       }
@@ -939,6 +993,12 @@ function App() {
 
       const data = await res.json()
 
+      if (res.status === 403) {
+        showLimitError(data.detail)
+        setImporting(false)
+        return
+      }
+
       if (!res.ok) {
         throw new Error(data.detail || t.errorSaving)
       }
@@ -976,6 +1036,7 @@ function App() {
           }}
           language={language}
           onShowSubscriptions={() => setCurrentView('subscriptions')}
+          onLimitError={showLimitError}
         />
       ) : currentView === 'collection-detail' ? (
         <Collection
@@ -988,12 +1049,14 @@ function App() {
           language={language}
           onShowSubscriptions={() => setCurrentView('subscriptions')}
           onUploadComplete={() => loadSubscriptionStatus()}
+          onLimitError={showLimitError}
         />
       ) : currentView === 'card-search' ? (
         <CardSearch
           user={user}
           onBack={() => setCurrentView('main')}
           language={language}
+          onLimitError={showLimitError}
         />
       ) : currentView === 'saved-decks' ? (
         <SavedDecksList
@@ -1004,6 +1067,7 @@ function App() {
             setCurrentView('saved-deck-detail')
           }}
           language={language}
+          onShowSubscriptions={() => setCurrentView('subscriptions')}
         />
       ) : currentView === 'saved-deck-detail' ? (
         <SavedDeck
@@ -1014,6 +1078,7 @@ function App() {
             setCurrentView('saved-decks')
           }}
           language={language}
+          onLimitError={showLimitError}
         />
       ) : currentView === 'privacy-settings' ? (
         <PrivacySettings
@@ -1685,6 +1750,34 @@ function App() {
       >
         🐛 {language === 'it' ? 'Segnala Bug' : 'Report Bug'}
       </a>
+
+      {/* Upgrade Plan Modal */}
+      {showUpgradeModal && (
+        <div className="upgrade-modal-overlay" onClick={() => setShowUpgradeModal(false)}>
+          <div className="upgrade-modal" onClick={e => e.stopPropagation()}>
+            <div className="upgrade-modal-icon">🔒</div>
+            <h2 className="upgrade-modal-title">{t.upgradePlanTitle}</h2>
+            <p className="upgrade-modal-message">{upgradeMessage}</p>
+            <div className="upgrade-modal-actions">
+              <button 
+                className="upgrade-modal-btn-primary"
+                onClick={() => {
+                  setShowUpgradeModal(false)
+                  setCurrentView('subscriptions')
+                }}
+              >
+                💎 {t.upgradePlanBtn}
+              </button>
+              <button 
+                className="upgrade-modal-btn-secondary"
+                onClick={() => setShowUpgradeModal(false)}
+              >
+                {t.upgradePlanClose}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

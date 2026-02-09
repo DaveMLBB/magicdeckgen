@@ -6,7 +6,7 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
   : 'http://localhost:8000'
 
-function SavedDeck({ user, deck, onBack, language }) {
+function SavedDeck({ user, deck, onBack, language, onLimitError }) {
   const [deckDetails, setDeckDetails] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showMissingOnly, setShowMissingOnly] = useState(false)
@@ -285,6 +285,8 @@ function SavedDeck({ user, deck, onBack, language }) {
       if (res.ok) {
         alert(t.duplicateSuccess)
         onBack()
+      } else if (res.status === 403 && onLimitError) {
+        onLimitError(data.detail)
       } else {
         alert(data.detail || 'Error')
       }

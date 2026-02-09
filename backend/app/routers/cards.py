@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 import pandas as pd
@@ -307,6 +308,27 @@ async def upload_cards(
             'rarity': 'rarity'
         }
     
+    # Check unique cards per collection limit
+    unique_card_limits = {
+        'free': 20,
+        'monthly_10': None,
+        'monthly_30': None,
+        'yearly': None,
+        'lifetime': None
+    }
+    card_limit = unique_card_limits.get(user.subscription_type, 20)
+    
+    if card_limit is not None:
+        # Count unique card names in the uploaded file
+        name_col = column_mapping.get('name')
+        if name_col and name_col in df.columns:
+            unique_names = df[name_col].dropna().nunique()
+            if unique_names > card_limit:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"File contains {unique_names} unique cards, but your plan allows max {card_limit} per collection. Upgrade your subscription for unlimited cards."
+                )
+    
     # Rimuovi carte esistenti dell'utente (solo per la collezione specifica se fornita)
     if collection_id:
         db.query(Card).filter(
@@ -438,7 +460,40 @@ def delete_user_cards(user_id: str, db: Session = Depends(get_db)):
 @router.post("/add/{user_id}")
 def add_card(user_id: str, card_data: dict, db: Session = Depends(get_db)):
     """Aggiungi una singola carta"""
-    from app.models import MTGCard
+    from app.models import MTGCard, User, CardCollection
+    
+    # Check subscription limits for unique cards per collection
+    collection_id = card_data.get('collection_id')
+    if collection_id:
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if user:
+            unique_card_limits = {
+                'free': 20,
+                'monthly_10': None,  # unlimited
+                'monthly_30': None,
+                'yearly': None,
+                'lifetime': None
+            }
+            card_limit = unique_card_limits.get(user.subscription_type, 20)
+            
+            if card_limit is not None:
+                # Check if card already exists (update quantity doesn't count as new)
+                existing = db.query(Card).filter(
+                    Card.user_id == user_id,
+                    Card.name == card_data.get('name'),
+                    Card.collection_id == collection_id
+                ).first()
+                
+                if not existing:
+                    unique_count = db.query(func.count(Card.id)).filter(
+                        Card.collection_id == collection_id
+                    ).scalar()
+                    
+                    if unique_count >= card_limit:
+                        raise HTTPException(
+                            status_code=403,
+                            detail=f"Unique card limit per collection reached ({card_limit}). Upgrade your subscription for unlimited cards."
+                        )
     
     # Cerca la carta nel database MTG per arricchire i dati
     card_name = card_data.get('name')

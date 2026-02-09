@@ -5,7 +5,7 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
   : 'http://localhost:8000'
 
-function SavedDecksList({ user, onBack, onSelectDeck, language }) {
+function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscriptions }) {
   const [decks, setDecks] = useState([])
   const [loading, setLoading] = useState(true)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -14,6 +14,7 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
   const [creating, setCreating] = useState(false)
   const [subscriptionStatus, setSubscriptionStatus] = useState(null)
   const [showLimitModal, setShowLimitModal] = useState(false)
+  const [deckSubscription, setDeckSubscription] = useState(null)
   const [newDeck, setNewDeck] = useState({
     name: '',
     description: '',
@@ -88,7 +89,10 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
       limitLifetime: '• Lifetime: mazzi illimitati',
       upgradeNow: 'Aggiorna Ora',
       deckCount: '{current} di {limit} mazzi salvati',
-      deckCountUnlimited: '{current} mazzi salvati'
+      deckCountUnlimited: '{current} mazzi salvati',
+      lockedDeck: 'Mazzo bloccato',
+      upgradeToAccess: 'Aggiorna il piano per accedere a questo mazzo',
+      upgradePlan: 'Aggiorna Piano'
     },
     en: {
       title: 'My Decks',
@@ -134,7 +138,10 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
       limitLifetime: '• Lifetime: unlimited decks',
       upgradeNow: 'Upgrade Now',
       deckCount: '{current} of {limit} decks saved',
-      deckCountUnlimited: '{current} decks saved'
+      deckCountUnlimited: '{current} decks saved',
+      lockedDeck: 'Locked deck',
+      upgradeToAccess: 'Upgrade your plan to access this deck',
+      upgradePlan: 'Upgrade Plan'
     }
   }
 
@@ -161,6 +168,9 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
       const res = await fetch(`${API_URL}/api/saved-decks/user/${user.userId}`)
       const data = await res.json()
       setDecks(data.decks || [])
+      if (data.subscription) {
+        setDeckSubscription(data.subscription)
+      }
     } catch (err) {
       console.error('Error loading decks:', err)
     }
@@ -399,8 +409,20 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
           </div>
         ) : (
           <div className="decks-grid">
-            {decks.map((deck) => (
-              <div key={deck.id} className="deck-card">
+            {decks.map((deck, index) => {
+              const deckLimit = deckSubscription ? deckSubscription.deck_limit : null
+              const isLocked = deckLimit !== null && index >= deckLimit
+              return (
+              <div key={deck.id} className={`deck-card ${isLocked ? 'deck-locked' : ''}`}>
+                {isLocked && (
+                  <div className="locked-overlay">
+                    <div className="locked-icon">🔒</div>
+                    <p className="locked-text">{t.upgradeToAccess}</p>
+                    <button className="locked-upgrade-btn" onClick={onShowSubscriptions}>
+                      💎 {t.upgradePlan}
+                    </button>
+                  </div>
+                )}
                 <div className="deck-header">
                   <h3>{deck.name}</h3>
                   {deck.colors && (
@@ -469,19 +491,23 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
                 <div className="deck-actions">
                   <button 
                     className="view-btn"
-                    onClick={() => onSelectDeck(deck)}
+                    onClick={() => !isLocked && onSelectDeck(deck)}
+                    disabled={isLocked}
                   >
-                    {t.viewDeck}
+                    {isLocked ? `🔒 ${t.lockedDeck}` : t.viewDeck}
                   </button>
-                  <button 
-                    className="delete-btn"
-                    onClick={() => openDeleteModal(deck)}
-                  >
-                    🗑️
-                  </button>
+                  {!isLocked && (
+                    <button 
+                      className="delete-btn"
+                      onClick={() => openDeleteModal(deck)}
+                    >
+                      🗑️
+                    </button>
+                  )}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </main>
@@ -654,8 +680,7 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
                 className="upgrade-btn"
                 onClick={() => {
                   setShowLimitModal(false)
-                  // Qui potresti aprire la modale subscriptions
-                  // onShowSubscriptions() se passi la prop
+                  if (onShowSubscriptions) onShowSubscriptions()
                 }}
               >
                 💎 {t.upgradeNow}

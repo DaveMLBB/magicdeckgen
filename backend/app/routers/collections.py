@@ -24,6 +24,15 @@ def get_user_collections(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Check if subscription is expired -> reset to free
+    if user.subscription_expires_at and datetime.utcnow() > user.subscription_expires_at:
+        if user.subscription_type != 'lifetime':
+            user.subscription_type = 'free'
+            user.uploads_limit = 3
+            user.uploads_count = 0
+            user.subscription_expires_at = None
+            db.commit()
+    
     collections = db.query(CardCollection).filter(CardCollection.user_id == user_id).all()
     
     # Collection limits based on subscription

@@ -43,10 +43,21 @@ def get_user_decks(
     db: Session = Depends(get_db)
 ):
     """Ottieni tutti i mazzi salvati dell'utente"""
+    from datetime import datetime
+    
     # Get user to check subscription
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if subscription is expired -> reset to free
+    if user.subscription_expires_at and datetime.utcnow() > user.subscription_expires_at:
+        if user.subscription_type != 'lifetime':
+            user.subscription_type = 'free'
+            user.uploads_limit = 3
+            user.uploads_count = 0
+            user.subscription_expires_at = None
+            db.commit()
     
     # Base query
     query = db.query(SavedDeck).filter(SavedDeck.user_id == user_id)
@@ -124,6 +135,17 @@ def get_user_decks(
             "updated_at": deck.updated_at.isoformat()
         })
     
+    # Saved decks limits
+    saved_decks_limits = {
+        'free': 3,
+        'monthly_10': 10,
+        'monthly_30': 30,
+        'yearly': 50,
+        'lifetime': None
+    }
+    deck_limit = saved_decks_limits.get(user.subscription_type, 3)
+    can_create_more = deck_limit is None or total < deck_limit
+    
     return {
         "decks": decks_data,
         "pagination": {
@@ -133,6 +155,13 @@ def get_user_decks(
             "total_pages": (total + page_size - 1) // page_size,
             "has_next": page * page_size < total,
             "has_prev": page > 1
+        },
+        "subscription": {
+            "type": user.subscription_type,
+            "deck_limit": deck_limit,
+            "current_count": total,
+            "can_create_more": can_create_more,
+            "remaining": (deck_limit - total) if deck_limit else None
         }
     }
 
@@ -743,11 +772,30 @@ def search_public_decks(
     format: Optional[str] = Query(None),
     colors: Optional[str] = Query(None),
     collection_id: Optional[int] = Query(None),
+    count_search: bool = Query(False),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
     """Cerca tra i mazzi pubblici degli utenti con calcolo compatibilità"""
+    # Check search limits if user_id provided
+    if user_id:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            search_limits = {
+                'free': 10, 'monthly_10': 20, 'monthly_30': 30,
+                'yearly': 999999, 'lifetime': 999999
+            }
+            limit = search_limits.get(user.subscription_type, 10)
+            if user.searches_count >= limit:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Search limit reached ({limit}). Please upgrade your subscription to continue."
+                )
+            if count_search:
+                user.searches_count += 1
+                db.commit()
+    
     query = db.query(SavedDeck).filter(SavedDeck.is_public == True)
     
     if format:

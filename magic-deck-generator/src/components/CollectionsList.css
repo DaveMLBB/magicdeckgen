@@ -546,3 +546,62 @@
 .modal-actions button {
   flex: 1;
 }
+
+/* Locked collection styles */
+.collection-card.collection-locked {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.collection-card.collection-locked > *:not(.locked-overlay) {
+  filter: blur(4px);
+  opacity: 0.4;
+}
+
+.locked-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: all;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: inherit;
+  padding: 1rem;
+}
+
+.locked-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.locked-text {
+  color: #cbd5e0;
+  font-size: 0.85rem;
+  text-align: center;
+  margin: 0 0 0.75rem 0;
+}
+
+.locked-upgrade-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.locked-upgrade-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}

@@ -131,7 +131,7 @@ const CardImage = React.memo(function CardImage({ card }) {
   )
 })
 
-function CardSearch({ user, onBack, language }) {
+function CardSearch({ user, onBack, language, onLimitError }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [cards, setCards] = useState([])
   const [loading, setLoading] = useState(false)
@@ -362,8 +362,12 @@ function CardSearch({ user, onBack, language }) {
           setCardToAdd(null)
           setAddMessage('')
         }, 1500)
+      } else if (res.status === 403 && onLimitError) {
+        const errData = await res.json()
+        onLimitError(errData.detail)
       } else {
-        setAddMessage(t.errorAddingCard)
+        const errData = await res.json()
+        setAddMessage(errData.detail || t.errorAddingCard)
       }
     } catch (err) {
       console.error('Error adding card:', err)

@@ -6,7 +6,7 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
   : 'http://localhost:8000'
 
-function Collection({ user, collection, onBack, language, onShowSubscriptions, onUploadComplete }) {
+function Collection({ user, collection, onBack, language, onShowSubscriptions, onUploadComplete, onLimitError }) {
   const [cards, setCards] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -417,6 +417,12 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
         body: formData
       })
       
+      if (res.status === 403 && onLimitError) {
+        const errorData = await res.json()
+        onLimitError(errorData.detail)
+        setUploading(false)
+        return
+      }
       if (!res.ok) {
         const errorData = await res.json()
         setUploadMessage(`${t.errorUploading}: ${errorData.detail || ''}`)
