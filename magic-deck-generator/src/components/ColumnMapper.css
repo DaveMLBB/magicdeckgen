@@ -1,0 +1,526 @@
+/* Column Mapper Modal - DARK THEME - HIGHEST PRIORITY */
+
+/* Overlay con specificità massima */
+div.column-mapper-overlay,
+.column-mapper-overlay.column-mapper-overlay,
+div[class="column-mapper-overlay"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(5px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 99999 !important;
+  padding: 2rem !important;
+  overflow-y: auto !important;
+}
+
+/* Contenuto modale con gradiente scuro */
+div.column-mapper,
+.column-mapper.column-mapper,
+div[class="column-mapper"] {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  border-radius: 20px !important;
+  padding: 2.5rem !important;
+  max-width: 900px !important;
+  width: 100% !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Titolo */
+.column-mapper h2,
+.column-mapper > h2 {
+  margin-bottom: 0.5rem !important;
+  color: #ffffff !important;
+  font-size: 1.8rem !important;
+}
+
+/* Sottotitolo */
+.column-mapper .modal-subtitle,
+.column-mapper > .modal-subtitle {
+  color: #a0aec0 !important;
+  margin-bottom: 2rem !important;
+  font-size: 1rem !important;
+}
+
+/* Grid mapping */
+.column-mapper .mapping-grid {
+  display: grid !important;
+  gap: 1.5rem !important;
+  margin-bottom: 2rem !important;
+}
+
+/* Righe mapping */
+.column-mapper .mapping-row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+}
+
+/* Label */
+.column-mapper .mapping-row label {
+  font-weight: 600 !important;
+  color: #e2e8f0 !important;
+  font-size: 0.95rem !important;
+}
+
+.column-mapper .mapping-row.required-field label {
+  color: #fbbf24 !important;
+}
+
+/* Select dropdown */
+.column-mapper .mapping-row select,
+.column-mapper select {
+  padding: 0.75rem 1rem !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+  font-size: 1rem !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+}
+
+.column-mapper .mapping-row select:hover,
+.column-mapper select:hover {
+  border-color: rgba(102, 126, 234, 0.5) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.column-mapper .mapping-row select:focus,
+.column-mapper select:focus {
+  outline: none !important;
+  border-color: #667eea !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Select options */
+.column-mapper select option {
+  background: #1a1a2e !important;
+  color: #ffffff !important;
+}
+
+/* Preview section */
+.column-mapper .preview-section {
+  margin-top: 2rem !important;
+  padding-top: 2rem !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.column-mapper .preview-section h3 {
+  margin-bottom: 1rem !important;
+  color: #e2e8f0 !important;
+  font-size: 1.2rem !important;
+}
+
+/* Preview table container */
+.column-mapper .preview-table-container {
+  overflow-x: auto !important;
+  border-radius: 8px !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin !important;
+}
+
+/* Preview table */
+.column-mapper .preview-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 0.9rem !important;
+}
+
+.column-mapper .preview-table th {
+  background: rgba(102, 126, 234, 0.2) !important;
+  padding: 0.75rem !important;
+  text-align: left !important;
+  font-weight: 600 !important;
+  color: #e2e8f0 !important;
+  border-bottom: 2px solid rgba(102, 126, 234, 0.3) !important;
+  white-space: nowrap !important;
+}
+
+.column-mapper .preview-table td {
+  padding: 0.75rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #cbd5e0 !important;
+  max-width: 200px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.column-mapper .preview-table tr:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Modal actions */
+.column-mapper .modal-actions {
+  display: flex !important;
+  gap: 1rem !important;
+  justify-content: flex-end !important;
+  margin-top: 2rem !important;
+  padding-top: 2rem !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Buttons */
+.column-mapper .cancel-btn,
+.column-mapper .confirm-btn {
+  padding: 0.875rem 2rem !important;
+  border-radius: 10px !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.column-mapper .cancel-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+}
+
+.column-mapper .cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.column-mapper .confirm-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
+}
+
+.column-mapper .confirm-btn:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6) !important;
+}
+
+.column-mapper .confirm-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+.column-mapper .confirm-btn .spinner {
+  display: inline-block !important;
+}
+
+/* Required asterisk */
+.column-mapper .required {
+  color: #f56565 !important;
+  font-weight: bold !important;
+  margin-left: 4px !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .column-mapper-overlay {
+    padding: 1rem !important;
+  }
+  
+  .column-mapper {
+    padding: 1.5rem !important;
+    max-height: 85vh !important;
+  }
+  
+  .column-mapper h2 {
+    font-size: 1.4rem !important;
+  }
+  
+  .column-mapper .modal-subtitle {
+    font-size: 0.9rem !important;
+  }
+  
+  .column-mapper .mapping-grid {
+    gap: 1rem !important;
+  }
+  
+  .column-mapper .mapping-row label {
+    font-size: 0.85rem !important;
+  }
+  
+  .column-mapper .mapping-row select {
+    padding: 0.65rem 0.85rem !important;
+    font-size: 0.9rem !important;
+  }
+  
+  .column-mapper .preview-table {
+    font-size: 0.8rem !important;
+  }
+  
+  .column-mapper .preview-table th,
+  .column-mapper .preview-table td {
+    padding: 0.5rem !important;
+  }
+  
+  .column-mapper .modal-actions {
+    flex-direction: column-reverse !important;
+    gap: 0.75rem !important;
+  }
+  
+  .column-mapper .cancel-btn,
+  .column-mapper .confirm-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 0.75rem 1.5rem !important;
+    font-size: 0.95rem !important;
+  }
+}
+
+
+/* ========================================= */
+/* COLLECTION SELECTOR MODAL - DARK THEME */
+/* ========================================= */
+
+/* Overlay */
+div.collection-selector-overlay,
+.collection-selector-overlay.collection-selector-overlay,
+div[class="collection-selector-overlay"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(5px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 99999 !important;
+  padding: 2rem !important;
+  overflow-y: auto !important;
+}
+
+/* Modal content */
+div.collection-selector-modal,
+.collection-selector-modal.collection-selector-modal,
+div[class*="collection-selector-modal"] {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  border-radius: 20px !important;
+  padding: 2.5rem !important;
+  max-width: 700px !important;
+  width: 100% !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+  text-align: center !important;
+}
+
+/* Title */
+.collection-selector-modal h2,
+.collection-selector-modal > h2 {
+  color: #ffffff !important;
+  margin-bottom: 1.5rem !important;
+  font-size: 1.8rem !important;
+  text-align: center !important;
+}
+
+/* Source options */
+.collection-selector-modal .collection-source-options {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 1.5rem !important;
+  margin-bottom: 2rem !important;
+}
+
+.collection-selector-modal .source-option {
+  padding: 2rem 1.5rem !important;
+  border-radius: 16px !important;
+  border: 2px solid rgba(255,255,255,0.2) !important;
+  background: rgba(255,255,255,0.05) !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+  max-width: 400px !important;
+}
+
+.collection-selector-modal .source-option:hover {
+  border-color: rgba(102, 126, 234, 0.6) !important;
+  background: rgba(102, 126, 234, 0.1) !important;
+  transform: translateY(-4px) !important;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
+}
+
+.collection-selector-modal .source-icon {
+  font-size: 3rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.collection-selector-modal .source-title {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+}
+
+.collection-selector-modal .source-desc {
+  font-size: 0.85rem !important;
+  color: #a0aec0 !important;
+}
+
+/* Collection select section */
+.collection-selector-modal .collection-select-section {
+  margin-top: 2rem !important;
+  padding-top: 2rem !important;
+  border-top: 2px solid rgba(255,255,255,0.1) !important;
+}
+
+.collection-selector-modal .collection-select-section h3 {
+  color: #fff !important;
+  margin-bottom: 1rem !important;
+  font-size: 1.2rem !important;
+}
+
+/* No collections message */
+.collection-selector-modal .no-collections-message {
+  text-align: center !important;
+  padding: 2rem !important;
+  color: #a0aec0 !important;
+}
+
+.collection-selector-modal .no-collections-message p {
+  margin-bottom: 0.5rem !important;
+  font-size: 1rem !important;
+  color: #cbd5e0 !important;
+}
+
+.collection-selector-modal .no-collections-message small {
+  font-size: 0.85rem !important;
+  color: #718096 !important;
+}
+
+/* Collections list */
+.collection-selector-modal .collections-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding-right: 0.5rem !important;
+}
+
+.collection-selector-modal .collection-item {
+  padding: 1rem 1.25rem !important;
+  border-radius: 12px !important;
+  border: 2px solid rgba(255,255,255,0.2) !important;
+  background: rgba(255,255,255,0.05) !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+}
+
+.collection-selector-modal .collection-item:hover {
+  border-color: rgba(104, 211, 145, 0.6) !important;
+  background: rgba(104, 211, 145, 0.1) !important;
+  transform: translateX(4px) !important;
+}
+
+.collection-selector-modal .collection-item-name {
+  font-weight: 700 !important;
+  color: #fff !important;
+  margin-bottom: 0.25rem !important;
+  font-size: 1rem !important;
+}
+
+.collection-selector-modal .collection-item-stats {
+  font-size: 0.85rem !important;
+  color: #a0aec0 !important;
+}
+
+/* Modal actions */
+.collection-selector-modal .modal-actions {
+  display: flex !important;
+  gap: 1rem !important;
+  justify-content: flex-end !important;
+  margin-top: 2rem !important;
+  padding-top: 2rem !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.collection-selector-modal .cancel-btn {
+  padding: 0.875rem 2rem !important;
+  border-radius: 10px !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+  border: none !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+}
+
+.collection-selector-modal .cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Spinner */
+.collection-selector-modal .spinner {
+  border: 3px solid rgba(255,255,255,0.3) !important;
+  border-top-color: white !important;
+  border-radius: 50% !important;
+  animation: spin 0.8s linear infinite !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .collection-selector-overlay {
+    padding: 1rem !important;
+  }
+  
+  .collection-selector-modal {
+    padding: 1.5rem !important;
+    max-width: 95vw !important;
+  }
+  
+  .collection-selector-modal .collection-source-options {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .collection-selector-modal .source-option {
+    padding: 1.5rem 1rem !important;
+  }
+  
+  .collection-selector-modal .source-icon {
+    font-size: 2.5rem !important;
+  }
+  
+  .collection-selector-modal .source-title {
+    font-size: 1rem !important;
+  }
+  
+  .collection-selector-modal .source-desc {
+    font-size: 0.8rem !important;
+  }
+  
+  .collection-selector-modal .collections-list {
+    max-height: 250px !important;
+    padding-right: 0 !important;
+  }
+  
+  .collection-selector-modal .collection-item {
+    padding: 0.875rem 1rem !important;
+  }
+  
+  .collection-selector-modal .collection-item-name {
+    font-size: 0.95rem !important;
+  }
+  
+  .collection-selector-modal .collection-item-stats {
+    font-size: 0.8rem !important;
+  }
+}

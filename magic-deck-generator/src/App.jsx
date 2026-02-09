@@ -14,6 +14,7 @@ import LegalPages from './components/LegalPages'
 import CookieSettings from './components/CookieSettings'
 import EmailPreferences from './components/EmailPreferences'
 import { cardImageCache } from './utils/cardImageCache'
+import './components/ColumnMapper.css' // IMPORTATO PER ULTIMO - VINCE SU TUTTO
 
 const API_URL = import.meta.env.PROD 
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
@@ -1092,8 +1093,8 @@ function App() {
         
         {/* Modal per selezionare origine collezione */}
         {showCollectionSelector && (
-          <div className="modal-overlay" onClick={() => setShowCollectionSelector(false)}>
-            <div className="modal-content collection-selector-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="collection-selector-overlay" onClick={() => setShowCollectionSelector(false)}>
+            <div className="collection-selector-modal" onClick={(e) => e.stopPropagation()}>
               <h2>{t.selectCollectionSource}</h2>
               
               {loadingCollections ? (
@@ -1170,8 +1171,8 @@ function App() {
         
         {/* Modal per mappare le colonne */}
         {showColumnMapper && (
-          <div className="modal-overlay">
-            <div className="modal-content column-mapper">
+          <div className="column-mapper-overlay">
+            <div className="column-mapper">
               <h2>{t.mapColumns}</h2>
               <p className="modal-subtitle">
                 {totalRows} {t.rowsFound}
@@ -1198,58 +1199,6 @@ function App() {
                     onChange={(e) => updateMapping('quantity', e.target.value)}
                   >
                     <option value="">{t.selectColumn}</option>
-                    {fileColumns.map(col => (
-                      <option key={col} value={col}>{col}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="mapping-row">
-                  <label>{t.cardType}</label>
-                  <select 
-                    value={columnMapping.card_type || ''} 
-                    onChange={(e) => updateMapping('card_type', e.target.value)}
-                  >
-                    <option value="">{t.optional}</option>
-                    {fileColumns.map(col => (
-                      <option key={col} value={col}>{col}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="mapping-row">
-                  <label>{t.colors}</label>
-                  <select 
-                    value={columnMapping.colors || ''} 
-                    onChange={(e) => updateMapping('colors', e.target.value)}
-                  >
-                    <option value="">{t.optional}</option>
-                    {fileColumns.map(col => (
-                      <option key={col} value={col}>{col}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="mapping-row">
-                  <label>{t.manaCost}</label>
-                  <select 
-                    value={columnMapping.mana_cost || ''} 
-                    onChange={(e) => updateMapping('mana_cost', e.target.value)}
-                  >
-                    <option value="">{t.optional}</option>
-                    {fileColumns.map(col => (
-                      <option key={col} value={col}>{col}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="mapping-row">
-                  <label>{t.rarity}</label>
-                  <select 
-                    value={columnMapping.rarity || ''} 
-                    onChange={(e) => updateMapping('rarity', e.target.value)}
-                  >
-                    <option value="">{t.optional}</option>
                     {fileColumns.map(col => (
                       <option key={col} value={col}>{col}</option>
                     ))}
