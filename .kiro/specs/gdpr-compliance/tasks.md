@@ -67,7 +67,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Return count of deleted records
     - _Requirements: 7.8_
 
-- [~] 3. Implement backend DataExportService
+- [ ] 3. Implement backend DataExportService
   - [x] 3.1 Implement export_user_data method
     - Query user account information
     - Query all saved decks with cards
