@@ -54,21 +54,16 @@ def get_user_decks(
     decks = query.offset(offset).limit(page_size).all()
     
     # Format response
+    from sqlalchemy import func as sqlfunc
+    from app.models import CardCollection, saved_deck_collections
+    
     decks_data = []
     for deck in decks:
-        # Calcolo basato sulle quantità (coerente con ricerca compatibilità)
         deck_cards = db.query(SavedDeckCard).filter(
             SavedDeckCard.deck_id == deck.id
         ).all()
         
-        total_cards = sum(c.quantity for c in deck_cards)
-        owned_cards = sum(min(c.quantity_owned, c.quantity) for c in deck_cards)
-        
-        # Calculate completion
-        completion = int((owned_cards / total_cards * 100)) if total_cards > 0 else 0
-        
         # Get linked collections
-        from app.models import CardCollection, saved_deck_collections
         linked_collections = db.query(CardCollection).join(
             saved_deck_collections,
             CardCollection.id == saved_deck_collections.c.collection_id
@@ -78,6 +73,30 @@ def get_user_decks(
         
         collection_names = [c.name for c in linked_collections]
         collection_ids = [c.id for c in linked_collections]
+        
+        # Ricalcola ownership in tempo reale (case-insensitive, GROUP BY SUM)
+        user_cards_dict = {}
+        if collection_ids:
+            card_sums = db.query(
+                sqlfunc.lower(Card.name), sqlfunc.sum(Card.quantity_owned)
+            ).filter(
+                Card.user_id == user_id,
+                Card.collection_id.in_(collection_ids)
+            ).group_by(sqlfunc.lower(Card.name)).all()
+        else:
+            card_sums = db.query(
+                sqlfunc.lower(Card.name), sqlfunc.sum(Card.quantity_owned)
+            ).filter(
+                Card.user_id == user_id
+            ).group_by(sqlfunc.lower(Card.name)).all()
+        for name, total_qty in card_sums:
+            user_cards_dict[name] = int(total_qty)
+        
+        total_cards = sum(c.quantity for c in deck_cards)
+        owned_cards = sum(min(user_cards_dict.get(c.card_name.lower(), 0), c.quantity) for c in deck_cards)
+        
+        # Calculate completion
+        completion = int((owned_cards / total_cards * 100)) if total_cards > 0 else 0
         
         decks_data.append({
             "id": deck.id,
@@ -178,31 +197,31 @@ def create_deck(
             )
         db.commit()
     
+    # Pre-build ownership dict (sum ALL entries per card name, case-insensitive)
+    from sqlalchemy import func as sqlfunc
+    user_cards_dict = {}
+    if deck_input.collection_ids:
+        card_sums = db.query(
+            sqlfunc.lower(Card.name), sqlfunc.sum(Card.quantity_owned)
+        ).filter(
+            Card.user_id == user_id,
+            Card.collection_id.in_(deck_input.collection_ids)
+        ).group_by(sqlfunc.lower(Card.name)).all()
+    else:
+        card_sums = db.query(
+            sqlfunc.lower(Card.name), sqlfunc.sum(Card.quantity_owned)
+        ).filter(
+            Card.user_id == user_id
+        ).group_by(sqlfunc.lower(Card.name)).all()
+    
+    for name, total_qty in card_sums:
+        user_cards_dict[name] = int(total_qty)
+    
     # Add cards and check ownership
     total_cards_needed = 0
     cards_owned_qty = 0
     for card_input in deck_input.cards:
-        # Check if user owns this card in ANY of the linked collections
-        quantity_owned = 0
-        
-        if deck_input.collection_ids:
-            # Check in linked collections
-            for coll_id in deck_input.collection_ids:
-                owned_card = db.query(Card).filter(
-                    Card.user_id == user_id,
-                    Card.collection_id == coll_id,
-                    Card.name == card_input.card_name
-                ).first()
-                if owned_card:
-                    quantity_owned += owned_card.quantity_owned
-        else:
-            # Check in all user's cards if no collections linked
-            owned_card = db.query(Card).filter(
-                Card.user_id == user_id,
-                Card.name == card_input.card_name
-            ).first()
-            if owned_card:
-                quantity_owned = owned_card.quantity_owned
+        quantity_owned = user_cards_dict.get(card_input.card_name.lower(), 0)
         
         # Calcolo basato sulle quantità (coerente con ricerca compatibilità)
         total_cards_needed += card_input.quantity
@@ -272,14 +291,25 @@ def get_deck_details(
     collection_ids = [c.id for c in linked_collections]
     
     # Get user's cards if user_id provided (for ownership calculation)
+    # Sum ALL entries per card name using linked collections, case-insensitive
+    from sqlalchemy import func as sqlfunc
     user_cards_dict = {}
     if user_id:
-        user_cards = db.query(Card).filter(Card.user_id == user_id).all()
-        for card in user_cards:
-            if card.name in user_cards_dict:
-                user_cards_dict[card.name] += card.quantity_owned
-            else:
-                user_cards_dict[card.name] = card.quantity_owned
+        if collection_ids:
+            card_sums = db.query(
+                sqlfunc.lower(Card.name), sqlfunc.sum(Card.quantity_owned)
+            ).filter(
+                Card.user_id == user_id,
+                Card.collection_id.in_(collection_ids)
+            ).group_by(sqlfunc.lower(Card.name)).all()
+        else:
+            card_sums = db.query(
+                sqlfunc.lower(Card.name), sqlfunc.sum(Card.quantity_owned)
+            ).filter(
+                Card.user_id == user_id
+            ).group_by(sqlfunc.lower(Card.name)).all()
+        for name, total_qty in card_sums:
+            user_cards_dict[name] = int(total_qty)
     
     # Get all cards
     cards = db.query(SavedDeckCard).filter(SavedDeckCard.deck_id == deck_id).all()
@@ -291,7 +321,7 @@ def get_deck_details(
     for card in cards:
         # Calculate ownership if user_id provided
         if user_id and user_cards_dict:
-            owned_qty = user_cards_dict.get(card.card_name, 0)
+            owned_qty = user_cards_dict.get(card.card_name.lower(), 0)
             is_owned = owned_qty >= card.quantity
             quantity_missing = max(0, card.quantity - owned_qty)
         else:
@@ -454,33 +484,30 @@ def refresh_deck_ownership(
     # Get all deck cards
     deck_cards = db.query(SavedDeckCard).filter(SavedDeckCard.deck_id == deck_id).all()
     
+    # Pre-build ownership dict (sum ALL entries per card name, case-insensitive)
+    from sqlalchemy import func as sqlfunc
+    user_cards_dict = {}
+    if linked_collection_ids:
+        card_sums = db.query(
+            sqlfunc.lower(Card.name), sqlfunc.sum(Card.quantity_owned)
+        ).filter(
+            Card.user_id == user_id,
+            Card.collection_id.in_(linked_collection_ids)
+        ).group_by(sqlfunc.lower(Card.name)).all()
+    else:
+        card_sums = db.query(
+            sqlfunc.lower(Card.name), sqlfunc.sum(Card.quantity_owned)
+        ).filter(
+            Card.user_id == user_id
+        ).group_by(sqlfunc.lower(Card.name)).all()
+    
+    for name, total_qty in card_sums:
+        user_cards_dict[name] = int(total_qty)
+    
     total_cards_needed = 0
     cards_owned_qty = 0
     for deck_card in deck_cards:
-        # Check if user owns this card in ANY of the linked collections
-        is_owned = False
-        quantity_owned = 0
-        
-        if linked_collection_ids:
-            # Check in linked collections and sum quantities
-            for coll_id in linked_collection_ids:
-                owned_card = db.query(Card).filter(
-                    Card.user_id == user_id,
-                    Card.collection_id == coll_id,
-                    Card.name == deck_card.card_name
-                ).first()
-                if owned_card:
-                    is_owned = True
-                    quantity_owned += owned_card.quantity_owned
-        else:
-            # Check in all user's cards if no collections linked
-            owned_card = db.query(Card).filter(
-                Card.user_id == user_id,
-                Card.name == deck_card.card_name
-            ).first()
-            if owned_card:
-                is_owned = True
-                quantity_owned = owned_card.quantity_owned
+        quantity_owned = user_cards_dict.get(deck_card.card_name.lower(), 0)
         
         deck_card.is_owned = quantity_owned >= deck_card.quantity
         deck_card.quantity_owned = quantity_owned

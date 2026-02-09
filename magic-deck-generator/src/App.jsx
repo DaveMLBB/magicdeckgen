@@ -889,7 +889,7 @@ function App() {
           },
           body: JSON.stringify({
             name: deck.name,
-            description: `${deck.format || ''} deck - ${deck.match_percentage}% match`,
+            description: deck.format ? `${deck.format} deck` : null,
             format: deck.format || null,
             colors: deck.colors || null,
             archetype: null,

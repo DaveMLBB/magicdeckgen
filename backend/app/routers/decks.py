@@ -239,20 +239,25 @@ def match_decks(
     }
     
     def normalize_card_name(name: str) -> str:
-        """Normalizza il nome della carta, specialmente per le terre base"""
+        """Normalizza il nome della carta, specialmente per le terre base.
+        Solo nomi che sono ESATTAMENTE una terra base (es. 'Forest', 'Forest (123)', 'Snow-Covered Forest')
+        NON carte come 'Karplusan Forest' che sono terre duali."""
         if not name:
             return name
         
         name_lower = name.lower().strip()
         
-        # Controlla se contiene una terra base
+        # Controlla se è esattamente una terra base (con possibili varianti numeriche/set)
         for basic_land_key, basic_land_name in BASIC_LANDS.items():
-            if basic_land_key in name_lower:
-                if name_lower.startswith(basic_land_key):
-                    return basic_land_name
-                words = name_lower.replace('-', ' ').replace('(', ' ').replace(')', ' ').split()
-                if basic_land_key in words:
-                    return basic_land_name
+            # Match esatto: "forest", "forest (123)", "snow-covered forest"
+            if name_lower == basic_land_key:
+                return basic_land_name
+            # Match con parentesi: "forest (456)"
+            if name_lower.startswith(basic_land_key + ' (') and name_lower.endswith(')'):
+                return basic_land_name
+            # Match snow-covered: "snow-covered forest"
+            if name_lower == 'snow-covered ' + basic_land_key:
+                return basic_land_name
         
         return name
     

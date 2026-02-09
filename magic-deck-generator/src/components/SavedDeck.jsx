@@ -102,7 +102,7 @@ function SavedDeck({ user, deck, onBack, language }) {
   const loadDeckDetails = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_URL}/api/saved-decks/${deck.id}`)
+      const res = await fetch(`${API_URL}/api/saved-decks/${deck.id}?user_id=${user.userId}`)
       const data = await res.json()
       setDeckDetails(data)
       setIsPublic(data.is_public || false)
