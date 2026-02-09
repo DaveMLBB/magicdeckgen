@@ -12,6 +12,10 @@ function Auth({ onLogin, language, setLanguage }) {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('') // 'success' or 'error'
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false)
+  const [showTermsModal, setShowTermsModal] = useState(false)
 
   const translations = {
     it: {
@@ -29,6 +33,12 @@ function Auth({ onLogin, language, setLanguage }) {
       registerError: 'Errore durante la registrazione',
       emailRequired: 'Email richiesta',
       passwordRequired: 'Password richiesta',
+      acceptTerms: 'Accetto i',
+      termsOfService: 'Termini di Servizio',
+      and: 'e la',
+      privacyPolicy: 'Privacy Policy',
+      mustAcceptTerms: 'Devi accettare i Termini di Servizio e la Privacy Policy per registrarti',
+      loginAcceptance: 'Effettuando il login accetti automaticamente i nostri',
       testAccounts: 'Account di Test',
       freeAccount: 'Account Free',
       premiumAccount: 'Account Premium',
@@ -54,6 +64,12 @@ function Auth({ onLogin, language, setLanguage }) {
       registerError: 'Registration error',
       emailRequired: 'Email required',
       passwordRequired: 'Password required',
+      acceptTerms: 'I accept the',
+      termsOfService: 'Terms of Service',
+      and: 'and',
+      privacyPolicy: 'Privacy Policy',
+      mustAcceptTerms: 'You must accept the Terms of Service and Privacy Policy to register',
+      loginAcceptance: 'By logging in, you automatically accept our',
       testAccounts: 'Test Accounts',
       freeAccount: 'Free Account',
       premiumAccount: 'Premium Account',
@@ -74,6 +90,13 @@ function Auth({ onLogin, language, setLanguage }) {
     
     if (!email || !password) {
       setMessage(!email ? t.emailRequired : t.passwordRequired)
+      setMessageType('error')
+      return
+    }
+
+    // Verifica accettazione policy per registrazione
+    if (!isLogin && (!acceptedTerms || !acceptedPrivacy)) {
+      setMessage(t.mustAcceptTerms)
       setMessageType('error')
       return
     }
@@ -572,6 +595,76 @@ function Auth({ onLogin, language, setLanguage }) {
               />
             </div>
 
+            {isLogin && (
+              <div className="login-policy-notice">
+                <p>
+                  {t.loginAcceptance}{' '}
+                  <a 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setShowTermsModal(true)
+                    }}
+                    className="policy-link-small"
+                  >
+                    {t.termsOfService}
+                  </a>
+                  {' '}{t.and}{' '}
+                  <a 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setShowPrivacyModal(true)
+                    }}
+                    className="policy-link-small"
+                  >
+                    {t.privacyPolicy}
+                  </a>
+                </p>
+              </div>
+            )}
+
+            {!isLogin && (
+              <div className="form-group policy-acceptance">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms && acceptedPrivacy}
+                    onChange={(e) => {
+                      setAcceptedTerms(e.target.checked)
+                      setAcceptedPrivacy(e.target.checked)
+                    }}
+                    disabled={loading}
+                    required
+                  />
+                  <span>
+                    {t.acceptTerms}{' '}
+                    <a 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setShowTermsModal(true)
+                      }}
+                      className="policy-link"
+                    >
+                      {t.termsOfService}
+                    </a>
+                    {' '}{t.and}{' '}
+                    <a 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setShowPrivacyModal(true)
+                      }}
+                      className="policy-link"
+                    >
+                      {t.privacyPolicy}
+                    </a>
+                  </span>
+                </label>
+              </div>
+            )}
+
             <button type="submit" className="auth-btn" disabled={loading}>
               {loading ? (
                 <>
@@ -630,6 +723,46 @@ function Auth({ onLogin, language, setLanguage }) {
                 <div className="test-account-desc">{t.lifetimeDesc}</div>
                 <div className="test-account-email">lifetime@example.com</div>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacyModal && (
+        <div className="policy-modal-overlay" onClick={() => setShowPrivacyModal(false)}>
+          <div className="policy-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="policy-modal-header">
+              <h2>🔒 Privacy Policy</h2>
+              <button className="close-modal-btn" onClick={() => setShowPrivacyModal(false)}>✕</button>
+            </div>
+            <div className="policy-modal-content">
+              <iframe 
+                src="/privacy.html" 
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                title="Privacy Policy"
+                sandbox="allow-same-origin allow-scripts"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Terms of Service Modal */}
+      {showTermsModal && (
+        <div className="policy-modal-overlay" onClick={() => setShowTermsModal(false)}>
+          <div className="policy-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="policy-modal-header">
+              <h2>📋 Terms of Service</h2>
+              <button className="close-modal-btn" onClick={() => setShowTermsModal(false)}>✕</button>
+            </div>
+            <div className="policy-modal-content">
+              <iframe 
+                src="/terms.html" 
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                title="Terms of Service"
+                sandbox="allow-same-origin allow-scripts"
+              />
             </div>
           </div>
         </div>

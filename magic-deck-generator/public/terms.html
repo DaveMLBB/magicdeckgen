@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - Magic Deck Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+        }
+        
+        h2 {
+            color: #333;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        p {
+            margin-bottom: 1rem;
+            color: #666;
+        }
+        
+        ul {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        li {
+            margin-bottom: 0.5rem;
+            color: #666;
+        }
+        
+        .meta {
+            color: #999;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 2rem;
+            transition: all 0.2s;
+        }
+        
+        .back-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .container {
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Terms of Service</h1>
+        <div class="meta">
+            <strong>Versione:</strong> 1.0<br>
+            <strong>Ultimo aggiornamento:</strong> <span id="last-updated"></span>
+        </div>
+        
+        <div id="content">
+            <p>Caricamento...</p>
+        </div>
+        
+        <a href="javascript:window.close()" class="back-btn" id="close-btn">← Chiudi</a>
+    </div>
+    
+    <script>
+        // Hide close button if in iframe
+        if (window.self !== window.top) {
+            document.getElementById('close-btn').style.display = 'none';
+        }
+        
+        // Set last updated date
+        document.getElementById('last-updated').textContent = new Date().toLocaleDateString('it-IT');
+        
+        // Fetch terms from backend
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:8000' 
+            : 'https://api.magicdeckbuilder.app.cloudsw.site';
+        
+        fetch(`${API_URL}/api/gdpr/terms-of-service`)
+            .then(res => res.json())
+            .then(data => {
+                const contentDiv = document.getElementById('content');
+                
+                if (data.content) {
+                    // Convert markdown-like content to HTML
+                    let html = data.content
+                        .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+                        .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n\n/g, '</p><p>')
+                        .replace(/^- (.+)$/gm, '<li>$1</li>');
+                    
+                    // Wrap lists
+                    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+                    
+                    contentDiv.innerHTML = '<p>' + html + '</p>';
+                } else {
+                    contentDiv.innerHTML = `
+                        <h2>1. Accettazione dei Termini</h2>
+                        <p>Utilizzando Magic Deck Builder, accetti questi Termini di Servizio. Se non accetti, non utilizzare il servizio.</p>
+                        
+                        <h2>2. Descrizione del Servizio</h2>
+                        <p>Magic Deck Builder è un servizio che permette di:</p>
+                        <ul>
+                            <li>Caricare e gestire collezioni di carte Magic: The Gathering</li>
+                            <li>Analizzare la compatibilità con mazzi competitivi</li>
+                            <li>Salvare e condividere mazzi</li>
+                            <li>Cercare carte nel database</li>
+                        </ul>
+                        
+                        <h2>3. Account Utente</h2>
+                        <p>Per utilizzare il servizio devi:</p>
+                        <ul>
+                            <li>Creare un account con email valida</li>
+                            <li>Mantenere la sicurezza della tua password</li>
+                            <li>Essere responsabile di tutte le attività sul tuo account</li>
+                            <li>Notificarci immediatamente di accessi non autorizzati</li>
+                        </ul>
+                        
+                        <h2>4. Uso Accettabile</h2>
+                        <p>Ti impegni a NON:</p>
+                        <ul>
+                            <li>Violare leggi o regolamenti</li>
+                            <li>Caricare contenuti offensivi o illegali</li>
+                            <li>Tentare di accedere a sistemi non autorizzati</li>
+                            <li>Interferire con il funzionamento del servizio</li>
+                            <li>Utilizzare bot o script automatici senza autorizzazione</li>
+                            <li>Rivendere o redistribuire il servizio</li>
+                        </ul>
+                        
+                        <h2>5. Proprietà Intellettuale</h2>
+                        <p>Magic: The Gathering e tutti i relativi marchi sono proprietà di Wizards of the Coast LLC.</p>
+                        <p>Magic Deck Builder è un servizio non ufficiale e non è affiliato con Wizards of the Coast.</p>
+                        <p>I contenuti che carichi rimangono di tua proprietà, ma ci concedi una licenza per utilizzarli per fornire il servizio.</p>
+                        
+                        <h2>6. Piani di Abbonamento</h2>
+                        <p>Offriamo diversi piani:</p>
+                        <ul>
+                            <li><strong>Free:</strong> 3 caricamenti totali</li>
+                            <li><strong>Premium:</strong> 10 caricamenti/mese (€4.99/mese)</li>
+                            <li><strong>Lifetime:</strong> tutto illimitato (€49.99 una tantum)</li>
+                        </ul>
+                        <p>I pagamenti sono gestiti tramite Stripe. Puoi cancellare l'abbonamento in qualsiasi momento.</p>
+                        
+                        <h2>7. Rimborsi</h2>
+                        <p>Politica rimborsi:</p>
+                        <ul>
+                            <li>Premium: rimborso entro 14 giorni dall'acquisto</li>
+                            <li>Lifetime: rimborso entro 30 giorni dall'acquisto</li>
+                            <li>Dopo questi periodi, nessun rimborso</li>
+                        </ul>
+                        
+                        <h2>8. Limitazione di Responsabilità</h2>
+                        <p>Il servizio è fornito "così com'è" senza garanzie. Non siamo responsabili per:</p>
+                        <ul>
+                            <li>Perdita di dati</li>
+                            <li>Interruzioni del servizio</li>
+                            <li>Errori nei risultati di analisi</li>
+                            <li>Danni indiretti o consequenziali</li>
+                        </ul>
+                        
+                        <h2>9. Modifiche al Servizio</h2>
+                        <p>Ci riserviamo il diritto di:</p>
+                        <ul>
+                            <li>Modificare o interrompere il servizio</li>
+                            <li>Cambiare i prezzi con preavviso di 30 giorni</li>
+                            <li>Aggiornare questi termini (ti notificheremo)</li>
+                        </ul>
+                        
+                        <h2>10. Terminazione</h2>
+                        <p>Possiamo terminare il tuo account se:</p>
+                        <ul>
+                            <li>Violi questi termini</li>
+                            <li>Usi il servizio in modo fraudolento</li>
+                            <li>Non paghi gli abbonamenti</li>
+                        </ul>
+                        <p>Puoi cancellare il tuo account in qualsiasi momento dal pannello Privacy.</p>
+                        
+                        <h2>11. Legge Applicabile</h2>
+                        <p>Questi termini sono regolati dalla legge italiana. Qualsiasi controversia sarà risolta nei tribunali italiani.</p>
+                        
+                        <h2>12. Contatti</h2>
+                        <p>Per domande sui termini:</p>
+                        <ul>
+                            <li><strong>Email:</strong> support@magicdeckbuilder.app</li>
+                            <li><strong>Sito:</strong> magicdeckbuilder.app</li>
+                        </ul>
+                        
+                        <h2>13. Separabilità</h2>
+                        <p>Se una parte di questi termini è invalida, le altre parti rimangono valide.</p>
+                        
+                        <h2>14. Intero Accordo</h2>
+                        <p>Questi termini costituiscono l'intero accordo tra te e Magic Deck Builder.</p>
+                    `;
+                }
+            })
+            .catch(err => {
+                console.error('Error loading terms:', err);
+                document.getElementById('content').innerHTML = '<p style="color: red;">Errore nel caricamento dei Termini di Servizio. Riprova più tardi.</p>';
+            });
+    </script>
+</body>
+</html>

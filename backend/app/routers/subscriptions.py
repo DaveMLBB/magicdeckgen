@@ -16,37 +16,37 @@ SUBSCRIPTION_PLANS = {
     'free': {
         'name': 'Free',
         'price': 0,
-        'uploads_limit': 3,
+        'uploads_limit': 10,
         'duration_days': None,
-        'description': '3 uploads • 5 collections • 20 unique cards per collection • 10 deck results'
+        'description': '10 uploads • 5 collections • 3 saved decks • 20 unique cards per collection • 10 deck results'
     },
     'monthly_10': {
-        'name': '10 Uploads',
-        'price': 5.00,
-        'uploads_limit': 10,
-        'duration_days': 30,
-        'description': '10 uploads/month • 10 collections • Unlimited cards • 20 deck results'
-    },
-    'monthly_30': {
         'name': '30 Uploads',
-        'price': 10.00,
+        'price': 5.00,
         'uploads_limit': 30,
         'duration_days': 30,
-        'description': '30 uploads/month • 50 collections • Unlimited cards • 30 deck results'
+        'description': '30 uploads/month • 10 collections • 10 saved decks • Unlimited cards • 20 deck results'
+    },
+    'monthly_30': {
+        'name': '50 Uploads',
+        'price': 10.00,
+        'uploads_limit': 50,
+        'duration_days': 30,
+        'description': '50 uploads/month • 50 collections • 30 saved decks • Unlimited cards • 30 deck results'
     },
     'yearly': {
         'name': 'Yearly Unlimited',
         'price': 25.00,
         'uploads_limit': 999999,
         'duration_days': 365,
-        'description': 'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results'
+        'description': 'Unlimited uploads • Unlimited collections • 50 saved decks • Unlimited cards • Unlimited deck results'
     },
     'lifetime': {
         'name': 'Lifetime Unlimited',
         'price': 60.00,
         'uploads_limit': 999999,
         'duration_days': None,  # No expiration
-        'description': 'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited deck results • Forever'
+        'description': 'Unlimited uploads • Unlimited collections • Unlimited saved decks • Unlimited cards • Unlimited deck results • Forever'
     }
 }
 
@@ -129,23 +129,54 @@ def get_subscription_status(token: str, db: Session = Depends(get_db)):
     }
     searches_limit = search_limits.get(user.subscription_type, 10)
     
+    # Get saved decks limits based on subscription
+    saved_decks_limits = {
+        'free': 3,
+        'monthly_10': 10,
+        'monthly_30': 30,
+        'yearly': 50,
+        'lifetime': None  # unlimited
+    }
+    saved_decks_limit = saved_decks_limits.get(user.subscription_type, 3)
+    
+    # Get deck results limits (max results shown in deck search)
+    deck_results_limits = {
+        'free': 10,
+        'monthly_10': 20,
+        'monthly_30': 30,
+        'yearly': None,  # unlimited
+        'lifetime': None  # unlimited
+    }
+    deck_results_limit = deck_results_limits.get(user.subscription_type, 10)
+    
     # Count user's collections
     collections_count = db.query(CardCollection).filter(
         CardCollection.user_id == user.id
     ).count()
     
+    # Count user's saved decks
+    from app.models import SavedDeck
+    saved_decks_count = db.query(SavedDeck).filter(
+        SavedDeck.user_id == user.id
+    ).count()
+    
     return {
         "subscription_type": user.subscription_type,
         "plan_name": plan['name'],
+        "plan_description": plan['description'],
         "uploads_count": user.uploads_count,
         "uploads_limit": user.uploads_limit,
         "uploads_remaining": max(0, user.uploads_limit - user.uploads_count),
         "collections_count": collections_count,
         "collections_limit": collections_limit,
         "collections_remaining": max(0, collections_limit - collections_count) if collections_limit else None,
+        "saved_decks_count": saved_decks_count,
+        "saved_decks_limit": saved_decks_limit,
+        "saved_decks_remaining": max(0, saved_decks_limit - saved_decks_count) if saved_decks_limit else None,
         "searches_count": user.searches_count,
         "searches_limit": searches_limit,
         "searches_remaining": max(0, searches_limit - user.searches_count) if searches_limit else None,
+        "deck_results_limit": deck_results_limit,
         "expires_at": user.subscription_expires_at.isoformat() if user.subscription_expires_at else None,
         "is_expired": is_expired,
         "can_upload": user.uploads_count < user.uploads_limit

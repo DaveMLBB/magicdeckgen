@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Magic Deck Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+        }
+        
+        h2 {
+            color: #333;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        p {
+            margin-bottom: 1rem;
+            color: #666;
+        }
+        
+        ul {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        li {
+            margin-bottom: 0.5rem;
+            color: #666;
+        }
+        
+        .meta {
+            color: #999;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 2rem;
+            transition: all 0.2s;
+        }
+        
+        .back-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .container {
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 Privacy Policy</h1>
+        <div class="meta">
+            <strong>Versione:</strong> 1.0<br>
+            <strong>Ultimo aggiornamento:</strong> <span id="last-updated"></span>
+        </div>
+        
+        <div id="content">
+            <p>Caricamento...</p>
+        </div>
+        
+        <a href="javascript:window.close()" class="back-btn" id="close-btn">← Chiudi</a>
+    </div>
+    
+    <script>
+        // Hide close button if in iframe
+        if (window.self !== window.top) {
+            document.getElementById('close-btn').style.display = 'none';
+        }
+        
+        // Set last updated date
+        document.getElementById('last-updated').textContent = new Date().toLocaleDateString('it-IT');
+        
+        // Fetch privacy policy from backend
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:8000' 
+            : 'https://api.magicdeckbuilder.app.cloudsw.site';
+        
+        fetch(`${API_URL}/api/gdpr/privacy-policy`)
+            .then(res => res.json())
+            .then(data => {
+                const contentDiv = document.getElementById('content');
+                
+                if (data.content) {
+                    // Convert markdown-like content to HTML
+                    let html = data.content
+                        .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+                        .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n\n/g, '</p><p>')
+                        .replace(/^- (.+)$/gm, '<li>$1</li>');
+                    
+                    // Wrap lists
+                    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+                    
+                    contentDiv.innerHTML = '<p>' + html + '</p>';
+                } else {
+                    contentDiv.innerHTML = `
+                        <h2>1. Introduzione</h2>
+                        <p>Magic Deck Builder ("noi", "nostro") rispetta la tua privacy e si impegna a proteggere i tuoi dati personali.</p>
+                        
+                        <h2>2. Dati che Raccogliamo</h2>
+                        <p>Raccogliamo i seguenti tipi di dati:</p>
+                        <ul>
+                            <li><strong>Dati di account:</strong> email, password (criptata)</li>
+                            <li><strong>Dati di collezione:</strong> carte Magic possedute, quantità</li>
+                            <li><strong>Dati di utilizzo:</strong> mazzi salvati, preferenze</li>
+                            <li><strong>Cookie:</strong> preferenze cookie, consensi</li>
+                        </ul>
+                        
+                        <h2>3. Come Utilizziamo i Tuoi Dati</h2>
+                        <p>Utilizziamo i tuoi dati per:</p>
+                        <ul>
+                            <li>Fornire e migliorare i nostri servizi</li>
+                            <li>Analizzare la tua collezione e suggerire mazzi</li>
+                            <li>Comunicare con te (solo se hai dato il consenso)</li>
+                            <li>Rispettare obblighi legali</li>
+                        </ul>
+                        
+                        <h2>4. Base Legale per il Trattamento</h2>
+                        <p>Trattiamo i tuoi dati sulla base di:</p>
+                        <ul>
+                            <li><strong>Consenso:</strong> per cookie non essenziali e marketing</li>
+                            <li><strong>Contratto:</strong> per fornire i servizi richiesti</li>
+                            <li><strong>Interesse legittimo:</strong> per migliorare i servizi</li>
+                        </ul>
+                        
+                        <h2>5. I Tuoi Diritti GDPR</h2>
+                        <p>Hai diritto a:</p>
+                        <ul>
+                            <li><strong>Accesso:</strong> richiedere una copia dei tuoi dati</li>
+                            <li><strong>Rettifica:</strong> correggere dati inesatti</li>
+                            <li><strong>Cancellazione:</strong> richiedere la cancellazione dei tuoi dati</li>
+                            <li><strong>Portabilità:</strong> ricevere i tuoi dati in formato JSON</li>
+                            <li><strong>Opposizione:</strong> opporti al trattamento dei tuoi dati</li>
+                            <li><strong>Limitazione:</strong> limitare il trattamento</li>
+                        </ul>
+                        
+                        <h2>6. Cookie</h2>
+                        <p>Utilizziamo tre categorie di cookie:</p>
+                        <ul>
+                            <li><strong>Essenziali:</strong> necessari per il funzionamento (autenticazione, sicurezza)</li>
+                            <li><strong>Analytics:</strong> per capire come usi il sito (opzionali)</li>
+                            <li><strong>Marketing:</strong> per contenuti pubblicitari (opzionali)</li>
+                        </ul>
+                        
+                        <h2>7. Conservazione Dati</h2>
+                        <p>Conserviamo i tuoi dati per:</p>
+                        <ul>
+                            <li>Account attivi: fino alla cancellazione</li>
+                            <li>Account inattivi: 3 anni dall'ultimo accesso</li>
+                            <li>Account non verificati: 90 giorni dalla registrazione</li>
+                            <li>Consensi cookie: 3 anni</li>
+                        </ul>
+                        
+                        <h2>8. Sicurezza</h2>
+                        <p>Implementiamo misure di sicurezza appropriate per proteggere i tuoi dati, inclusi:</p>
+                        <ul>
+                            <li>Crittografia delle password (bcrypt)</li>
+                            <li>Connessioni HTTPS</li>
+                            <li>Token di autenticazione sicuri</li>
+                            <li>Controlli di accesso</li>
+                        </ul>
+                        
+                        <h2>9. Condivisione Dati</h2>
+                        <p>Non vendiamo i tuoi dati. Condividiamo dati solo con:</p>
+                        <ul>
+                            <li>Provider di servizi necessari (hosting, email)</li>
+                            <li>Autorità legali se richiesto dalla legge</li>
+                        </ul>
+                        
+                        <h2>10. Contatti</h2>
+                        <p>Per esercitare i tuoi diritti o per domande sulla privacy:</p>
+                        <ul>
+                            <li><strong>Email:</strong> privacy@magicdeckbuilder.app</li>
+                            <li><strong>Pannello Privacy:</strong> disponibile dopo il login</li>
+                        </ul>
+                        
+                        <h2>11. Modifiche a Questa Policy</h2>
+                        <p>Potremmo aggiornare questa policy. Ti notificheremo le modifiche significative tramite email o banner nell'app.</p>
+                    `;
+                }
+            })
+            .catch(err => {
+                console.error('Error loading privacy policy:', err);
+                document.getElementById('content').innerHTML = '<p style="color: red;">Errore nel caricamento della Privacy Policy. Riprova più tardi.</p>';
+            });
+    </script>
+</body>
+</html>

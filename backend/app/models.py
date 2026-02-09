@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Table, ForeignKey, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Table, ForeignKey, Boolean, DateTime, Index
 from sqlalchemy.orm import relationship
 from app.database import Base
 from datetime import datetime
@@ -30,6 +30,13 @@ class User(Base):
     uploads_limit = Column(Integer, default=3)  # Upload limit (3 for free)
     searches_count = Column(Integer, default=0)  # Deck search counter
     searches_limit = Column(Integer, default=10)  # Deck search limit (10 for free)
+    
+    # GDPR-related fields
+    last_login_at = Column(DateTime, nullable=True)
+    inactive_warning_sent_at = Column(DateTime, nullable=True)
+    privacy_policy_version = Column(String, nullable=True)
+    terms_version = Column(String, nullable=True)
+    marketing_emails_enabled = Column(Boolean, default=True)
 
 class CardCollection(Base):
     __tablename__ = "card_collections"
@@ -158,3 +165,75 @@ class MTGCard(Base):
     
     # Legalità (JSON string)
     legalities = Column(String, nullable=True)
+
+class ConsentLog(Base):
+    """GDPR consent log for cookie preferences and data processing"""
+    __tablename__ = "consent_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
+    session_id = Column(String, nullable=True, index=True)  # For non-authenticated users
+    
+    # Consent decisions
+    essential = Column(Boolean, default=True, nullable=False)
+    analytics = Column(Boolean, default=False, nullable=False)
+    marketing = Column(Boolean, default=False, nullable=False)
+    
+    # Audit information
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    ip_address = Column(String, nullable=False)
+    user_agent = Column(String, nullable=False)
+    banner_version = Column(String, nullable=False)
+    
+    # Expiry (12 months from timestamp)
+    expires_at = Column(DateTime, nullable=False)
+
+class DeletionRequest(Base):
+    """GDPR account deletion requests with grace period"""
+    __tablename__ = "deletion_requests"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), unique=True, nullable=False, index=True)
+    
+    # Request details
+    requested_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    scheduled_for = Column(DateTime, nullable=False)  # requested_at + 7 days
+    cancellation_token = Column(String, unique=True, nullable=False, index=True)
+    
+    # Status tracking
+    status = Column(String, default='pending', nullable=False)  # pending, cancelled, completed
+    cancelled_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+class DataExportToken(Base):
+    """GDPR data export tokens for secure file downloads"""
+    __tablename__ = "data_export_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    token = Column(String, unique=True, nullable=False, index=True)
+    
+    # File information
+    file_path = Column(String, nullable=False)
+    file_size_bytes = Column(Integer, nullable=False)
+    
+    # Expiry (24 hours from creation)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+
+class PolicyAcceptance(Base):
+    """GDPR policy acceptance tracking for privacy policy and terms of service"""
+    __tablename__ = "policy_acceptances"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    
+    # Policy details
+    policy_type = Column(String, nullable=False)  # 'privacy' or 'terms'
+    policy_version = Column(String, nullable=False)
+    accepted_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Composite index for efficient queries
+    __table_args__ = (
+        Index('idx_user_policy', 'user_id', 'policy_type', 'policy_version'),
+    )

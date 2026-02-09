@@ -8,35 +8,35 @@ The implementation prioritizes core functionality (cookie consent, data export, 
 
 ## Tasks
 
-- [~] 1. Set up database models and migrations for GDPR compliance
-  - [~] 1.1 Create ConsentLog model and migration
+- [x] 1. Set up database models and migrations for GDPR compliance
+  - [x] 1.1 Create ConsentLog model and migration
     - Add ConsentLog table with fields: id, user_id, session_id, essential, analytics, marketing, timestamp, ip_address, user_agent, banner_version, expires_at
     - Create database migration script
     - _Requirements: 1.6, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7_
   
-  - [~] 1.2 Create DeletionRequest model and migration
+  - [x] 1.2 Create DeletionRequest model and migration
     - Add DeletionRequest table with fields: id, user_id, requested_at, scheduled_for, cancellation_token, status, cancelled_at, completed_at
     - Create database migration script
     - _Requirements: 5.8, 5.9_
   
-  - [~] 1.3 Create DataExportToken model and migration
+  - [x] 1.3 Create DataExportToken model and migration
     - Add DataExportToken table with fields: id, user_id, token, file_path, file_size_bytes, created_at, expires_at
     - Create database migration script
     - _Requirements: 4.1, 6.7_
   
-  - [~] 1.4 Create PolicyAcceptance model and migration
+  - [x] 1.4 Create PolicyAcceptance model and migration
     - Add PolicyAcceptance table with fields: id, user_id, policy_type, policy_version, accepted_at
     - Add index on (user_id, policy_type, policy_version)
     - Create database migration script
     - _Requirements: 2.10, 3.8, 3.9_
   
-  - [~] 1.5 Extend User model with GDPR fields
+  - [x] 1.5 Extend User model with GDPR fields
     - Add fields: last_login_at, inactive_warning_sent_at, privacy_policy_version, terms_version, marketing_emails_enabled
     - Create database migration script
     - _Requirements: 8.2, 14.2_
 
-- [~] 2. Implement backend ConsentService
-  - [~] 2.1 Implement log_consent method
+- [x] 2. Implement backend ConsentService
+  - [x] 2.1 Implement log_consent method
     - Create ConsentLog entry with all required fields
     - Set expires_at to 12 months from timestamp
     - Handle both authenticated users (user_id) and anonymous users (session_id)
@@ -47,12 +47,12 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate random consent decisions and verify all fields are logged
     - **Validates: Requirements 1.6, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7**
   
-  - [~] 2.3 Implement get_user_consent_history method
+  - [x] 2.3 Implement get_user_consent_history method
     - Query all ConsentLog entries for a user ordered by timestamp descending
     - Return list of consent decisions
     - _Requirements: 4.5, 7.9_
   
-  - [~] 2.4 Implement get_current_consent method
+  - [x] 2.4 Implement get_current_consent method
     - Query most recent non-expired ConsentLog for user or session
     - Return None if no consent found or consent expired
     - _Requirements: 1.8_
@@ -62,13 +62,13 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate random consent, store it, retrieve it, verify it matches
     - **Validates: Requirements 1.3, 1.4, 1.5**
   
-  - [~] 2.6 Implement cleanup_old_consents method
+  - [x] 2.6 Implement cleanup_old_consents method
     - Delete ConsentLog entries older than 3 years
     - Return count of deleted records
     - _Requirements: 7.8_
 
 - [~] 3. Implement backend DataExportService
-  - [~] 3.1 Implement export_user_data method
+  - [x] 3.1 Implement export_user_data method
     - Query user account information
     - Query all saved decks with cards
     - Query all card collections with cards
@@ -82,7 +82,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate random user with decks/collections, export data, verify all present
     - **Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.5, 6.2, 6.3, 6.4, 6.5**
   
-  - [~] 3.3 Implement generate_export_file method
+  - [x] 3.3 Implement generate_export_file method
     - Call export_user_data to get data dictionary
     - Convert to JSON and write to temporary file
     - Generate secure random token
@@ -95,15 +95,15 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate random user data, export to JSON, parse JSON, verify valid structure
     - **Validates: Requirements 4.6, 6.1**
   
-  - [~] 3.5 Implement get_export_file method
+  - [x] 3.5 Implement get_export_file method
     - Query DataExportToken by token
     - Check if token expired (raise TokenExpiredException if expired)
     - Read file from file_path
     - Return file content and filename
     - _Requirements: 6.7_
 
-- [~] 4. Implement backend DeletionService
-  - [~] 4.1 Implement initiate_deletion method
+- [x] 4. Implement backend DeletionService
+  - [x] 4.1 Implement initiate_deletion method
     - Verify password using bcrypt
     - Check if deletion already pending (raise exception if yes)
     - Generate secure cancellation token
@@ -116,7 +116,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate random users with passwords, attempt deletion with wrong password, verify rejection
     - **Validates: Requirements 5.7**
   
-  - [~] 4.3 Implement cancel_deletion method
+  - [x] 4.3 Implement cancel_deletion method
     - Query DeletionRequest by cancellation_token
     - Check if token valid and not expired
     - Update status to 'cancelled' and set cancelled_at
@@ -128,7 +128,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate random deletion requests, cancel them, verify deletion aborted
     - **Validates: Requirements 5.8, 5.9**
   
-  - [~] 4.5 Implement execute_deletion method
+  - [x] 4.5 Implement execute_deletion method
     - Delete all SavedDeck records for user
     - Delete all SavedDeckCard records for user's decks
     - Delete all CardCollection records for user
@@ -145,15 +145,15 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate random user with data, execute deletion, verify all data removed
     - **Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6**
   
-  - [~] 4.7 Implement process_pending_deletions method
+  - [x] 4.7 Implement process_pending_deletions method
     - Query DeletionRequest records with status='pending' and scheduled_for <= now
     - For each request, call execute_deletion
     - Update DeletionRequest status to 'completed'
     - Return count of deletions processed
     - _Requirements: 5.1_
 
-- [~] 5. Implement backend RetentionService
-  - [~] 5.1 Implement cleanup_inactive_accounts method
+- [x] 5. Implement backend RetentionService
+  - [x] 5.1 Implement cleanup_inactive_accounts method
     - Query users with last_login_at > 3 years ago and inactive_warning_sent_at is NULL
     - Send warning emails and set inactive_warning_sent_at
     - Query users with inactive_warning_sent_at > 30 days ago
@@ -166,7 +166,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate users with old last_login dates, run cleanup, verify warnings sent and deletions occur
     - **Validates: Requirements 8.2, 8.3**
   
-  - [~] 5.3 Implement cleanup_unverified_accounts method
+  - [x] 5.3 Implement cleanup_unverified_accounts method
     - Query users with is_verified=False and created_at > 90 days ago
     - Delete those accounts
     - Return count of accounts deleted
@@ -177,13 +177,13 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate unverified users with old creation dates, run cleanup, verify deletion
     - **Validates: Requirements 8.4**
   
-  - [~] 5.5 Implement cleanup_expired_tokens method
+  - [x] 5.5 Implement cleanup_expired_tokens method
     - Delete password reset tokens older than 24 hours
     - Delete email verification tokens older than 7 days
     - Return count of tokens deleted
     - _Requirements: 8.5, 8.6_
   
-  - [~] 5.6 Implement run_all_cleanup_tasks method
+  - [x] 5.6 Implement run_all_cleanup_tasks method
     - Call cleanup_inactive_accounts
     - Call cleanup_unverified_accounts
     - Call cleanup_expired_tokens
@@ -196,8 +196,8 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate accounts for cleanup, run cleanup, verify log entries created
     - **Validates: Requirements 8.8**
 
-- [~] 6. Implement GDPR API endpoints
-  - [~] 6.1 Create GDPR router and implement POST /api/gdpr/consent
+- [x] 6. Implement GDPR API endpoints
+  - [x] 6.1 Create GDPR router and implement POST /api/gdpr/consent
     - Accept consent decision in request body
     - Extract IP address and user agent from request
     - Call ConsentService.log_consent
@@ -209,14 +209,14 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate random consent requests, POST to endpoint, verify log entries complete
     - **Validates: Requirements 1.6, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7**
   
-  - [~] 6.3 Implement GET /api/gdpr/consent
+  - [x] 6.3 Implement GET /api/gdpr/consent
     - Require authentication
     - Call ConsentService.get_current_consent
     - Call ConsentService.get_user_consent_history
     - Return current consent and history
     - _Requirements: 4.5, 7.9_
   
-  - [~] 6.4 Implement POST /api/gdpr/export
+  - [x] 6.4 Implement POST /api/gdpr/export
     - Require authentication
     - Call DataExportService.generate_export_file
     - Log data access request
@@ -233,14 +233,14 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate authenticated export requests, verify log entries created
     - **Validates: Requirements 4.9**
   
-  - [~] 6.7 Implement GET /api/gdpr/download/:token
+  - [x] 6.7 Implement GET /api/gdpr/download/:token
     - Call DataExportService.get_export_file
     - Set Content-Disposition header for download
     - Return file as JSON response
     - Handle TokenExpiredException
     - _Requirements: 6.7_
   
-  - [~] 6.8 Implement POST /api/gdpr/delete-account
+  - [x] 6.8 Implement POST /api/gdpr/delete-account
     - Require authentication
     - Extract password and confirmation from request
     - Verify confirmation text matches "DELETE MY ACCOUNT"
@@ -248,23 +248,23 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Return success response with cancellation token
     - _Requirements: 5.7, 5.8_
   
-  - [~] 6.9 Implement POST /api/gdpr/cancel-deletion
+  - [x] 6.9 Implement POST /api/gdpr/cancel-deletion
     - Extract cancellation_token from request
     - Call DeletionService.cancel_deletion
     - Return success or error response
     - _Requirements: 5.9_
   
-  - [~] 6.10 Implement GET /api/gdpr/privacy-policy
+  - [x] 6.10 Implement GET /api/gdpr/privacy-policy
     - Read privacy policy markdown file
     - Return content with version and last updated date
     - _Requirements: 2.1_
   
-  - [~] 6.11 Implement GET /api/gdpr/terms-of-service
+  - [x] 6.11 Implement GET /api/gdpr/terms-of-service
     - Read terms of service markdown file
     - Return content with version and last updated date
     - _Requirements: 3.1_
   
-  - [~] 6.12 Implement POST /api/gdpr/accept-policy
+  - [x] 6.12 Implement POST /api/gdpr/accept-policy
     - Require authentication
     - Extract policy_type and version from request
     - Create PolicyAcceptance record
@@ -272,8 +272,8 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Return success response
     - _Requirements: 2.10, 3.8, 3.9_
 
-- [~] 7. Implement cache control and security middleware
-  - [~] 7.1 Create CacheControlMiddleware
+- [x] 7. Implement cache control and security middleware
+  - [x] 7.1 Create CacheControlMiddleware
     - Check if request is authenticated (has valid JWT)
     - For authenticated requests, set cache control headers
     - Set "Cache-Control: no-store, no-cache, must-revalidate, private"
@@ -286,7 +286,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate authenticated requests, verify headers set correctly
     - **Validates: Requirements 9.1, 9.2, 9.3**
   
-  - [~] 7.3 Update CORS middleware configuration
+  - [x] 7.3 Update CORS middleware configuration
     - Add expose_headers for Content-Disposition
     - Verify allow_credentials is True
     - Verify allowed origins are correct
@@ -297,7 +297,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate requests from unauthorized origins, verify rejection
     - **Validates: Requirements 9.4**
   
-  - [~] 7.5 Implement token invalidation on logout
+  - [x] 7.5 Implement token invalidation on logout
     - Add logout endpoint to auth router
     - Delete or mark authentication token as invalid
     - _Requirements: 9.5_
@@ -307,8 +307,8 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate user sessions, logout, verify tokens no longer work
     - **Validates: Requirements 9.5**
 
-- [~] 8. Create legal document content
-  - [~] 8.1 Write Privacy Policy markdown content
+- [x] 8. Create legal document content
+  - [x] 8.1 Write Privacy Policy markdown content
     - Include all required sections from requirements 2.2-2.9
     - Describe data collection practices
     - Explain legal basis for processing
@@ -318,7 +318,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Add version number and last updated date
     - _Requirements: 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9_
   
-  - [~] 8.2 Write Terms of Service markdown content
+  - [x] 8.2 Write Terms of Service markdown content
     - Include all required sections from requirements 3.2-3.7
     - Define acceptable use
     - Describe account responsibilities
@@ -328,11 +328,11 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Add version number and last updated date
     - _Requirements: 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-- [~] 9. Checkpoint - Ensure backend tests pass
+- [x] 9. Checkpoint - Ensure backend tests pass
   - Ensure all backend tests pass, ask the user if questions arise.
 
-- [~] 10. Implement frontend CookieConsentBanner component
-  - [~] 10.1 Create CookieConsentBanner React component
+- [x] 10. Implement frontend CookieConsentBanner component
+  - [x] 10.1 Create CookieConsentBanner React component
     - Create component with state for showBanner, showDetails, consent
     - Implement loadStoredConsent method to check localStorage
     - Display banner if no consent found or consent expired
@@ -346,25 +346,25 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Test banner shows when consent expired
     - _Requirements: 1.1, 1.8_
   
-  - [~] 10.3 Implement acceptAll method
+  - [x] 10.3 Implement acceptAll method
     - Set consent to {essential: true, analytics: true, marketing: true}
     - Call saveConsent
     - Hide banner
     - _Requirements: 1.3_
   
-  - [~] 10.4 Implement rejectNonEssential method
+  - [x] 10.4 Implement rejectNonEssential method
     - Set consent to {essential: true, analytics: false, marketing: false}
     - Call saveConsent
     - Hide banner
     - _Requirements: 1.4_
   
-  - [~] 10.5 Implement saveCustomPreferences method
+  - [x] 10.5 Implement saveCustomPreferences method
     - Get consent from state
     - Call saveConsent
     - Hide banner
     - _Requirements: 1.5_
   
-  - [~] 10.6 Implement saveConsent method
+  - [x] 10.6 Implement saveConsent method
     - Store consent in localStorage with 12-month expiry
     - POST consent to /api/gdpr/consent
     - Call onConsentChange callback
@@ -376,8 +376,8 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate random consent decisions, save them, reload component, verify persistence
     - **Validates: Requirements 1.3, 1.4, 1.5**
 
-- [~] 11. Implement frontend PrivacySettings component
-  - [~] 11.1 Create PrivacySettings React component
+- [x] 11. Implement frontend PrivacySettings component
+  - [x] 11.1 Create PrivacySettings React component
     - Create component with state for cookiePreferences, exportStatus, deletionStatus
     - Fetch current consent from GET /api/gdpr/consent
     - Display current cookie preferences
@@ -385,7 +385,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Provide buttons for data export and account deletion
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6_
   
-  - [~] 11.2 Implement updateCookiePreferences method
+  - [x] 11.2 Implement updateCookiePreferences method
     - POST updated consent to /api/gdpr/consent
     - Update localStorage
     - Update component state
@@ -397,7 +397,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate preference changes, verify updates without reload
     - **Validates: Requirements 10.3**
   
-  - [~] 11.4 Implement requestDataExport method
+  - [x] 11.4 Implement requestDataExport method
     - Set exportStatus to 'generating'
     - POST to /api/gdpr/export
     - Get download URL from response
@@ -405,21 +405,21 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Initiate file download
     - _Requirements: 4.1, 6.1_
   
-  - [~] 11.5 Implement requestAccountDeletion method
+  - [x] 11.5 Implement requestAccountDeletion method
     - Show password confirmation dialog
     - POST to /api/gdpr/delete-account with password
     - Show success message with grace period information
     - Set deletionStatus to 'pending'
     - _Requirements: 5.7, 5.8_
   
-  - [~] 11.6 Implement cancelDeletion method
+  - [x] 11.6 Implement cancelDeletion method
     - POST to /api/gdpr/cancel-deletion with token
     - Show success message
     - Set deletionStatus to 'idle'
     - _Requirements: 5.9_
 
-- [~] 12. Implement frontend LegalPages component
-  - [~] 12.1 Create LegalPages React component
+- [x] 12. Implement frontend LegalPages component
+  - [x] 12.1 Create LegalPages React component
     - Create component with props for pageType ('privacy' | 'terms')
     - Fetch content from appropriate endpoint
     - Display markdown content
@@ -427,13 +427,13 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Show version number
     - _Requirements: 2.1, 3.1_
   
-  - [~] 12.2 Implement loadContent method
+  - [x] 12.2 Implement loadContent method
     - GET from /api/gdpr/privacy-policy or /api/gdpr/terms-of-service
     - Parse markdown to HTML
     - Set content state
     - _Requirements: 2.1, 3.1_
   
-  - [~] 12.3 Implement checkForUpdates method
+  - [x] 12.3 Implement checkForUpdates method
     - Compare user's accepted version with current version
     - If different, show acceptance dialog
     - _Requirements: 2.10, 3.9_
@@ -443,14 +443,14 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate users with old policy versions, verify notification shown
     - **Validates: Requirements 2.10, 3.9**
   
-  - [~] 12.4 Implement acceptPolicy method
+  - [x] 12.4 Implement acceptPolicy method
     - POST to /api/gdpr/accept-policy
     - Update user's accepted version
     - Hide acceptance dialog
     - _Requirements: 2.10, 3.8, 3.9_
 
-- [~] 13. Implement frontend DataExportButton component
-  - [~] 13.1 Create DataExportButton React component
+- [x] 13. Implement frontend DataExportButton component
+  - [x] 13.1 Create DataExportButton React component
     - Create button with loading state
     - Implement initiateExport method
     - POST to /api/gdpr/export
@@ -458,7 +458,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Call downloadFile method
     - _Requirements: 4.1_
   
-  - [~] 13.2 Implement downloadFile method
+  - [x] 13.2 Implement downloadFile method
     - Create temporary anchor element
     - Set href to download URL
     - Set download attribute
@@ -466,32 +466,32 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Call onExportComplete callback
     - _Requirements: 4.1_
 
-- [~] 14. Implement frontend AccountDeletionFlow component
-  - [~] 14.1 Create AccountDeletionFlow React component
+- [x] 14. Implement frontend AccountDeletionFlow component
+  - [x] 14.1 Create AccountDeletionFlow React component
     - Create multi-step flow with state management
     - Step 1: Confirmation warning
     - Step 2: Password input
     - Step 3: Pending status display
     - _Requirements: 5.7, 5.8_
   
-  - [~] 14.2 Implement confirmDeletion method
+  - [x] 14.2 Implement confirmDeletion method
     - Show password confirmation step
     - Display warning about data loss
     - _Requirements: 5.7_
   
-  - [~] 14.3 Implement submitDeletion method
+  - [x] 14.3 Implement submitDeletion method
     - POST to /api/gdpr/delete-account with password
     - Handle success: show pending status
     - Handle error: show error message
     - _Requirements: 5.7, 5.8_
   
-  - [~] 14.4 Implement cancelDeletion method
+  - [x] 14.4 Implement cancelDeletion method
     - Reset flow to initial state
     - Clear password input
     - _Requirements: 5.9_
 
-- [~] 15. Implement cookie management interface
-  - [~] 15.1 Create CookieSettings page component
+- [x] 15. Implement cookie management interface
+  - [x] 15.1 Create CookieSettings page component
     - Display current preferences for each cookie category
     - Show description of each category
     - Show list of specific cookies in each category
@@ -509,20 +509,20 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Attempt to disable essential cookies, verify prevention
     - **Validates: Requirements 10.7**
   
-  - [~] 15.4 Implement cookie preference update handler
+  - [x] 15.4 Implement cookie preference update handler
     - POST updated preferences to /api/gdpr/consent
     - Update localStorage
     - Show success message
     - _Requirements: 10.3, 10.6_
 
-- [~] 16. Implement email preference controls
-  - [~] 16.1 Add email preferences section to user settings
+- [x] 16. Implement email preference controls
+  - [x] 16.1 Add email preferences section to user settings
     - Add toggle for marketing emails
     - Display current preference
     - Show explanation of essential vs marketing emails
     - _Requirements: 14.1_
   
-  - [~] 16.2 Implement email preference update handler
+  - [x] 16.2 Implement email preference update handler
     - Update User.marketing_emails_enabled in database
     - Show confirmation message
     - _Requirements: 14.2, 14.3_
@@ -532,12 +532,12 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate users with opt-out, verify no marketing emails sent
     - **Validates: Requirements 14.2, 14.3, 14.4**
   
-  - [~] 16.4 Update email sending logic to check preferences
+  - [x] 16.4 Update email sending logic to check preferences
     - Before sending marketing email, check User.marketing_emails_enabled
     - Always send essential emails regardless of preference
     - _Requirements: 14.2, 14.4_
   
-  - [~] 16.5 Add unsubscribe link to marketing emails
+  - [x] 16.5 Add unsubscribe link to marketing emails
     - Generate unsubscribe token for each marketing email
     - Include link in email template
     - _Requirements: 14.5_
@@ -547,7 +547,7 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate marketing emails, verify unsubscribe link present
     - **Validates: Requirements 14.5**
   
-  - [~] 16.7 Implement unsubscribe endpoint
+  - [x] 16.7 Implement unsubscribe endpoint
     - Create GET /api/gdpr/unsubscribe/:token endpoint
     - Verify token and update User.marketing_emails_enabled
     - Show confirmation page
@@ -558,25 +558,25 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate unsubscribe tokens, verify preference update without auth
     - **Validates: Requirements 14.6**
 
-- [~] 17. Integrate GDPR components into main application
-  - [~] 17.1 Add CookieConsentBanner to App.jsx
+- [x] 17. Integrate GDPR components into main application
+  - [x] 17.1 Add CookieConsentBanner to App.jsx
     - Import and render CookieConsentBanner at root level
     - Pass onConsentChange handler
     - _Requirements: 1.1_
   
-  - [~] 17.2 Add footer with legal links to all pages
+  - [x] 17.2 Add footer with legal links to all pages
     - Create Footer component
     - Add links to Privacy Policy and Terms of Service
     - Add link to Cookie Settings
     - Render footer on all pages
     - _Requirements: 2.1, 3.1_
   
-  - [~] 17.3 Add privacy settings to user account page
+  - [x] 17.3 Add privacy settings to user account page
     - Import PrivacySettings component
     - Add privacy settings tab or section
     - _Requirements: 13.1_
   
-  - [~] 17.4 Add policy acceptance check to registration flow
+  - [x] 17.4 Add policy acceptance check to registration flow
     - Add checkbox for Terms of Service acceptance
     - Prevent registration if not checked
     - Record acceptance in PolicyAcceptance table
@@ -587,32 +587,32 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate registration attempts without acceptance, verify rejection
     - **Validates: Requirements 3.8**
   
-  - [~] 17.6 Add policy update check to login flow
+  - [x] 17.6 Add policy update check to login flow
     - After successful login, check if user's policy versions are current
     - If outdated, show policy acceptance modal
     - Prevent access until policies accepted
     - _Requirements: 2.10, 3.9_
 
-- [~] 18. Implement background job for retention policies
-  - [~] 18.1 Create scheduled task for retention cleanup
+- [x] 18. Implement background job for retention policies
+  - [x] 18.1 Create scheduled task for retention cleanup
     - Create Python script that calls RetentionService.run_all_cleanup_tasks
     - Set up cron job or scheduler to run daily
     - Log results of cleanup operations
     - _Requirements: 8.7_
   
-  - [ ] 18.2 Create scheduled task for pending deletions
+  - [x] 18.2 Create scheduled task for pending deletions
     - Create Python script that calls DeletionService.process_pending_deletions
     - Set up cron job or scheduler to run daily
     - Log results of deletion operations
     - _Requirements: 5.1_
   
-  - [ ] 18.3 Create scheduled task for export token cleanup
+  - [x] 18.3 Create scheduled task for export token cleanup
     - Delete expired DataExportToken records
     - Delete associated export files
     - _Requirements: 6.7_
 
-- [ ] 19. Add logging and monitoring
-  - [ ] 19.1 Implement audit logging for GDPR operations
+- [x] 19. Add logging and monitoring
+  - [x] 19.1 Implement audit logging for GDPR operations
     - Log all consent changes
     - Log all data export requests
     - Log all account deletion requests
@@ -625,14 +625,14 @@ The implementation prioritizes core functionality (cookie consent, data export, 
     - Generate log entries, verify no PII present
     - **Validates: Requirements 9.8**
   
-  - [ ] 19.3 Create monitoring dashboard for GDPR metrics
+  - [x] 19.3 Create monitoring dashboard for GDPR metrics
     - Track consent acceptance rates
     - Track data export requests
     - Track account deletion requests
     - Track retention cleanup statistics
     - _Requirements: 12.1_
 
-- [ ] 20. Final checkpoint - Ensure all tests pass
+- [x] 20. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

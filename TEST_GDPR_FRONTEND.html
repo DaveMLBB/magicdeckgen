@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test GDPR Frontend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+        }
+        h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.ok {
+            background: #4caf50;
+            color: white;
+        }
+        .status.warning {
+            background: #ff9800;
+            color: white;
+        }
+        .status.error {
+            background: #f44336;
+            color: white;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #2196f3;
+        }
+        .code {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        ul {
+            line-height: 1.8;
+        }
+        .link-test {
+            display: block;
+            padding: 10px;
+            margin: 5px 0;
+            background: #f0f4ff;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #667eea;
+            font-weight: bold;
+        }
+        .link-test:hover {
+            background: #e0e8ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test GDPR Frontend - Magic Deck Builder</h1>
+    
+    <div class="test-card">
+        <h2>1. Cookie Consent Banner <span class="status" id="banner-status">Checking...</span></h2>
+        <div class="info">
+            <strong>Come verificare:</strong>
+            <ol>
+                <li>Apri il browser in <strong>modalità incognito</strong></li>
+                <li>Vai su <a href="http://localhost:5174/" target="_blank">http://localhost:5174/</a></li>
+                <li>Dovresti vedere un banner in basso con "🍪 Gestione Cookie"</li>
+            </ol>
+        </div>
+        <button onclick="clearConsent()">🗑️ Cancella Consenso Cookie (per vedere il banner)</button>
+        <button onclick="window.open('http://localhost:5174/', '_blank')">🌐 Apri App</button>
+        
+        <div id="consent-info" style="margin-top: 15px;"></div>
+    </div>
+
+    <div class="test-card">
+        <h2>2. Privacy Settings <span class="status ok">✓ Implementato</span></h2>
+        <div class="info">
+            <strong>Come accedere:</strong>
+            <ol>
+                <li>Fai login nell'app</li>
+                <li>Clicca sul pulsante <strong>"🔒 Privacy"</strong> nell'header</li>
+                <li>Vedrai il pannello con tutte le impostazioni GDPR</li>
+            </ol>
+        </div>
+        <p><strong>Funzionalità disponibili:</strong></p>
+        <ul>
+            <li>✅ Gestione preferenze cookie</li>
+            <li>✅ Esportazione dati personali (JSON)</li>
+            <li>✅ Richiesta cancellazione account</li>
+            <li>✅ Preferenze email marketing</li>
+        </ul>
+    </div>
+
+    <div class="test-card">
+        <h2>3. Footer Links <span class="status ok">✓ Implementato</span></h2>
+        <div class="info">
+            <strong>Verifica i link nel footer:</strong>
+        </div>
+        <a href="http://localhost:5174/" target="_blank" class="link-test">
+            📄 Privacy Policy
+        </a>
+        <a href="http://localhost:5174/" target="_blank" class="link-test">
+            📋 Terms of Service
+        </a>
+        <a href="http://localhost:5174/" target="_blank" class="link-test">
+            🍪 Cookie Settings
+        </a>
+        <p style="color: #666; font-size: 14px;">
+            <em>Nota: I link sono nel footer dell'applicazione. Scorri in fondo alla pagina per trovarli.</em>
+        </p>
+    </div>
+
+    <div class="test-card">
+        <h2>4. Backend GDPR Endpoints <span class="status" id="backend-status">Checking...</span></h2>
+        <div class="info">
+            <strong>Endpoint disponibili:</strong>
+        </div>
+        <div class="code">
+POST /api/gdpr/consent - Log consenso cookie<br>
+GET  /api/gdpr/consent - Recupera consenso utente<br>
+POST /api/gdpr/export - Richiedi esportazione dati<br>
+GET  /api/gdpr/download/:token - Download dati<br>
+POST /api/gdpr/delete-account - Richiedi cancellazione<br>
+POST /api/gdpr/cancel-deletion - Annulla cancellazione<br>
+GET  /api/gdpr/privacy-policy - Privacy Policy<br>
+GET  /api/gdpr/terms-of-service - Terms of Service<br>
+POST /api/gdpr/accept-policy - Accetta policy
+        </div>
+        <button onclick="testBackend()">🧪 Test Backend</button>
+        <div id="backend-result" style="margin-top: 15px;"></div>
+    </div>
+
+    <div class="test-card">
+        <h2>5. Componenti Creati <span class="status ok">✓ Tutti Presenti</span></h2>
+        <ul>
+            <li>✅ CookieConsentBanner.jsx + CSS</li>
+            <li>✅ PrivacySettings.jsx + CSS</li>
+            <li>✅ LegalPages.jsx + CSS</li>
+            <li>✅ CookieSettings.jsx + CSS</li>
+            <li>✅ EmailPreferences.jsx + CSS</li>
+            <li>✅ DataExportButton.jsx + CSS</li>
+            <li>✅ AccountDeletionFlow.jsx + CSS</li>
+        </ul>
+    </div>
+
+    <div class="test-card">
+        <h2>❓ Perché non vedo il banner cookie?</h2>
+        <div class="info">
+            <strong>Possibili motivi:</strong>
+            <ol>
+                <li><strong>Hai già dato il consenso</strong> - Il banner appare solo la prima volta</li>
+                <li><strong>Il consenso è salvato in localStorage</strong> - Dura 12 mesi</li>
+                <li><strong>Stai usando lo stesso browser</strong> - Prova modalità incognito</li>
+            </ol>
+            <p><strong>Soluzione:</strong> Clicca il pulsante "Cancella Consenso Cookie" sopra e ricarica la pagina.</p>
+        </div>
+    </div>
+
+    <script>
+        // Check consent status
+        function checkConsentStatus() {
+            const consent = localStorage.getItem('cookieConsent');
+            const statusEl = document.getElementById('banner-status');
+            const infoEl = document.getElementById('consent-info');
+            
+            if (consent) {
+                const data = JSON.parse(consent);
+                statusEl.className = 'status warning';
+                statusEl.textContent = '⚠️ Consenso Già Dato';
+                infoEl.innerHTML = `
+                    <div class="code">
+                        <strong>Consenso salvato:</strong><br>
+                        Data: ${new Date(data.timestamp).toLocaleString('it-IT')}<br>
+                        Essenziali: ${data.consent.essential ? '✓' : '✗'}<br>
+                        Analytics: ${data.consent.analytics ? '✓' : '✗'}<br>
+                        Marketing: ${data.consent.marketing ? '✓' : '✗'}<br>
+                        Versione: ${data.bannerVersion}
+                    </div>
+                    <p style="color: #ff9800; font-weight: bold;">
+                        ⚠️ Il banner NON apparirà perché hai già dato il consenso!<br>
+                        Clicca "Cancella Consenso Cookie" per vederlo di nuovo.
+                    </p>
+                `;
+            } else {
+                statusEl.className = 'status ok';
+                statusEl.textContent = '✓ Nessun Consenso';
+                infoEl.innerHTML = `
+                    <p style="color: #4caf50; font-weight: bold;">
+                        ✓ Il banner DOVREBBE apparire quando apri l'app!
+                    </p>
+                `;
+            }
+        }
+
+        function clearConsent() {
+            localStorage.removeItem('cookieConsent');
+            alert('✓ Consenso cookie cancellato!\n\nOra apri l\'app in una nuova finestra per vedere il banner.');
+            checkConsentStatus();
+        }
+
+        async function testBackend() {
+            const resultEl = document.getElementById('backend-result');
+            const statusEl = document.getElementById('backend-status');
+            resultEl.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/gdpr/privacy-policy');
+                if (response.ok) {
+                    const data = await response.json();
+                    statusEl.className = 'status ok';
+                    statusEl.textContent = '✓ Online';
+                    resultEl.innerHTML = `
+                        <div class="code">
+                            <strong>✓ Backend GDPR funzionante!</strong><br>
+                            Privacy Policy Version: ${data.version || 'N/A'}<br>
+                            Status: ${response.status} ${response.statusText}
+                        </div>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = '✗ Offline';
+                resultEl.innerHTML = `
+                    <div class="code" style="background: #ffebee; border-left-color: #f44336;">
+                        <strong>✗ Errore connessione backend!</strong><br>
+                        ${error.message}<br><br>
+                        Assicurati che il backend sia avviato:<br>
+                        <code>cd backend && python run.py</code>
+                    </div>
+                `;
+            }
+        }
+
+        // Run checks on load
+        checkConsentStatus();
+        testBackend();
+    </script>
+</body>
+</html>

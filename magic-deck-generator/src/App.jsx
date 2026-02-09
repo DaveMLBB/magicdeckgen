@@ -8,6 +8,11 @@ import CollectionsList from './components/CollectionsList'
 import CardSearch from './components/CardSearch'
 import SavedDecksList from './components/SavedDecksList'
 import SavedDeck from './components/SavedDeck'
+import CookieConsentBanner from './components/CookieConsentBanner'
+import PrivacySettings from './components/PrivacySettings'
+import LegalPages from './components/LegalPages'
+import CookieSettings from './components/CookieSettings'
+import EmailPreferences from './components/EmailPreferences'
 import { cardImageCache } from './utils/cardImageCache'
 
 const API_URL = import.meta.env.PROD 
@@ -23,7 +28,7 @@ function App() {
   const [deckLoading, setDeckLoading] = useState(false)
   const [selectedDeck, setSelectedDeck] = useState(null)
   const [message, setMessage] = useState('')
-  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search', 'saved-decks', 'saved-deck-detail', 'subscriptions'
+  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search', 'saved-decks', 'saved-deck-detail', 'subscriptions', 'privacy-settings', 'privacy-policy', 'terms-of-service', 'cookie-settings', 'email-preferences'
   const [selectedCollection, setSelectedCollection] = useState(null)
   const [selectedSavedDeck, setSelectedSavedDeck] = useState(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState(null)
@@ -941,6 +946,38 @@ function App() {
           }}
           language={language}
         />
+      ) : currentView === 'privacy-settings' ? (
+        <PrivacySettings
+          user={user}
+          language={language}
+          onBack={() => setCurrentView('main')}
+        />
+      ) : currentView === 'privacy-policy' ? (
+        <LegalPages
+          pageType="privacy"
+          user={user}
+          language={language}
+          onBack={() => setCurrentView('main')}
+        />
+      ) : currentView === 'terms-of-service' ? (
+        <LegalPages
+          pageType="terms"
+          user={user}
+          language={language}
+          onBack={() => setCurrentView('main')}
+        />
+      ) : currentView === 'cookie-settings' ? (
+        <CookieSettings
+          user={user}
+          language={language}
+          onBack={() => setCurrentView('main')}
+        />
+      ) : currentView === 'email-preferences' ? (
+        <EmailPreferences
+          user={user}
+          language={language}
+          onBack={() => setCurrentView('main')}
+        />
       ) : (
         <>
           <header>
@@ -978,6 +1015,9 @@ function App() {
                     💎 {subscriptionStatus.uploads_remaining} {t.uploadsRemaining}
                   </button>
                 )}
+                <button className="collection-btn" onClick={() => setCurrentView('privacy-settings')}>
+                  🔒 {language === 'it' ? 'Privacy' : 'Privacy'}
+                </button>
                 <button className="logout-btn" onClick={handleLogout}>
                   {t.logout}
                 </button>
@@ -1571,10 +1611,34 @@ function App() {
       </main>
 
           <footer>
-            <p>Magic Deck Builder © 2026</p>
+            <div className="footer-content">
+              <p>Magic Deck Builder © 2026</p>
+              <div className="footer-links">
+                <button onClick={() => setCurrentView('privacy-policy')} className="footer-link">
+                  {language === 'it' ? 'Privacy' : 'Privacy Policy'}
+                </button>
+                <span className="footer-separator">•</span>
+                <button onClick={() => setCurrentView('terms-of-service')} className="footer-link">
+                  {language === 'it' ? 'Termini' : 'Terms'}
+                </button>
+                <span className="footer-separator">•</span>
+                <button onClick={() => setCurrentView('cookie-settings')} className="footer-link">
+                  {language === 'it' ? 'Cookie' : 'Cookies'}
+                </button>
+              </div>
+            </div>
           </footer>
         </>
       )}
+
+      {/* Cookie Consent Banner - always visible until consent given */}
+      <CookieConsentBanner 
+        language={language}
+        onConsentChange={(consent) => {
+          console.log('Consent updated:', consent)
+        }}
+        onPrivacyClick={() => setCurrentView('privacy-policy')}
+      />
 
       {/* Bug Report Button - always visible */}
       <a 

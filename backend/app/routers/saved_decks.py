@@ -124,6 +124,26 @@ def create_deck(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Check saved decks limit based on subscription
+    saved_decks_limits = {
+        'free': 3,
+        'monthly_10': 10,
+        'monthly_30': 30,
+        'yearly': 50,
+        'lifetime': None  # unlimited
+    }
+    saved_decks_limit = saved_decks_limits.get(user.subscription_type, 3)
+    
+    # Count current saved decks
+    current_decks_count = db.query(SavedDeck).filter(SavedDeck.user_id == user_id).count()
+    
+    # Check if limit reached (only if not unlimited)
+    if saved_decks_limit is not None and current_decks_count >= saved_decks_limit:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Saved decks limit reached ({saved_decks_limit}). Please upgrade your subscription."
+        )
+    
     # Verify collections exist if provided
     from app.models import CardCollection, saved_deck_collections
     if deck_input.collection_ids:

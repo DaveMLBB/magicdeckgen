@@ -1189,3 +1189,192 @@
     font-size: 0.9rem;
   }
 }
+
+
+/* Policy Acceptance Checkbox */
+.policy-acceptance {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1.6;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.checkbox-label span {
+  color: #cbd5e0;
+  font-size: 0.95rem;
+}
+
+.policy-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.policy-link:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+.checkbox-label input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+
+/* Policy Modal */
+.policy-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 2rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.policy-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 900px;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+.policy-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 2px solid #eee;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px 12px 0 0;
+}
+
+.policy-modal-header h2 {
+  margin: 0;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.close-modal-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.close-modal-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.policy-modal-content {
+  flex: 1;
+  overflow: hidden;
+  padding: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .policy-modal-overlay {
+    padding: 1rem;
+  }
+  
+  .policy-modal {
+    height: 90vh;
+  }
+  
+  .policy-modal-header {
+    padding: 1rem;
+  }
+  
+  .policy-modal-header h2 {
+    font-size: 1.25rem;
+  }
+}
+
+
+/* Login Policy Notice */
+.login-policy-notice {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  background: rgba(102, 126, 234, 0.08);
+  border-radius: 6px;
+  border-left: 3px solid #667eea;
+}
+
+.login-policy-notice p {
+  margin: 0;
+  color: #cbd5e0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.policy-link-small {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.policy-link-small:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}

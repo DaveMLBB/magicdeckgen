@@ -6,7 +6,7 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 import secrets
 from app.database import get_db
-from app.models import User
+from app.models import User, PolicyAcceptance
 from app.email import send_verification_email
 
 router = APIRouter()
@@ -76,12 +76,32 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
         email=user_data.email,
         hashed_password=hashed_password,
         verification_token=verification_token,
-        is_verified=False
+        is_verified=False,
+        privacy_policy_version="1.0",
+        terms_version="1.0"
     )
     
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    
+    # Registra accettazione Privacy Policy e Terms of Service
+    privacy_acceptance = PolicyAcceptance(
+        user_id=new_user.id,
+        policy_type="privacy_policy",
+        policy_version="1.0",
+        accepted_at=datetime.utcnow()
+    )
+    terms_acceptance = PolicyAcceptance(
+        user_id=new_user.id,
+        policy_type="terms_of_service",
+        policy_version="1.0",
+        accepted_at=datetime.utcnow()
+    )
+    
+    db.add(privacy_acceptance)
+    db.add(terms_acceptance)
+    db.commit()
     
     # Invia email di verifica tramite Brevo
     send_verification_email(user_data.email, verification_token)
@@ -101,6 +121,48 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o password non corretti"
         )
+    
+    # Verifica e registra accettazione policy se non presente
+    # (per utenti creati prima dell'implementazione GDPR)
+    if not user.privacy_policy_version or not user.terms_version:
+        user.privacy_policy_version = "1.0"
+        user.terms_version = "1.0"
+        
+        # Verifica se esistono già accettazioni
+        existing_privacy = db.query(PolicyAcceptance).filter(
+            PolicyAcceptance.user_id == user.id,
+            PolicyAcceptance.policy_type == "privacy_policy"
+        ).first()
+        
+        existing_terms = db.query(PolicyAcceptance).filter(
+            PolicyAcceptance.user_id == user.id,
+            PolicyAcceptance.policy_type == "terms_of_service"
+        ).first()
+        
+        # Crea accettazioni se non esistono
+        if not existing_privacy:
+            privacy_acceptance = PolicyAcceptance(
+                user_id=user.id,
+                policy_type="privacy_policy",
+                policy_version="1.0",
+                accepted_at=datetime.utcnow()
+            )
+            db.add(privacy_acceptance)
+        
+        if not existing_terms:
+            terms_acceptance = PolicyAcceptance(
+                user_id=user.id,
+                policy_type="terms_of_service",
+                policy_version="1.0",
+                accepted_at=datetime.utcnow()
+            )
+            db.add(terms_acceptance)
+        
+        db.commit()
+    
+    # Aggiorna last_login_at per retention policy
+    user.last_login_at = datetime.utcnow()
+    db.commit()
     
     # Crea token JWT
     access_token = create_access_token(data={"sub": str(user.id), "email": user.email})

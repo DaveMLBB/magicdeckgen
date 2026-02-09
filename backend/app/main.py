@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import cards, decks, auth, subscriptions, collections, mtg_cards, saved_decks
+from app.routers import cards, decks, auth, subscriptions, collections, mtg_cards, saved_decks, gdpr
 
 Base.metadata.create_all(bind=engine)
 
@@ -16,6 +16,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],  # For file downloads
 )
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
@@ -25,6 +26,7 @@ app.include_router(cards.router, prefix="/api/cards", tags=["cards"])
 app.include_router(decks.router, prefix="/api/decks", tags=["decks"])
 app.include_router(mtg_cards.router, prefix="/api/mtg-cards", tags=["mtg-cards"])
 app.include_router(saved_decks.router, prefix="/api/saved-decks", tags=["saved-decks"])
+app.include_router(gdpr.router, prefix="/api/gdpr", tags=["gdpr"])
 
 @app.get("/")
 def root():

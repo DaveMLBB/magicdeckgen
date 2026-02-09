@@ -21,6 +21,7 @@ function Subscriptions({ user, onBack, language }) {
       collections: 'Collezioni',
       deckSearches: 'Ricerche Mazzi',
       savedDecks: 'Mazzi Salvati',
+      deckResults: 'Risultati Ricerca',
       expiresAt: 'Scade il',
       lifetime: 'A vita',
       selectPlan: 'Scegli Piano',
@@ -52,11 +53,11 @@ function Subscriptions({ user, onBack, language }) {
         '30 uploads for 1 month': '30 caricamenti per 1 mese',
         'Unlimited uploads for 1 year': 'Caricamenti illimitati per 1 anno',
         'Unlimited uploads forever': 'Caricamenti illimitati per sempre',
-        '3 uploads • 5 collections • 20 unique cards per collection': '3 caricamenti • 5 collezioni • 20 carte uniche • 3 mazzi salvabili',
-        '10 uploads/month • 10 collections • Unlimited cards': '10 caricamenti/mese • 10 collezioni • Carte illimitate • 5 mazzi salvabili',
-        '30 uploads/month • 50 collections • Unlimited cards': '30 caricamenti/mese • 50 collezioni • Carte illimitate • 10 mazzi salvabili',
-        'Unlimited uploads • Unlimited collections • Unlimited cards': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate • Mazzi illimitati',
-        'Unlimited uploads • Unlimited collections • Unlimited cards • Forever': 'Caricamenti illimitati • Collezioni illimitate • Carte illimitate • Mazzi illimitati'
+        '10 uploads • 5 collections • 3 saved decks • 20 unique cards per collection • 10 deck results': '10 caricamenti • 5 collezioni • 3 mazzi salvati • 20 carte uniche • 10 risultati',
+        '30 uploads/month • 10 collections • 10 saved decks • Unlimited cards • 20 deck results': '30 caricamenti/mese • 10 collezioni • 5 mazzi salvati • Carte illimitate • 20 risultati',
+        '50 uploads/month • 50 collections • 30 saved decks • Unlimited cards • 30 deck results': '50 caricamenti/mese • 50 collezioni • 30 mazzi salvati • Carte illimitate • 30 risultati',
+        'Unlimited uploads • Unlimited collections • 50 saved decks • Unlimited cards • Unlimited deck results': 'Caricamenti illimitati • Collezioni illimitate • 50 mazzi salvati • Carte illimitate • Risultati illimitati',
+        'Unlimited uploads • Unlimited collections • Unlimited saved decks • Unlimited cards • Unlimited deck results • Forever': 'Caricamenti illimitati • Collezioni illimitate • Mazzi illimitati • Carte illimitate • Risultati illimitati'
       }
     },
     en: {
@@ -68,6 +69,7 @@ function Subscriptions({ user, onBack, language }) {
       collections: 'Collections',
       deckSearches: 'Deck Searches',
       savedDecks: 'Saved Decks',
+      deckResults: 'Search Results',
       expiresAt: 'Expires on',
       lifetime: 'Lifetime',
       selectPlan: 'Choose Plan',
@@ -99,11 +101,11 @@ function Subscriptions({ user, onBack, language }) {
         '30 uploads for 1 month': '30 uploads for 1 month',
         'Unlimited uploads for 1 year': 'Unlimited uploads for 1 year',
         'Unlimited uploads forever': 'Unlimited uploads forever',
-        '3 uploads • 5 collections • 20 unique cards per collection': '3 uploads • 5 collections • 20 unique cards • 3 saved decks',
-        '10 uploads/month • 10 collections • Unlimited cards': '10 uploads/month • 10 collections • Unlimited cards • 5 saved decks',
-        '30 uploads/month • 50 collections • Unlimited cards': '30 uploads/month • 50 collections • Unlimited cards • 10 saved decks',
-        'Unlimited uploads • Unlimited collections • Unlimited cards': 'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited decks',
-        'Unlimited uploads • Unlimited collections • Unlimited cards • Forever': 'Unlimited uploads • Unlimited collections • Unlimited cards • Unlimited decks'
+        '10 uploads • 5 collections • 3 saved decks • 20 unique cards per collection • 10 deck results': '10 uploads • 5 collections • 3 saved decks • 20 unique cards • 10 results',
+        '30 uploads/month • 10 collections • 10 saved decks • Unlimited cards • 20 deck results': '30 uploads/month • 10 collections • 5 saved decks • Unlimited cards • 20 results',
+        '50 uploads/month • 50 collections • 30 saved decks • Unlimited cards • 30 deck results': '50 uploads/month • 50 collections • 30 saved decks • Unlimited cards • 30 results',
+        'Unlimited uploads • Unlimited collections • 50 saved decks • Unlimited cards • Unlimited deck results': 'Unlimited uploads • Unlimited collections • 50 saved decks • Unlimited cards • Unlimited results',
+        'Unlimited uploads • Unlimited collections • Unlimited saved decks • Unlimited cards • Unlimited deck results • Forever': 'Unlimited uploads • Unlimited collections • Unlimited decks • Unlimited cards • Unlimited results'
       }
     }
   }
@@ -144,16 +146,16 @@ function Subscriptions({ user, onBack, language }) {
       // Free - 3 mazzi
       if (id === 'free') return language === 'it' ? '3 mazzi salvabili' : '3 saved decks'
       
-      // Premium 10 caricamenti/mese - 5 mazzi
+      // Premium 10 caricamenti/mese - 3 mazzi
       if (id === 'premium' || id === 'premium_monthly' || id === 'premium_10' || 
-          id === '10_uploads' || id.includes('10')) {
-        return language === 'it' ? '5 mazzi salvabili' : '5 saved decks'
+          id === '10_uploads' || id === 'monthly_10' || id.includes('10')) {
+        return language === 'it' ? '3 mazzi salvabili' : '3 saved decks'
       }
       
-      // Premium 30 caricamenti/mese - 10 mazzi
+      // Premium 30 caricamenti/mese - 5 mazzi
       if (id === 'premium_30' || id === '30_uploads' || id === 'premium_30_monthly' || 
-          id.includes('30')) {
-        return language === 'it' ? '10 mazzi salvabili' : '10 saved decks'
+          id === 'monthly_30' || id.includes('30')) {
+        return language === 'it' ? '5 mazzi salvabili' : '5 saved decks'
       }
       
       // Premium Annuale - 50 mazzi
@@ -281,14 +283,27 @@ function Subscriptions({ user, onBack, language }) {
                   {(() => {
                     const type = status.subscription_type.toLowerCase()
                     if (type === 'free') return '3'
-                    if (type === 'premium' || type === 'premium_monthly' || type === 'premium_10' || type === '10_uploads') return '5'
-                    if (type === 'premium_30' || type === '30_uploads' || type === 'premium_30_monthly') return '10'
+                    if (type === 'premium' || type === 'premium_monthly' || type === 'premium_10' || type === '10_uploads' || type === 'monthly_10') return '3'
+                    if (type === 'premium_30' || type === '30_uploads' || type === 'premium_30_monthly' || type === 'monthly_30') return '5'
                     if (type === 'premium_annual' || type === 'yearly' || type === 'annual' || type === 'yearly_unlimited') return '50'
                     if (type === 'lifetime' || type === 'lifetime_unlimited') return t.unlimited
                     return '3' // default fallback
                   })()}
                 </span>
               </div>
+              
+              {/* Deck Search Results */}
+              {status.deck_results_limit ? (
+                <div className="stat">
+                  <span className="stat-label">{t.deckResults}</span>
+                  <span className="stat-value">{status.searches_count} / {status.deck_results_limit}</span>
+                </div>
+              ) : (
+                <div className="stat">
+                  <span className="stat-label">{t.deckResults}</span>
+                  <span className="stat-value highlight">{status.searches_count} / {t.unlimited}</span>
+                </div>
+              )}
               
               {status.expires_at && (
                 <div className="stat">
@@ -316,8 +331,8 @@ function Subscriptions({ user, onBack, language }) {
               return plan.id !== 'free'
             })
             .map(plan => {
-              // Traduci e arricchisci la descrizione
-              const descriptionText = translateDescription(plan.description, plan.id)
+              // Traduci la descrizione
+              const descriptionText = translateDescription(plan.description)
               const features = descriptionText.split(' • ').filter(f => f.trim())
               
               return (
