@@ -35,7 +35,9 @@ function Auth({ onLogin, language, setLanguage }) {
       lifetimeAccount: 'Account Lifetime',
       freeDesc: '3 caricamenti',
       premiumDesc: '10 caricamenti/mese',
-      lifetimeDesc: 'Tutto illimitato'
+      lifetimeDesc: 'Tutto illimitato',
+      desktopRecommended: '💻 Per un\'esperienza ottimale, consigliamo l\'utilizzo su PC desktop',
+      desktopRecommendedShort: 'Consigliato: PC Desktop'
     },
     en: {
       login: 'Login',
@@ -58,7 +60,9 @@ function Auth({ onLogin, language, setLanguage }) {
       lifetimeAccount: 'Lifetime Account',
       freeDesc: '3 uploads',
       premiumDesc: '10 uploads/month',
-      lifetimeDesc: 'Everything unlimited'
+      lifetimeDesc: 'Everything unlimited',
+      desktopRecommended: '💻 For the best experience, we recommend using a desktop PC',
+      desktopRecommendedShort: 'Recommended: Desktop PC'
     }
   }
 
@@ -291,6 +295,12 @@ function Auth({ onLogin, language, setLanguage }) {
             <button className="back-btn" onClick={() => setShowAuthForm(false)}>
               ← {language === 'it' ? 'Indietro' : 'Back'}
             </button>
+          </div>
+          
+          {/* Desktop Recommendation Banner */}
+          <div className="desktop-recommendation">
+            <span className="recommendation-icon">💻</span>
+            <span className="recommendation-text">{t.desktopRecommended}</span>
           </div>
           
           <h1>🃏 Magic Deck Builder</h1>

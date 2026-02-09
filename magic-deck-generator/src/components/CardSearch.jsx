@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import React from 'react'
 import './CardSearch.css'
 import { cardImageCache } from '../utils/cardImageCache'
 
@@ -6,39 +7,81 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
   : 'http://localhost:8000'
 
-// Componente per caricare le immagini delle carte
-function CardImage({ card }) {
+// Componente per caricare le immagini delle carte con lazy loading
+const CardImage = React.memo(function CardImage({ card }) {
   const [imageUrl, setImageUrl] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isVisible, setIsVisible] = useState(false)
+  const imgRef = useRef(null)
+
+  // Intersection Observer per lazy loading
+  useEffect(() => {
+    if (!imgRef.current) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true)
+            observer.disconnect()
+          }
+        })
+      },
+      {
+        rootMargin: '50px', // Inizia a caricare 50px prima che sia visibile
+        threshold: 0.01
+      }
+    )
+
+    observer.observe(imgRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   useEffect(() => {
+    if (!isVisible) return
+
     let mounted = true
+    let abortController = new AbortController()
 
     const loadImage = async () => {
-      // Prova prima con l'immagine locale se disponibile
-      if (card.image_url && card.image_url.startsWith('/card-images/')) {
-        // Verifica se l'immagine locale esiste
-        const img = new Image()
-        img.onload = () => {
-          if (mounted) {
-            setImageUrl(card.image_url)
-            setLoading(false)
+      try {
+        // Prova prima con l'immagine locale se disponibile
+        if (card.image_url && card.image_url.startsWith('/card-images/')) {
+          // Verifica se l'immagine locale esiste
+          const img = new Image()
+          img.onload = () => {
+            if (mounted) {
+              setImageUrl(card.image_url)
+              setLoading(false)
+            }
           }
-        }
-        img.onerror = async () => {
-          // Se l'immagine locale non esiste, carica da Scryfall
-          if (mounted) {
+          img.onerror = async () => {
+            // Se l'immagine locale non esiste, carica da Scryfall
+            if (mounted && !abortController.signal.aborted) {
+              const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
+              if (mounted) {
+                setImageUrl(scryfallUrl)
+                setLoading(false)
+              }
+            }
+          }
+          img.src = card.image_url
+        } else {
+          // Carica direttamente da Scryfall
+          if (!abortController.signal.aborted) {
             const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
-            setImageUrl(scryfallUrl)
-            setLoading(false)
+            if (mounted) {
+              setImageUrl(scryfallUrl)
+              setLoading(false)
+            }
           }
         }
-        img.src = card.image_url
-      } else {
-        // Carica direttamente da Scryfall
-        const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
-        if (mounted) {
-          setImageUrl(scryfallUrl)
+      } catch (err) {
+        if (mounted && !abortController.signal.aborted) {
+          console.error('Error loading image:', err)
           setLoading(false)
         }
       }
@@ -48,38 +91,45 @@ function CardImage({ card }) {
 
     return () => {
       mounted = false
+      abortController.abort()
     }
-  }, [card.name, card.image_url, card.scryfallId])
+  }, [isVisible, card.name, card.image_url, card.scryfallId])
 
-  if (loading) {
+  if (!isVisible || loading) {
     return (
-      <img 
-        src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="223" height="310"%3E%3Crect width="223" height="310" fill="%23333"/%3E%3Ctext x="50%25" y="50%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="14"%3ELoading...%3C/text%3E%3C/svg%3E'
-        alt={card.name}
-        className="card-image"
-      />
+      <div ref={imgRef} className="card-image-placeholder">
+        <div className="placeholder-content">
+          {loading && isVisible ? (
+            <div className="spinner-small"></div>
+          ) : (
+            <span className="placeholder-text">📷</span>
+          )}
+        </div>
+      </div>
     )
   }
 
   if (!imageUrl) {
     return (
-      <img 
-        src={`data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="223" height="310"%3E%3Crect width="223" height="310" fill="%23333"/%3E%3Ctext x="50%25" y="45%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="12"%3E${encodeURIComponent(card.name.substring(0, 30))}%3C/text%3E%3Ctext x="50%25" y="55%25" fill="%23666" text-anchor="middle" dy=".3em" font-family="Arial" font-size="10"%3EImage Not Found%3C/text%3E%3C/svg%3E`}
-        alt={card.name}
-        className="card-image"
-      />
+      <div ref={imgRef} className="card-image-placeholder">
+        <div className="placeholder-content">
+          <span className="placeholder-text">❌</span>
+          <small>{card.name.substring(0, 20)}</small>
+        </div>
+      </div>
     )
   }
 
   return (
     <img 
+      ref={imgRef}
       src={imageUrl}
       alt={card.name}
       className="card-image"
       loading="lazy"
     />
   )
-}
+})
 
 function CardSearch({ user, onBack, language }) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -326,7 +376,7 @@ function CardSearch({ user, onBack, language }) {
     if (searchQuery.length >= 2) {
       const timer = setTimeout(() => {
         fetchSuggestions()
-      }, 300) // Debounce di 300ms
+      }, 500) // Debounce aumentato a 500ms per ridurre richieste
       return () => clearTimeout(timer)
     } else {
       setSuggestions([])
@@ -970,34 +1020,46 @@ function CardSearch({ user, onBack, language }) {
 }
 
 // Componente per le immagini nel modal di dettaglio
-function CardDetailImage({ card }) {
+const CardDetailImage = React.memo(function CardDetailImage({ card }) {
   const [imageUrl, setImageUrl] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let mounted = true
+    let abortController = new AbortController()
 
     const loadImage = async () => {
-      if (card.image_url && card.image_url.startsWith('/card-images/')) {
-        const img = new Image()
-        img.onload = () => {
-          if (mounted) {
-            setImageUrl(card.image_url)
-            setLoading(false)
+      try {
+        if (card.image_url && card.image_url.startsWith('/card-images/')) {
+          const img = new Image()
+          img.onload = () => {
+            if (mounted) {
+              setImageUrl(card.image_url)
+              setLoading(false)
+            }
           }
-        }
-        img.onerror = async () => {
-          if (mounted) {
+          img.onerror = async () => {
+            if (mounted && !abortController.signal.aborted) {
+              const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
+              if (mounted) {
+                setImageUrl(scryfallUrl)
+                setLoading(false)
+              }
+            }
+          }
+          img.src = card.image_url
+        } else {
+          if (!abortController.signal.aborted) {
             const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
-            setImageUrl(scryfallUrl)
-            setLoading(false)
+            if (mounted) {
+              setImageUrl(scryfallUrl)
+              setLoading(false)
+            }
           }
         }
-        img.src = card.image_url
-      } else {
-        const scryfallUrl = await cardImageCache.getCardImage(card.name, card.scryfallId)
-        if (mounted) {
-          setImageUrl(scryfallUrl)
+      } catch (err) {
+        if (mounted && !abortController.signal.aborted) {
+          console.error('Error loading detail image:', err)
           setLoading(false)
         }
       }
@@ -1007,26 +1069,24 @@ function CardDetailImage({ card }) {
 
     return () => {
       mounted = false
+      abortController.abort()
     }
   }, [card.name, card.image_url, card.scryfallId])
 
   if (loading) {
     return (
-      <img 
-        src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="488" height="680"%3E%3Crect width="488" height="680" fill="%23333"/%3E%3Ctext x="50%25" y="50%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="20"%3ELoading...%3C/text%3E%3C/svg%3E'
-        alt={card.name}
-        className="card-detail-image"
-      />
+      <div className="card-detail-image-placeholder">
+        <div className="spinner"></div>
+        <p>Loading...</p>
+      </div>
     )
   }
 
   if (!imageUrl) {
     return (
-      <img 
-        src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="488" height="680"%3E%3Crect width="488" height="680" fill="%23333"/%3E%3Ctext x="50%25" y="50%25" fill="%23999" text-anchor="middle" dy=".3em" font-family="Arial" font-size="20"%3EImage Not Found%3C/text%3E%3C/svg%3E'
-        alt={card.name}
-        className="card-detail-image"
-      />
+      <div className="card-detail-image-placeholder">
+        <p>Image Not Found</p>
+      </div>
     )
   }
 
@@ -1037,6 +1097,6 @@ function CardDetailImage({ card }) {
       className="card-detail-image"
     />
   )
-}
+})
 
 export default CardSearch
