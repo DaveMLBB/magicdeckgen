@@ -119,6 +119,7 @@ function Subscriptions({ user, onBack, language }) {
       // Carica piani
       const plansRes = await fetch(`${API_URL}/api/subscriptions/plans`)
       const plansData = await plansRes.json()
+      console.log('Plans from backend:', plansData.plans) // Debug
       setPlans(plansData.plans)
 
       // Carica stato abbonamento
@@ -133,23 +134,41 @@ function Subscriptions({ user, onBack, language }) {
 
   // Funzione per tradurre e arricchire le descrizioni con i limiti mazzi
   const translateDescription = (description, planId) => {
-    // Mappa dei limiti mazzi per piano
-    const deckLimits = {
-      'free': '3 mazzi salvabili',
-      'premium': '5 mazzi salvabili',
-      'premium_monthly': '5 mazzi salvabili',
-      'premium_30': '10 mazzi salvabili',
-      'premium_annual': 'Mazzi illimitati',
-      'lifetime': 'Mazzi illimitati'
-    }
+    console.log('Plan ID:', planId, 'Description:', description) // Debug per vedere gli ID reali
     
-    const deckLimitsEn = {
-      'free': '3 saved decks',
-      'premium': '5 saved decks',
-      'premium_monthly': '5 saved decks',
-      'premium_30': '10 saved decks',
-      'premium_annual': 'Unlimited decks',
-      'lifetime': 'Unlimited decks'
+    // Normalizza l'ID del piano (lowercase per matching)
+    const normalizedId = planId.toLowerCase()
+    
+    // Mappa dei limiti mazzi per piano - CORRETTI
+    const getDeckLimit = (id) => {
+      // Free - 3 mazzi
+      if (id === 'free') return language === 'it' ? '3 mazzi salvabili' : '3 saved decks'
+      
+      // Premium 10 caricamenti/mese - 5 mazzi
+      if (id === 'premium' || id === 'premium_monthly' || id === 'premium_10' || 
+          id === '10_uploads' || id.includes('10')) {
+        return language === 'it' ? '5 mazzi salvabili' : '5 saved decks'
+      }
+      
+      // Premium 30 caricamenti/mese - 10 mazzi
+      if (id === 'premium_30' || id === '30_uploads' || id === 'premium_30_monthly' || 
+          id.includes('30')) {
+        return language === 'it' ? '10 mazzi salvabili' : '10 saved decks'
+      }
+      
+      // Premium Annuale - 50 mazzi
+      if (id === 'premium_annual' || id === 'yearly' || id === 'annual' || 
+          id === 'yearly_unlimited' || id.includes('year') || id.includes('annual')) {
+        return language === 'it' ? '50 mazzi salvabili' : '50 saved decks'
+      }
+      
+      // Lifetime - illimitati
+      if (id === 'lifetime' || id === 'lifetime_unlimited' || id.includes('lifetime')) {
+        return language === 'it' ? 'Mazzi illimitati' : 'Unlimited decks'
+      }
+      
+      // Default fallback
+      return language === 'it' ? '3 mazzi salvabili' : '3 saved decks'
     }
     
     // Traduzioni base
@@ -168,15 +187,12 @@ function Subscriptions({ user, onBack, language }) {
         .replace(/year/gi, 'anno')
         .replace(/forever/gi, 'per sempre')
         .replace(/free/gi, 'gratuiti')
-      
-      // Aggiungi limite mazzi
-      const deckLimit = deckLimits[planId] || 'Mazzi illimitati'
-      translated = `${translated} • ${deckLimit}`
-    } else {
-      // Aggiungi limite mazzi in inglese
-      const deckLimit = deckLimitsEn[planId] || 'Unlimited decks'
-      translated = `${translated} • ${deckLimit}`
     }
+    
+    // Aggiungi limite mazzi
+    const deckLimit = getDeckLimit(normalizedId)
+    console.log('Deck limit for', planId, ':', deckLimit) // Debug
+    translated = `${translated} • ${deckLimit}`
     
     return translated
   }
@@ -262,10 +278,15 @@ function Subscriptions({ user, onBack, language }) {
               <div className="stat">
                 <span className="stat-label">{t.savedDecks}</span>
                 <span className="stat-value highlight">
-                  {status.subscription_type === 'free' ? '3' : 
-                   status.subscription_type === 'premium' || status.subscription_type === 'premium_monthly' ? '5' :
-                   status.subscription_type === 'premium_30' ? '10' :
-                   t.unlimited}
+                  {(() => {
+                    const type = status.subscription_type.toLowerCase()
+                    if (type === 'free') return '3'
+                    if (type === 'premium' || type === 'premium_monthly' || type === 'premium_10' || type === '10_uploads') return '5'
+                    if (type === 'premium_30' || type === '30_uploads' || type === 'premium_30_monthly') return '10'
+                    if (type === 'premium_annual' || type === 'yearly' || type === 'annual' || type === 'yearly_unlimited') return '50'
+                    if (type === 'lifetime' || type === 'lifetime_unlimited') return t.unlimited
+                    return '3' // default fallback
+                  })()}
                 </span>
               </div>
               

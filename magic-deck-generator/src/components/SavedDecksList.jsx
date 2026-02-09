@@ -23,14 +23,22 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
     cardsText: ''
   })
 
-  // Limiti mazzi per tipo abbonamento
+  // Limiti mazzi per tipo abbonamento - CORRETTI
   const DECK_LIMITS = {
     'free': 3,
     'premium': 5,
     'premium_monthly': 5,
+    'premium_10': 5,
+    '10_uploads': 5,
     'premium_30': 10,
-    'premium_annual': -1, // illimitato
-    'lifetime': -1 // illimitato
+    '30_uploads': 10,
+    'premium_30_monthly': 10,
+    'premium_annual': 50,
+    'yearly': 50,
+    'annual': 50,
+    'yearly_unlimited': 50,
+    'lifetime': -1, // illimitato
+    'lifetime_unlimited': -1
   }
 
   const translations = {
@@ -74,7 +82,7 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
       limitReachedUpgrade: 'Aggiorna il tuo abbonamento per salvare più mazzi:',
       limitPremium: '• Premium (10 caricamenti/mese): fino a 5 mazzi',
       limitPremium30: '• Premium (30 caricamenti/mese): fino a 10 mazzi',
-      limitAnnual: '• Premium Annuale: mazzi illimitati',
+      limitAnnual: '• Premium Annuale: fino a 50 mazzi',
       limitLifetime: '• Lifetime: mazzi illimitati',
       upgradeNow: 'Aggiorna Ora',
       deckCount: '{current} di {limit} mazzi salvati',
@@ -120,7 +128,7 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
       limitReachedUpgrade: 'Upgrade your subscription to save more decks:',
       limitPremium: '• Premium (10 uploads/month): up to 5 decks',
       limitPremium30: '• Premium (30 uploads/month): up to 10 decks',
-      limitAnnual: '• Premium Annual: unlimited decks',
+      limitAnnual: '• Premium Annual: up to 50 decks',
       limitLifetime: '• Lifetime: unlimited decks',
       upgradeNow: 'Upgrade Now',
       deckCount: '{current} of {limit} decks saved',
@@ -312,7 +320,8 @@ function SavedDecksList({ user, onBack, onSelectDeck, language }) {
 
   const getDeckLimit = () => {
     if (!subscriptionStatus) return 3
-    return DECK_LIMITS[subscriptionStatus.subscription_type] || 3
+    const type = subscriptionStatus.subscription_type.toLowerCase()
+    return DECK_LIMITS[type] || 3 // default fallback
   }
 
   const canCreateDeck = () => {
