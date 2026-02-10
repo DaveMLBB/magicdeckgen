@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 from app.database import get_db
 from app.models import User
+from app.email import send_subscription_activated_email, send_subscription_renewed_email, send_subscription_cancelled_email
 from jose import JWTError, jwt
 import stripe
 import os
@@ -127,13 +128,16 @@ def get_subscription_status(token: str, db: Session = Depends(get_db)):
     if user.subscription_expires_at:
         is_expired = datetime.utcnow() > user.subscription_expires_at
         
-        # If expired, reset to free
+        # If expired, check Stripe first before resetting to free
         if is_expired and user.subscription_type != 'lifetime':
-            user.subscription_type = 'free'
-            user.uploads_limit = 3
-            user.uploads_count = 0
-            user.subscription_expires_at = None
-            db.commit()
+            if not check_stripe_subscription_active(user, db):
+                user.subscription_type = 'free'
+                user.uploads_limit = 3
+                user.uploads_count = 0
+                user.subscription_expires_at = None
+                db.commit()
+            else:
+                is_expired = False
     
     plan = SUBSCRIPTION_PLANS.get(user.subscription_type, SUBSCRIPTION_PLANS['free'])
     
@@ -209,6 +213,45 @@ def get_subscription_status(token: str, db: Session = Depends(get_db)):
         "is_expired": is_expired,
         "can_upload": user.uploads_count < user.uploads_limit
     }
+
+def check_stripe_subscription_active(user: User, db: Session) -> bool:
+    """Verifica su Stripe se l'utente ha una subscription attiva.
+    Se sì, rinnova subscription_expires_at nel DB e ritorna True."""
+    if not STRIPE_SECRET_KEY or not user.stripe_customer_id:
+        return False
+    
+    try:
+        subscriptions = stripe.Subscription.list(
+            customer=user.stripe_customer_id,
+            status='active',
+            limit=5
+        )
+        
+        for sub in subscriptions.data:
+            # Subscription attiva trovata su Stripe
+            plan_id = (sub.metadata or {}).get('plan_id')
+            
+            if not plan_id:
+                # Fallback: determina dal price ID
+                if sub.get('items') and sub['items'].get('data'):
+                    price_id = sub['items']['data'][0].get('price', {}).get('id', '')
+                    for pid, sid in STRIPE_PRICE_IDS.items():
+                        if sid and sid == price_id:
+                            plan_id = pid
+                            break
+            
+            if not plan_id:
+                plan_id = user.subscription_type if user.subscription_type != 'free' else None
+            
+            if plan_id and plan_id in SUBSCRIPTION_PLANS:
+                activate_subscription(user, plan_id, db)
+                logger.info(f"Stripe fallback: renewed user={user.id}, plan={plan_id}")
+                return True
+        
+        return False
+    except stripe.StripeError as e:
+        logger.error(f"Stripe check error: {e}")
+        return False
 
 def activate_subscription(user: User, plan_id: str, db: Session):
     """Attiva un abbonamento per l'utente (usato sia da checkout che da webhook)"""
@@ -317,6 +360,15 @@ def create_checkout_session(
         },
     }
     
+    # Per subscriptions ricorrenti, aggiungi metadata alla subscription stessa
+    if is_recurring:
+        checkout_params['subscription_data'] = {
+            'metadata': {
+                'user_id': str(user.id),
+                'plan_id': purchase.plan
+            }
+        }
+    
     if stripe_price_id:
         # Usa Price ID pre-configurato da Stripe Dashboard
         checkout_params['line_items'] = [{
@@ -393,6 +445,61 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             if user:
                 activate_subscription(user, plan_id, db)
                 logger.info(f"Subscription activated: user={user_id}, plan={plan_id}")
+                # Invia email di conferma attivazione
+                plan_info = SUBSCRIPTION_PLANS.get(plan_id, {})
+                try:
+                    send_subscription_activated_email(
+                        user.email,
+                        plan_info.get('name', plan_id),
+                        user.subscription_expires_at
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending activation email: {e}")
+    
+    elif event_type in ('invoice.paid', 'invoice.payment_succeeded'):
+        # Rinnovo abbonamento riuscito (Stripe auto-renewal)
+        customer_id = data.get('customer')
+        billing_reason = data.get('billing_reason', '')
+        
+        if customer_id:
+            user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+            if user:
+                plan_id = None
+                subscription_id = data.get('subscription')
+                
+                if subscription_id and STRIPE_SECRET_KEY:
+                    try:
+                        sub = stripe.Subscription.retrieve(subscription_id)
+                        plan_id = (sub.metadata or {}).get('plan_id')
+                        
+                        if not plan_id and hasattr(sub, 'items') and sub['items'].get('data'):
+                            price_id = sub['items']['data'][0].get('price', {}).get('id', '')
+                            for pid, sid in STRIPE_PRICE_IDS.items():
+                                if sid and sid == price_id:
+                                    plan_id = pid
+                                    break
+                    except stripe.StripeError as e:
+                        logger.error(f"Error retrieving subscription: {e}")
+                
+                if not plan_id:
+                    plan_id = user.subscription_type if user.subscription_type != 'free' else None
+                
+                if plan_id and plan_id in SUBSCRIPTION_PLANS:
+                    activate_subscription(user, plan_id, db)
+                    logger.info(f"Subscription renewed: user={user.id}, plan={plan_id}, reason={billing_reason}")
+                    # Invia email di conferma rinnovo (solo per rinnovi, non primo pagamento)
+                    if billing_reason in ('subscription_cycle', 'subscription_update'):
+                        plan_info = SUBSCRIPTION_PLANS.get(plan_id, {})
+                        try:
+                            send_subscription_renewed_email(
+                                user.email,
+                                plan_info.get('name', plan_id),
+                                user.subscription_expires_at
+                            )
+                        except Exception as e:
+                            logger.error(f"Error sending renewal email: {e}")
+                else:
+                    logger.warning(f"Invoice paid but could not determine plan for user={user.id}")
     
     elif event_type == 'customer.subscription.deleted':
         # Abbonamento cancellato/scaduto
@@ -400,8 +507,19 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         if customer_id:
             user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
             if user:
+                old_plan = user.subscription_type
+                old_plan_info = SUBSCRIPTION_PLANS.get(old_plan, {})
                 activate_subscription(user, 'free', db)
                 logger.info(f"Subscription cancelled: user={user.id}, reset to free")
+                # Invia email di conferma cancellazione definitiva
+                try:
+                    send_subscription_cancelled_email(
+                        user.email,
+                        old_plan_info.get('name', old_plan),
+                        None  # Già scaduto
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending cancellation email: {e}")
     
     elif event_type == 'invoice.payment_failed':
         # Pagamento fallito
@@ -432,6 +550,16 @@ def verify_stripe_session(token: str, session_id: str = None, plan: str = None, 
                     if plan_id and plan_id in SUBSCRIPTION_PLANS and user.subscription_type != plan_id:
                         activate_subscription(user, plan_id, db)
                         logger.info(f"Session verified: user={user.id}, plan={plan_id}")
+                        # Invia email di conferma attivazione
+                        plan_info = SUBSCRIPTION_PLANS.get(plan_id, {})
+                        try:
+                            send_subscription_activated_email(
+                                user.email,
+                                plan_info.get('name', plan_id),
+                                user.subscription_expires_at
+                            )
+                        except Exception as e:
+                            logger.error(f"Error sending activation email: {e}")
                         return {"status": "activated", "plan": plan_id}
                     return {"status": "already_active", "plan": user.subscription_type}
                 else:
@@ -461,6 +589,88 @@ def verify_stripe_session(token: str, session_id: str = None, plan: str = None, 
             logger.error(f"Stripe list sessions error: {e}")
     
     return {"status": "no_action", "current_plan": user.subscription_type}
+
+@router.post("/cancel-subscription")
+def cancel_subscription(token: str, db: Session = Depends(get_db)):
+    """Annulla l'abbonamento Stripe dell'utente (a fine periodo)"""
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Stripe not configured"
+        )
+    
+    user = get_current_user(token, db)
+    
+    if user.subscription_type == 'free':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No active subscription to cancel"
+        )
+    
+    if user.subscription_type == 'lifetime':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Lifetime subscriptions cannot be cancelled"
+        )
+    
+    if not user.stripe_customer_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No Stripe customer found"
+        )
+    
+    try:
+        # Trova le subscriptions attive per questo customer
+        subscriptions = stripe.Subscription.list(
+            customer=user.stripe_customer_id,
+            status='active',
+            limit=10
+        )
+        
+        cancelled_count = 0
+        for sub in subscriptions.data:
+            # Cancella a fine periodo (l'utente mantiene l'accesso fino alla scadenza)
+            stripe.Subscription.modify(
+                sub.id,
+                cancel_at_period_end=True
+            )
+            cancelled_count += 1
+            logger.info(f"Subscription {sub.id} set to cancel at period end for user={user.id}")
+        
+        plan_info = SUBSCRIPTION_PLANS.get(user.subscription_type, {})
+        plan_name = plan_info.get('name', user.subscription_type)
+        
+        if cancelled_count == 0:
+            # Nessuna subscription attiva su Stripe, reset diretto
+            activate_subscription(user, 'free', db)
+            # Invia email di annullamento
+            try:
+                send_subscription_cancelled_email(user.email, plan_name, None)
+            except Exception as e:
+                logger.error(f"Error sending cancellation email: {e}")
+            return {
+                "status": "cancelled_immediately",
+                "message": "No active Stripe subscription found. Reset to free plan."
+            }
+        
+        # Invia email di annullamento programmato
+        try:
+            send_subscription_cancelled_email(user.email, plan_name, user.subscription_expires_at)
+        except Exception as e:
+            logger.error(f"Error sending cancellation email: {e}")
+        
+        return {
+            "status": "cancel_scheduled",
+            "message": f"Subscription will be cancelled at the end of the current billing period.",
+            "expires_at": user.subscription_expires_at.isoformat() if user.subscription_expires_at else None,
+            "cancelled_subscriptions": cancelled_count
+        }
+    except stripe.StripeError as e:
+        logger.error(f"Stripe cancel error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Stripe error: {str(e)}"
+        )
 
 @router.get("/stripe-config")
 def get_stripe_config():
@@ -495,14 +705,15 @@ def can_upload(token: str, db: Session = Depends(get_db)):
     """Check if user can upload"""
     user = get_current_user(token, db)
     
-    # Check expiration
+    # Check expiration - verify Stripe first
     if user.subscription_expires_at and datetime.utcnow() > user.subscription_expires_at:
         if user.subscription_type != 'lifetime':
-            user.subscription_type = 'free'
-            user.uploads_limit = 3
-            user.uploads_count = 0
-            user.subscription_expires_at = None
-            db.commit()
+            if not check_stripe_subscription_active(user, db):
+                user.subscription_type = 'free'
+                user.uploads_limit = 3
+                user.uploads_count = 0
+                user.subscription_expires_at = None
+                db.commit()
     
     can_upload = user.uploads_count < user.uploads_limit
     

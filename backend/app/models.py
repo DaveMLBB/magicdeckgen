@@ -121,6 +121,7 @@ class DeckTemplate(Base):
     name = Column(String, index=True)
     source = Column(String)  # MTGJson, MTGTop8, etc.
     format = Column(String)  # standard, modern, commander, etc.
+    colors = Column(String, nullable=True)  # W,U,B,R,G
 
 class DeckTemplateCard(Base):
     __tablename__ = "deck_template_cards"

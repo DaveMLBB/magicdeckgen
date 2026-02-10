@@ -319,6 +319,261 @@ def send_deletion_complete_email(to_email: str) -> bool:
         return False
 
 
+def send_subscription_activated_email(to_email: str, plan_name: str, expires_at=None) -> bool:
+    """Invia email di conferma attivazione abbonamento"""
+    
+    expiry_text = ""
+    if expires_at:
+        expiry_date = expires_at.strftime("%d/%m/%Y") if hasattr(expires_at, 'strftime') else str(expires_at)
+        expiry_text = f'<p>Il tuo abbonamento è valido fino al <strong>{expiry_date}</strong>.</p>'
+    else:
+        expiry_text = '<p>Il tuo abbonamento <strong>non ha scadenza</strong>. È tuo per sempre!</p>'
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+    
+    payload = {
+        "sender": {
+            "name": FROM_NAME,
+            "email": FROM_EMAIL
+        },
+        "to": [
+            {
+                "email": to_email,
+                "name": to_email.split('@')[0]
+            }
+        ],
+        "subject": f"Abbonamento Attivato: {plan_name} - Magic Deck Builder",
+        "htmlContent": f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+                .plan-box {{ background: #ecfdf5; border: 2px solid #10b981; border-radius: 10px; padding: 20px; margin: 20px 0; text-align: center; }}
+                .plan-name {{ font-size: 24px; font-weight: bold; color: #059669; }}
+                .button {{ display: inline-block; padding: 15px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }}
+                .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>✅ Abbonamento Attivato!</h1>
+                </div>
+                <div class="content">
+                    <h2>Grazie per il tuo acquisto!</h2>
+                    <p>Il tuo abbonamento a Magic Deck Builder è stato attivato con successo.</p>
+                    
+                    <div class="plan-box">
+                        <div class="plan-name">{plan_name}</div>
+                    </div>
+                    
+                    {expiry_text}
+                    
+                    <p>Ora puoi goderti tutte le funzionalità del tuo piano. Buon divertimento con i tuoi mazzi!</p>
+                    
+                    <div style="text-align: center;">
+                        <a href="{FRONTEND_URL}" class="button">Vai a Magic Deck Builder</a>
+                    </div>
+                    
+                    <p style="margin-top: 30px; color: #666; font-size: 14px;">
+                        Se hai domande sul tuo abbonamento, non esitare a contattarci.
+                    </p>
+                </div>
+                <div class="footer">
+                    <p>© 2026 Magic Deck Builder. Tutti i diritti riservati.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+    }
+    
+    try:
+        response = requests.post(BREVO_API_URL, json=payload, headers=headers)
+        response.raise_for_status()
+        print(f"✅ Email attivazione abbonamento inviata a {to_email}")
+        return True
+    except Exception as e:
+        print(f"❌ Errore invio email a {to_email}: {e}")
+        return False
+
+
+def send_subscription_renewed_email(to_email: str, plan_name: str, expires_at=None) -> bool:
+    """Invia email di conferma rinnovo automatico abbonamento"""
+    
+    expiry_date = ""
+    if expires_at:
+        expiry_date = expires_at.strftime("%d/%m/%Y") if hasattr(expires_at, 'strftime') else str(expires_at)
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+    
+    payload = {
+        "sender": {
+            "name": FROM_NAME,
+            "email": FROM_EMAIL
+        },
+        "to": [
+            {
+                "email": to_email,
+                "name": to_email.split('@')[0]
+            }
+        ],
+        "subject": f"Abbonamento Rinnovato: {plan_name} - Magic Deck Builder",
+        "htmlContent": f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+                .renewal-box {{ background: #eff6ff; border: 2px solid #3b82f6; border-radius: 10px; padding: 20px; margin: 20px 0; text-align: center; }}
+                .plan-name {{ font-size: 20px; font-weight: bold; color: #2563eb; }}
+                .expiry {{ font-size: 14px; color: #64748b; margin-top: 8px; }}
+                .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🔄 Abbonamento Rinnovato</h1>
+                </div>
+                <div class="content">
+                    <h2>Il tuo abbonamento è stato rinnovato</h2>
+                    <p>Il pagamento per il rinnovo del tuo abbonamento è stato elaborato con successo.</p>
+                    
+                    <div class="renewal-box">
+                        <div class="plan-name">{plan_name}</div>
+                        {f'<div class="expiry">Prossima scadenza: {expiry_date}</div>' if expiry_date else ''}
+                    </div>
+                    
+                    <p>I tuoi contatori di utilizzo (caricamenti, ricerche) sono stati resettati. Continua a goderti Magic Deck Builder!</p>
+                    
+                    <p style="margin-top: 20px; color: #666; font-size: 14px;">
+                        Se desideri annullare il rinnovo automatico, puoi farlo dalla sezione Abbonamenti dell'app.
+                    </p>
+                </div>
+                <div class="footer">
+                    <p>© 2026 Magic Deck Builder. Tutti i diritti riservati.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+    }
+    
+    try:
+        response = requests.post(BREVO_API_URL, json=payload, headers=headers)
+        response.raise_for_status()
+        print(f"✅ Email rinnovo abbonamento inviata a {to_email}")
+        return True
+    except Exception as e:
+        print(f"❌ Errore invio email a {to_email}: {e}")
+        return False
+
+
+def send_subscription_cancelled_email(to_email: str, plan_name: str, expires_at=None) -> bool:
+    """Invia email di conferma annullamento abbonamento"""
+    
+    expiry_text = ""
+    if expires_at:
+        expiry_date = expires_at.strftime("%d/%m/%Y") if hasattr(expires_at, 'strftime') else str(expires_at)
+        expiry_text = f'<p>Il tuo abbonamento <strong>{plan_name}</strong> rimarrà attivo fino al <strong>{expiry_date}</strong>. Dopo questa data, il tuo account tornerà al piano gratuito.</p>'
+    else:
+        expiry_text = f'<p>Il tuo abbonamento <strong>{plan_name}</strong> è stato annullato. Il tuo account è stato riportato al piano gratuito.</p>'
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+    
+    payload = {
+        "sender": {
+            "name": FROM_NAME,
+            "email": FROM_EMAIL
+        },
+        "to": [
+            {
+                "email": to_email,
+                "name": to_email.split('@')[0]
+            }
+        ],
+        "subject": f"Abbonamento Annullato - Magic Deck Builder",
+        "htmlContent": f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+                .info-box {{ background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }}
+                .button {{ display: inline-block; padding: 15px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }}
+                .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>📋 Abbonamento Annullato</h1>
+                </div>
+                <div class="content">
+                    <h2>Il tuo abbonamento è stato annullato</h2>
+                    
+                    <div class="info-box">
+                        {expiry_text}
+                    </div>
+                    
+                    <p>Cosa succede con il piano gratuito:</p>
+                    <ul>
+                        <li>10 caricamenti</li>
+                        <li>5 collezioni</li>
+                        <li>3 mazzi salvati</li>
+                        <li>20 carte uniche per collezione</li>
+                        <li>10 risultati ricerca mazzi</li>
+                    </ul>
+                    
+                    <p><strong>Hai cambiato idea?</strong> Puoi riattivare il tuo abbonamento in qualsiasi momento:</p>
+                    
+                    <div style="text-align: center;">
+                        <a href="{FRONTEND_URL}" class="button">Riattiva Abbonamento</a>
+                    </div>
+                    
+                    <p style="margin-top: 30px; color: #666; font-size: 14px;">
+                        I tuoi dati e le tue collezioni rimarranno al sicuro. Solo i limiti di utilizzo cambieranno.
+                    </p>
+                </div>
+                <div class="footer">
+                    <p>© 2026 Magic Deck Builder. Tutti i diritti riservati.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+    }
+    
+    try:
+        response = requests.post(BREVO_API_URL, json=payload, headers=headers)
+        response.raise_for_status()
+        print(f"✅ Email annullamento abbonamento inviata a {to_email}")
+        return True
+    except Exception as e:
+        print(f"❌ Errore invio email a {to_email}: {e}")
+        return False
+
+
 def send_inactive_warning_email(to_email: str, last_login) -> bool:
     """Invia email di avviso per account inattivo da 3 anni"""
     

@@ -95,10 +95,8 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       mapColumns: '📋 Mappa le Colonne del File',
       rowsFound: 'righe. Seleziona quale colonna del tuo file corrisponde a ciascun campo.',
       cardName: 'Nome Carta',
-      quantity: 'Quantità',
       cardType: 'Tipo Carta',
       manaCost: 'Costo Mana',
-      rarity: 'Rarità',
       optional: '-- Opzionale --',
       selectColumn: '-- Seleziona colonna --',
       preview: 'Anteprima Dati (prime 5 righe)',
@@ -117,8 +115,6 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       cardRemoved: 'Carta rimossa',
       filters: 'Filtri',
       hideFilters: 'Nascondi Filtri',
-      colors: 'Colori',
-      rarity: 'Rarità',
       cmc: 'CMC',
       min: 'Min',
       max: 'Max',
@@ -175,10 +171,8 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       mapColumns: '📋 Map File Columns',
       rowsFound: 'rows found. Select which column from your file corresponds to each field.',
       cardName: 'Card Name',
-      quantity: 'Quantity',
       cardType: 'Card Type',
       manaCost: 'Mana Cost',
-      rarity: 'Rarity',
       optional: '-- Optional --',
       selectColumn: '-- Select column --',
       preview: 'Data Preview (first 5 rows)',
@@ -197,8 +191,6 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       cardRemoved: 'Card removed',
       filters: 'Filters',
       hideFilters: 'Hide Filters',
-      colors: 'Colors',
-      rarity: 'Rarity',
       cmc: 'CMC',
       min: 'Min',
       max: 'Max',
@@ -880,22 +872,10 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
         )}
       </main>
 
-      {/* Card Preview Tooltip */}
-      {hoveredCard && (
+      {/* Card Preview Tooltip - mostra solo quando l'immagine è pronta */}
+      {hoveredCard && cardImageUrl && (
         <div className="card-preview-tooltip">
-          {imageLoading ? (
-            <div className="card-preview-loading">
-              <div className="spinner"></div>
-              <p>Loading...</p>
-            </div>
-          ) : cardImageUrl ? (
-            <img src={cardImageUrl} alt={hoveredCard} className="card-preview-image" />
-          ) : (
-            <div className="card-preview-error">
-              <p>Image not available</p>
-              <small>{hoveredCard}</small>
-            </div>
-          )}
+          <img src={cardImageUrl} alt={hoveredCard} className="card-preview-image" />
         </div>
       )}
 

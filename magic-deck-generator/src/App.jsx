@@ -170,8 +170,7 @@ function App() {
       close: 'Chiudi',
       importToCollection: 'Importa in Collezione',
       importing: 'Importando...',
-      deckImported: 'Mazzo importato con successo!',
-      errorImporting: 'Errore durante l\'importazione del mazzo'
+      deckImported: 'Mazzo importato con successo!'
     },
     en: {
       title: '🃏 Magic Deck Matcher',
@@ -272,8 +271,7 @@ function App() {
       close: 'Close',
       importToCollection: 'Import to Collection',
       importing: 'Importing...',
-      deckImported: 'Deck imported successfully!',
-      errorImporting: 'Error importing deck'
+      deckImported: 'Deck imported successfully!'
     }
   }
 
@@ -1672,22 +1670,10 @@ function App() {
           </section>
         )}
         
-        {/* Card Preview Tooltip */}
-        {hoveredCard && (
+        {/* Card Preview Tooltip - mostra solo quando l'immagine è pronta */}
+        {hoveredCard && cardImageUrl && (
           <div className="card-preview-tooltip">
-            {imageLoading ? (
-              <div className="card-preview-loading">
-                <div className="spinner"></div>
-                <p>Loading...</p>
-              </div>
-            ) : cardImageUrl ? (
-              <img src={cardImageUrl} alt={hoveredCard} className="card-preview-image" />
-            ) : (
-              <div className="card-preview-error">
-                <p>Image not available</p>
-                <small>{hoveredCard}</small>
-              </div>
-            )}
+            <img src={cardImageUrl} alt={hoveredCard} className="card-preview-image" />
           </div>
         )}
         

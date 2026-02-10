@@ -11,6 +11,8 @@ function Subscriptions({ user, onBack, language }) {
   const [loading, setLoading] = useState(true)
   const [purchasing, setPurchasing] = useState(null)
   const [stripeEnabled, setStripeEnabled] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [showCancelModal, setShowCancelModal] = useState(false)
 
   const translations = {
     it: {
@@ -44,6 +46,16 @@ function Subscriptions({ user, onBack, language }) {
       paymentSuccess: '✅ Pagamento completato! Il tuo abbonamento è stato attivato.',
       paymentCancelled: 'Pagamento annullato.',
       processing: 'Elaborazione...',
+      cancelSubscription: 'Annulla Abbonamento',
+      cancelConfirmTitle: 'Annulla Abbonamento',
+      cancelConfirmMessage: 'Sei sicuro di voler annullare il tuo abbonamento? Manterrai l\'accesso fino alla fine del periodo di fatturazione corrente, poi tornerai al piano gratuito.',
+      cancelConfirm: 'Sì, Annulla',
+      cancelBack: 'No, Torna Indietro',
+      cancelSuccess: '✅ Abbonamento annullato. Rimarrà attivo fino alla scadenza del periodo corrente.',
+      cancelError: '❌ Errore nell\'annullamento: ',
+      cancelling: 'Annullamento in corso...',
+      testModeTitle: '🚧 Software in Fase di Test',
+      testModeMessage: 'Il software è attualmente in fase di test. Gli abbonamenti a pagamento saranno disponibili quando le funzionalità non saranno più soltanto a scopo di test. Al momento è disponibile solo il piano gratuito.',
       // Plan names
       planNames: {
         'Free': 'Gratuito',
@@ -123,6 +135,16 @@ function Subscriptions({ user, onBack, language }) {
       paymentSuccess: '✅ Payment completed! Your subscription has been activated.',
       paymentCancelled: 'Payment cancelled.',
       processing: 'Processing...',
+      cancelSubscription: 'Cancel Subscription',
+      cancelConfirmTitle: 'Cancel Subscription',
+      cancelConfirmMessage: 'Are you sure you want to cancel your subscription? You will keep access until the end of the current billing period, then revert to the free plan.',
+      cancelConfirm: 'Yes, Cancel',
+      cancelBack: 'No, Go Back',
+      cancelSuccess: '✅ Subscription cancelled. It will remain active until the end of the current billing period.',
+      cancelError: '❌ Cancellation error: ',
+      cancelling: 'Cancelling...',
+      testModeTitle: '🚧 Software in Testing Phase',
+      testModeMessage: 'The software is currently in a testing phase. Paid subscriptions will be available once the features are no longer for testing purposes only. Currently, only the free plan is available.',
       // Plan names
       planNames: {
         'Free': 'Free',
@@ -284,6 +306,27 @@ function Subscriptions({ user, onBack, language }) {
     setPurchasing(null)
   }
 
+  const handleCancelSubscription = async () => {
+    setCancelling(true)
+    try {
+      const res = await fetch(`${API_URL}/api/subscriptions/cancel-subscription?token=${user.token}`, {
+        method: 'POST'
+      })
+      const data = await res.json()
+      if (res.ok) {
+        alert(t.cancelSuccess)
+        setShowCancelModal(false)
+        loadData()
+      } else {
+        alert(t.cancelError + (data.detail || ''))
+      }
+    } catch (err) {
+      console.error('Error cancelling subscription:', err)
+      alert(t.cancelError + 'Unknown error')
+    }
+    setCancelling(false)
+  }
+
   if (loading) {
     return (
       <div className="subscriptions-page">
@@ -373,75 +416,52 @@ function Subscriptions({ user, onBack, language }) {
                 </div>
               )}
             </div>
+            {status.subscription_type !== 'free' && status.subscription_type !== 'lifetime' && (
+              <button 
+                className="cancel-subscription-btn"
+                onClick={() => setShowCancelModal(true)}
+              >
+                {t.cancelSubscription}
+              </button>
+            )}
           </div>
         )}
 
-        <h2 className="plans-title">{t.selectPlan}</h2>
-        
-        <div className="plans-grid">
-          {plans
-            .filter(plan => {
-              if (status?.subscription_type === 'free') {
-                return true
-              }
-              return plan.id !== 'free'
-            })
-            .map(plan => {
-              const features = getPlanFeatures(plan.id)
-              
-              return (
-                <div 
-                  key={plan.id} 
-                  className={`plan-card ${plan.id === status?.subscription_type ? 'current' : ''} ${plan.id === 'lifetime' ? 'featured' : ''}`}
-                >
-                  {plan.id === 'lifetime' && <div className="featured-badge">⭐ {t.best}</div>}
-                  {plan.id === status?.subscription_type && <div className="current-badge">✓ {t.currentPlan}</div>}
-                  
-                  <div className="plan-header">
-                    <h4>{t.planNames[plan.name] || plan.name}</h4>
-                    <div className="plan-price">
-                      {plan.price === 0 ? (
-                        <span className="price-free">{language === 'it' ? 'Gratuito' : 'Free'}</span>
-                      ) : (
-                        <>
-                          <span className="price-currency">€</span>
-                          <span className="price-amount">{plan.price.toFixed(0)}</span>
-                          {plan.duration_days && (
-                            <span className="price-period">
-                              /{plan.duration_days === 30 ? t.month : plan.duration_days === 365 ? t.year : `${plan.duration_days}${t.days}`}
-                            </span>
-                          )}
-                          {!plan.duration_days && plan.id !== 'free' && (
-                            <span className="price-period">/{t.forever}</span>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="plan-features">
-                    {features.map((feature, idx) => (
-                      <div key={idx} className="feature">
-                        <span className="feature-icon">✓</span>
-                        <span className="feature-text">{feature.trim()}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {plan.id !== status?.subscription_type && plan.id !== 'free' && (
-                    <button 
-                      className="purchase-btn"
-                      onClick={() => handlePurchase(plan.id)}
-                      disabled={purchasing !== null}
-                    >
-                      {purchasing === plan.id ? t.purchasing : t.purchase}
-                    </button>
-                  )}
-                </div>
-              )
-            })}
+        <div className="test-mode-banner">
+          <h3>{t.testModeTitle}</h3>
+          <p>{t.testModeMessage}</p>
         </div>
       </main>
+
+      {showCancelModal && (
+        <div className="modal-overlay" onClick={() => setShowCancelModal(false)}>
+          <div className="modal-content cancel-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>⚠️ {t.cancelConfirmTitle}</h2>
+            <p className="cancel-message">{t.cancelConfirmMessage}</p>
+            {status?.expires_at && (
+              <p className="cancel-expiry">
+                {t.expiresAt}: <strong>{new Date(status.expires_at).toLocaleDateString()}</strong>
+              </p>
+            )}
+            <div className="modal-actions">
+              <button 
+                className="cancel-back-btn"
+                onClick={() => setShowCancelModal(false)}
+                disabled={cancelling}
+              >
+                {t.cancelBack}
+              </button>
+              <button 
+                className="cancel-confirm-btn"
+                onClick={handleCancelSubscription}
+                disabled={cancelling}
+              >
+                {cancelling ? t.cancelling : t.cancelConfirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="subscriptions-footer">
         <p>Magic Deck Builder © 2026</p>

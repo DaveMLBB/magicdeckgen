@@ -65,9 +65,9 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
       deckNamePlaceholder: 'Es: Mono Red Aggro',
       deckDescription: 'Descrizione (opzionale)',
       deckDescPlaceholder: 'Descrizione del mazzo...',
-      deckFormat: 'Formato (opzionale)',
+      deckFormat: 'Formato',
       deckFormatPlaceholder: 'Es: Standard, Modern, Commander',
-      deckColors: 'Colori (opzionale)',
+      deckColors: 'Colori',
       deckColorsPlaceholder: 'Es: W,U,B,R,G',
       deckArchetype: 'Archetipo (opzionale)',
       deckArchetypePlaceholder: 'Es: Aggro, Control, Midrange',
@@ -79,6 +79,8 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
       cancel: 'Annulla',
       errorCreating: 'Errore nella creazione del mazzo',
       deckNameRequired: 'Il nome del mazzo è obbligatorio',
+      deckFormatRequired: 'Il formato è obbligatorio',
+      deckColorsRequired: 'I colori sono obbligatori',
       deckCardsRequired: 'Devi inserire almeno una carta',
       limitReached: 'Limite Mazzi Raggiunto',
       limitReachedMessage: 'Hai raggiunto il limite di {limit} mazzi per il tuo piano {plan}.',
@@ -114,9 +116,9 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
       deckNamePlaceholder: 'E.g: Mono Red Aggro',
       deckDescription: 'Description (optional)',
       deckDescPlaceholder: 'Deck description...',
-      deckFormat: 'Format (optional)',
+      deckFormat: 'Format',
       deckFormatPlaceholder: 'E.g: Standard, Modern, Commander',
-      deckColors: 'Colors (optional)',
+      deckColors: 'Colors',
       deckColorsPlaceholder: 'E.g: W,U,B,R,G',
       deckArchetype: 'Archetype (optional)',
       deckArchetypePlaceholder: 'E.g: Aggro, Control, Midrange',
@@ -128,6 +130,8 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
       cancel: 'Cancel',
       errorCreating: 'Error creating deck',
       deckNameRequired: 'Deck name is required',
+      deckFormatRequired: 'Format is required',
+      deckColorsRequired: 'Colors are required',
       deckCardsRequired: 'You must enter at least one card',
       limitReached: 'Deck Limit Reached',
       limitReachedMessage: 'You have reached the limit of {limit} decks for your {plan} plan.',
@@ -213,6 +217,14 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
     // Validazione
     if (!newDeck.name.trim()) {
       alert(t.deckNameRequired)
+      return
+    }
+    if (!newDeck.format.trim()) {
+      alert(t.deckFormatRequired)
+      return
+    }
+    if (!newDeck.colors.trim()) {
+      alert(t.deckColorsRequired)
       return
     }
     if (!newDeck.cardsText.trim()) {
@@ -577,7 +589,7 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
 
             <div className="form-row">
               <div className="form-group">
-                <label>{t.deckFormat}</label>
+                <label>{t.deckFormat} <span className="required">*</span></label>
                 <input
                   type="text"
                   placeholder={t.deckFormatPlaceholder}
@@ -588,7 +600,7 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
               </div>
 
               <div className="form-group">
-                <label>{t.deckColors}</label>
+                <label>{t.deckColors} <span className="required">*</span></label>
                 <input
                   type="text"
                   placeholder={t.deckColorsPlaceholder}

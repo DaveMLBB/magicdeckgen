@@ -357,13 +357,18 @@ def match_decks(
         if buildable_only and match_percentage < 90:
             continue
         
-        # Determina colori del mazzo
+        # Usa colori dal template (pre-calcolati) o fallback dalle carte
         deck_colors = set()
-        for tc in template_cards:
-            if tc.colors:
-                for c in tc.colors.upper():
-                    if c in 'WUBRG':
-                        deck_colors.add(c)
+        if template.colors:
+            for c in template.colors.upper().replace(' ', '').replace(',', ''):
+                if c in 'WUBRG':
+                    deck_colors.add(c)
+        else:
+            for tc in template_cards:
+                if tc.colors:
+                    for c in tc.colors.upper().replace(' ', '').replace(',', ''):
+                        if c in 'WUBRG':
+                            deck_colors.add(c)
         
         # Applica filtro colori (il mazzo deve contenere TUTTI i colori selezionati)
         if colors:
@@ -371,22 +376,20 @@ def match_decks(
             if not required_colors.issubset(deck_colors):
                 continue
         
-        # Ora salva il mazzo
-        if True:
-            matched_decks.append({
-                "deck_template_id": template.id,  # Aggiungi l'ID del template
-                "name": template.name,
-                "source": template.source,
-                "format": template.format,
-                "match_percentage": round(match_percentage, 1),
-                "cards_owned": cards_owned,
-                "total_cards": total_cards_needed,
-                "missing_cards_count": missing_cards_total,  # Totale carte mancanti (somma quantità)
-                "missing_cards": missing_cards[:10],  # Top 10 carte mancanti
-                "colors": '/'.join(sorted(deck_colors)) if deck_colors else 'C',
-                "deck_list": deck_list,
-                "can_build": match_percentage >= 90
-            })
+        matched_decks.append({
+            "deck_template_id": template.id,
+            "name": template.name,
+            "source": template.source,
+            "format": template.format,
+            "match_percentage": round(match_percentage, 1),
+            "cards_owned": cards_owned,
+            "total_cards": total_cards_needed,
+            "missing_cards_count": missing_cards_total,
+            "missing_cards": missing_cards[:10],
+            "colors": '/'.join(sorted(deck_colors)) if deck_colors else 'C',
+            "deck_list": deck_list,
+            "can_build": match_percentage >= 90
+        })
     
     # Ordina per match percentage
     matched_decks.sort(key=lambda d: d["match_percentage"], reverse=True)

@@ -25,6 +25,9 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
   const [saving, setSaving] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
   
+  // Copy state
+  const [copySuccess, setCopySuccess] = useState(false)
+  
   // Card preview states
   const [hoveredCard, setHoveredCard] = useState(null)
   const [cardImageUrl, setCardImageUrl] = useState(null)
@@ -77,7 +80,9 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
       savingChanges: 'Salvando...',
       duplicating: 'Duplicando...',
       duplicateSuccess: 'Mazzo duplicato!',
-      editSuccess: 'Mazzo aggiornato!'
+      editSuccess: 'Mazzo aggiornato!',
+      copyMTGO: 'Copia Lista MTGO',
+      copied: 'Copiato!'
     },
     en: {
       backToDecks: '← Back to Decks',
@@ -125,7 +130,9 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
       savingChanges: 'Saving...',
       duplicating: 'Duplicating...',
       duplicateSuccess: 'Deck duplicated!',
-      editSuccess: 'Deck updated!'
+      editSuccess: 'Deck updated!',
+      copyMTGO: 'Copy MTGO List',
+      copied: 'Copied!'
     }
   }
 
@@ -344,6 +351,17 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
     setCardImageUrl(null)
   }
 
+  const handleCopyMTGO = () => {
+    if (!deckDetails?.cards) return
+    const mtgoList = deckDetails.cards
+      .map(card => `${card.quantity} ${card.card_name}`)
+      .join('\n')
+    navigator.clipboard.writeText(mtgoList).then(() => {
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    })
+  }
+
   const filteredCards = deckDetails?.cards.filter(card => 
     !showMissingOnly || !card.is_owned || card.quantity_missing > 0
   ) || []
@@ -508,6 +526,12 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
       <main className="deck-cards-section">
         <div className="cards-header">
           <h2>{t.cardsList} ({filteredCards.length})</h2>
+          <button 
+            className={`copy-mtgo-btn ${copySuccess ? 'copied' : ''}`}
+            onClick={handleCopyMTGO}
+          >
+            {copySuccess ? `✅ ${t.copied}` : `📋 ${t.copyMTGO}`}
+          </button>
           <div className="filter-toggle">
             <button 
               className={`toggle-btn ${!showMissingOnly ? 'active' : ''}`}
@@ -590,22 +614,10 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
         )}
       </main>
 
-      {/* Card Preview Tooltip */}
-      {hoveredCard && (
+      {/* Card Preview Tooltip - mostra solo quando l'immagine è pronta */}
+      {hoveredCard && cardImageUrl && (
         <div className="card-preview-tooltip">
-          {imageLoading ? (
-            <div className="card-preview-loading">
-              <div className="spinner"></div>
-              <p>Loading...</p>
-            </div>
-          ) : cardImageUrl ? (
-            <img src={cardImageUrl} alt={hoveredCard} className="card-preview-image" />
-          ) : (
-            <div className="card-preview-error">
-              <p>Image not available</p>
-              <small>{hoveredCard}</small>
-            </div>
-          )}
+          <img src={cardImageUrl} alt={hoveredCard} className="card-preview-image" />
         </div>
       )}
 

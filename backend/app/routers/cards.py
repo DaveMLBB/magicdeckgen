@@ -336,8 +336,11 @@ async def upload_cards(
             Card.collection_id == collection_id
         ).delete()
     else:
-        # Se non c'è collection_id, rimuovi tutte le carte dell'utente (vecchio comportamento)
-        db.query(Card).filter(Card.user_id == user_id).delete()
+        # Se non c'è collection_id, rimuovi solo le carte senza collezione (non toccare le altre collezioni)
+        db.query(Card).filter(
+            Card.user_id == user_id,
+            Card.collection_id == None
+        ).delete()
     
     cards_added = 0
     cards_enriched = 0
