@@ -8,7 +8,7 @@ const API_URL = import.meta.env.PROD
   : 'http://localhost:8000'
 
 // Componente per caricare le immagini delle carte con lazy loading
-const CardImage = React.memo(function CardImage({ card }) {
+const CardImage = React.memo(function CardImage({ card, language }) {
   const [imageUrl, setImageUrl] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isVisible, setIsVisible] = useState(false)
@@ -61,7 +61,7 @@ const CardImage = React.memo(function CardImage({ card }) {
           img.onerror = async () => {
             // Se l'immagine locale non esiste, carica da Scryfall
             if (mounted && !abortController.signal.aborted) {
-              const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId)
+              const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language)
               if (mounted) {
                 setImageUrl(scryfallUrl)
                 setLoading(false)
@@ -72,7 +72,7 @@ const CardImage = React.memo(function CardImage({ card }) {
         } else {
           // Carica direttamente da Scryfall
           if (!abortController.signal.aborted) {
-            const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId)
+            const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language)
             if (mounted) {
               setImageUrl(scryfallUrl)
               setLoading(false)
@@ -93,7 +93,7 @@ const CardImage = React.memo(function CardImage({ card }) {
       mounted = false
       abortController.abort()
     }
-  }, [isVisible, card.name, card.name_en, card.image_url, card.scryfallId])
+  }, [isVisible, card.name, card.name_en, card.image_url, card.scryfallId, language])
 
   if (!isVisible || loading) {
     return (
@@ -168,6 +168,21 @@ function CardSearch({ user, onBack, language, onLimitError }) {
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
   const [addQuantity, setAddQuantity] = useState(1)
   const [addMessage, setAddMessage] = useState('')
+  const [viewMode, setViewMode] = useState('grid')
+
+  // Add to deck states
+  const [showAddToDeckModal, setShowAddToDeckModal] = useState(false)
+  const [cardToAddToDeck, setCardToAddToDeck] = useState(null)
+  const [decks, setDecks] = useState([])
+  const [selectedDeckId, setSelectedDeckId] = useState(null)
+  const [addDeckQuantity, setAddDeckQuantity] = useState(1)
+  const [addDeckMessage, setAddDeckMessage] = useState('')
+
+  // Card preview states (list view)
+  const [hoveredCard, setHoveredCard] = useState(null)
+  const [cardImageUrl, setCardImageUrl] = useState(null)
+  const hoverTimerRef = useRef(null)
+  const hoveredCardRef = useRef(null)
 
   const translations = {
     it: {
@@ -229,7 +244,21 @@ function CardSearch({ user, onBack, language, onLimitError }) {
       noCollections: 'Nessuna collezione disponibile',
       createFirst: 'Crea prima una collezione dalla pagina principale',
       italianWarning: 'Non tutte le carte sono disponibili in italiano. Per risultati migliori, cerca usando il nome inglese della carta.',
-      uniqueCardsDisclaimer: 'La ricerca non punta a trovare carte specifiche di set. Le carte caricate nel database sono uniche, quindi molte carte sono disponibili solo in una versione.'
+      uniqueCardsDisclaimer: 'La ricerca non punta a trovare carte specifiche di set. Le carte caricate nel database sono uniche, quindi molte carte sono disponibili solo in una versione.',
+      gridView: 'Griglia',
+      listView: 'Lista',
+      cardName: 'Nome',
+      cardType: 'Tipo',
+      manaCost: 'Costo Mana',
+      rarityCol: 'Rarità',
+      addToDeck: 'Aggiungi al Mazzo',
+      selectDeck: 'Seleziona Mazzo',
+      noDecks: 'Nessun mazzo disponibile',
+      createDeckFirst: 'Crea prima un mazzo dalla pagina principale',
+      cardAddedToDeck: '✓ Carta aggiunta al mazzo',
+      errorAddingToDeck: 'Errore nell\'aggiunta al mazzo',
+      previous: 'Precedente',
+      next: 'Successivo'
     },
     en: {
       title: '🔍 Card Search',
@@ -290,7 +319,21 @@ function CardSearch({ user, onBack, language, onLimitError }) {
       noCollections: 'No collections available',
       createFirst: 'Create a collection first from the main page',
       italianWarning: 'Not all cards are available in Italian. For best results, search using the English card name.',
-      uniqueCardsDisclaimer: 'The search does not aim to find set-specific cards. Cards loaded in the database are unique, so many cards are available in only one version.'
+      uniqueCardsDisclaimer: 'The search does not aim to find set-specific cards. Cards loaded in the database are unique, so many cards are available in only one version.',
+      gridView: 'Grid',
+      listView: 'List',
+      cardName: 'Name',
+      cardType: 'Type',
+      manaCost: 'Mana Cost',
+      rarityCol: 'Rarity',
+      addToDeck: 'Add to Deck',
+      selectDeck: 'Select Deck',
+      noDecks: 'No decks available',
+      createDeckFirst: 'Create a deck first from the main page',
+      cardAddedToDeck: '✓ Card added to deck',
+      errorAddingToDeck: 'Error adding card to deck',
+      previous: 'Previous',
+      next: 'Next'
     }
   }
 
@@ -303,6 +346,28 @@ function CardSearch({ user, onBack, language, onLimitError }) {
     { value: 'R', label: '🔴', name: 'Red' },
     { value: 'G', label: '🟢', name: 'Green' }
   ]
+
+  const manaSymbolMap = {
+    'W': { bg: '#f9faf4', border: '#ccc', text: '#333' },
+    'U': { bg: '#0e68ab', border: '#0e68ab', text: '#fff' },
+    'B': { bg: '#150b00', border: '#555', text: '#fff' },
+    'R': { bg: '#d3202a', border: '#d3202a', text: '#fff' },
+    'G': { bg: '#00733e', border: '#00733e', text: '#fff' }
+  }
+
+  const renderManaCost = (manaCost) => {
+    if (!manaCost || manaCost.trim() === '') return <span className="mana-empty">—</span>
+    const symbols = manaCost.match(/\{([^}]+)\}/g)
+    if (!symbols) return <span className="mana-text">{manaCost}</span>
+    return symbols.map((sym, i) => {
+      const val = sym.replace(/[{}]/g, '')
+      const colorInfo = manaSymbolMap[val]
+      if (colorInfo) {
+        return <span key={i} className="mana-symbol" style={{ background: colorInfo.bg, borderColor: colorInfo.border, color: colorInfo.text }}>{val}</span>
+      }
+      return <span key={i} className="mana-symbol mana-generic">{val}</span>
+    })
+  }
 
   const typeOptions = ['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land']
   const rarityOptions = ['common', 'uncommon', 'rare', 'mythic']
@@ -372,6 +437,63 @@ function CardSearch({ user, onBack, language, onLimitError }) {
     } catch (err) {
       console.error('Error adding card:', err)
       setAddMessage(t.errorAddingCard)
+    }
+  }
+
+  // Load decks
+  const loadDecks = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/saved-decks/user/${user.userId}`)
+      const data = await res.json()
+      setDecks(data.decks || [])
+    } catch (err) {
+      console.error('Error loading decks:', err)
+    }
+  }
+
+  const openAddToDeckModal = (card) => {
+    setCardToAddToDeck(card)
+    setAddDeckQuantity(1)
+    setAddDeckMessage('')
+    if (decks.length === 0) loadDecks()
+    setSelectedDeckId(decks.length > 0 ? decks[0].id : null)
+    setShowAddToDeckModal(true)
+  }
+
+  const handleAddToDeck = async () => {
+    if (!cardToAddToDeck || !selectedDeckId) return
+
+    try {
+      const res = await fetch(`${API_URL}/api/saved-decks/${selectedDeckId}/add-card?user_id=${user.userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          card_name: cardToAddToDeck.name_en || cardToAddToDeck.name,
+          quantity: addDeckQuantity,
+          card_type: cardToAddToDeck.type,
+          colors: cardToAddToDeck.colors,
+          mana_cost: cardToAddToDeck.mana_cost,
+          rarity: cardToAddToDeck.rarity
+        })
+      })
+
+      if (res.ok) {
+        setAddDeckMessage(t.cardAddedToDeck)
+        setTimeout(() => {
+          setShowAddToDeckModal(false)
+          setCardToAddToDeck(null)
+          setAddDeckMessage('')
+        }, 1500)
+      } else if (res.status === 403 && onLimitError) {
+        const errData = await res.json()
+        onLimitError(errData.detail)
+      } else {
+        const errData = await res.json()
+        setAddDeckMessage(errData.detail || t.errorAddingToDeck)
+      }
+    } catch (err) {
+      console.error('Error adding card to deck:', err)
+      setAddDeckMessage(t.errorAddingToDeck)
     }
   }
 
@@ -508,6 +630,33 @@ function CardSearch({ user, onBack, language, onLimitError }) {
     setPage(1)
   }
 
+  const handleCardHover = (cardName) => {
+    if (!cardName) return
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current)
+    }
+    hoveredCardRef.current = cardName
+    setHoveredCard(cardName)
+    setCardImageUrl(null)
+    hoverTimerRef.current = setTimeout(async () => {
+      if (hoveredCardRef.current !== cardName) return
+      const imageUrl = await cardImageCache.getCardImage(cardName, null, language)
+      if (hoveredCardRef.current === cardName) {
+        setCardImageUrl(imageUrl)
+      }
+    }, 150)
+  }
+
+  const handleCardLeave = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current)
+      hoverTimerRef.current = null
+    }
+    hoveredCardRef.current = null
+    setHoveredCard(null)
+    setCardImageUrl(null)
+  }
+
   const openCardDetail = async (uuid) => {
     try {
       const res = await fetch(`${API_URL}/api/mtg-cards/card/${uuid}?language=${language}`)
@@ -521,7 +670,6 @@ function CardSearch({ user, onBack, language, onLimitError }) {
   return (
     <div className="card-search">
       <header className="search-header">
-        <button className="back-btn" onClick={onBack}>{t.back}</button>
         <h1>{t.title}</h1>
       </header>
 
@@ -561,7 +709,12 @@ function CardSearch({ user, onBack, language, onLimitError }) {
                     className="suggestion-item"
                     onClick={() => selectSuggestion(card.name)}
                   >
-                    <span className="suggestion-name">{card.name}</span>
+                    <div className="suggestion-name-wrapper">
+                      <span className="suggestion-name">{card.name}</span>
+                      {language === 'it' && card.name_en && card.name !== card.name_en && (
+                        <span className="suggestion-name-en">{card.name_en}</span>
+                      )}
+                    </div>
                     <span className="suggestion-type">{card.type}</span>
                   </div>
                 ))}
@@ -842,51 +995,149 @@ function CardSearch({ user, onBack, language, onLimitError }) {
         </div>
       ) : (
         <>
-          <div className="cards-grid">
-            {cards.map(card => (
-              <div 
-                key={card.uuid} 
-                className="card-item"
-              >
-                <div onClick={() => openCardDetail(card.uuid)}>
-                  <CardImage card={card} />
-                </div>
-                <button 
-                  className="add-to-collection-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    openAddToCollectionModal(card)
-                  }}
-                  title={t.addToCollection}
-                >
-                  + 📚
-                </button>
-              </div>
-            ))}
+          <div className="view-toggle">
+            <button 
+              className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+            >
+              ▦ {t.gridView}
+            </button>
+            <button 
+              className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+            >
+              ☰ {t.listView}
+            </button>
           </div>
+
+          {viewMode === 'grid' ? (
+            <div className="card-search-grid">
+              {cards.map(card => (
+                <div 
+                  key={card.uuid} 
+                  className="card-item"
+                >
+                  <div className="card-image-wrapper" onClick={() => openCardDetail(card.uuid)}>
+                    <CardImage card={card} language={language} />
+                  </div>
+                  <div className="card-info">
+                    <h3 title={card.name}>{card.name}</h3>
+                    {language === 'it' && card.name_en && card.name !== card.name_en && (
+                      <span className="card-name-en-sub">{card.name_en}</span>
+                    )}
+                    {card.type && <p className="card-type">{card.type}</p>}
+                    {card.mana_cost && <p className="mana-cost">{renderManaCost(card.mana_cost)}</p>}
+                  </div>
+                  <button 
+                    className="add-to-collection-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openAddToCollectionModal(card)
+                    }}
+                    title={t.addToCollection}
+                  >
+                    + 📚
+                  </button>
+                  <button 
+                    className="add-to-deck-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openAddToDeckModal(card)
+                    }}
+                    title={t.addToDeck}
+                  >
+                    + 🃏
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card-search-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>{t.cardName}</th>
+                    <th>{t.cardType}</th>
+                    <th>{t.manaCost}</th>
+                    <th>{t.rarityCol}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cards.map(card => (
+                    <tr 
+                      key={card.uuid} 
+                      onClick={() => openCardDetail(card.uuid)}
+                      onMouseEnter={() => handleCardHover(card.name_en || card.name)}
+                      onMouseLeave={handleCardLeave}
+                    >
+                      <td className="search-list-actions">
+                        <button 
+                          className="add-to-collection-btn-list"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openAddToCollectionModal(card)
+                          }}
+                          title={t.addToCollection}
+                        >
+                          + 📚
+                        </button>
+                        <button 
+                          className="add-to-deck-btn-list"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openAddToDeckModal(card)
+                          }}
+                          title={t.addToDeck}
+                        >
+                          + 🃏
+                        </button>
+                      </td>
+                      <td className="search-list-name">
+                        {card.name}
+                        {language === 'it' && card.name_en && card.name !== card.name_en && (
+                          <span className="card-name-en">{card.name_en}</span>
+                        )}
+                      </td>
+                      <td className="search-list-type">{card.type}</td>
+                      <td className="search-list-mana">{renderManaCost(card.mana_cost)}</td>
+                      <td className="search-list-rarity">{card.rarity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {totalPages > 1 && (
             <div className="pagination">
               <button 
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="page-btn"
+                className="pagination-btn"
               >
-                ←
+                {t.previous}
               </button>
-              <span className="page-info">
+              <span className="pagination-info">
                 {t.page} {page} {t.of} {totalPages}
               </span>
               <button 
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="page-btn"
+                className="pagination-btn"
               >
-                →
+                {t.next}
               </button>
             </div>
           )}
         </>
+      )}
+
+      {/* Card Preview Tooltip (list view) */}
+      {hoveredCard && cardImageUrl && (
+        <div className="card-preview-tooltip">
+          <img src={cardImageUrl} alt={hoveredCard} className="card-preview-image" />
+        </div>
       )}
 
       {selectedCard && (
@@ -895,12 +1146,20 @@ function CardSearch({ user, onBack, language, onLimitError }) {
             <button className="close-modal-btn" onClick={() => setSelectedCard(null)}>✕</button>
             
             <div className="card-detail-content">
-              <CardDetailImage card={selectedCard} />
+              <div className="card-detail-image-wrapper">
+                <CardDetailImage card={selectedCard} language={language} />
+              </div>
               
               <div className="card-detail-info">
                 <h2>{selectedCard.name}</h2>
-                {selectedCard.mana_cost && <p className="detail-mana">{selectedCard.mana_cost}</p>}
+                {language === 'it' && selectedCard.name_en && selectedCard.name !== selectedCard.name_en && (
+                  <p className="detail-name-en">{selectedCard.name_en}</p>
+                )}
+                {selectedCard.mana_cost && <p className="detail-mana">{renderManaCost(selectedCard.mana_cost)}</p>}
                 <p className="detail-type">{selectedCard.type}</p>
+                {language === 'it' && selectedCard.type_en && selectedCard.type !== selectedCard.type_en && (
+                  <p className="detail-type-en">{selectedCard.type_en}</p>
+                )}
                 
                 {selectedCard.text && (
                   <div className="detail-text">
@@ -1019,12 +1278,86 @@ function CardSearch({ user, onBack, language, onLimitError }) {
           </div>
         </div>
       )}
+
+      {showAddToDeckModal && (
+        <div className="modal-overlay" onClick={() => setShowAddToDeckModal(false)}>
+          <div className="modal-content add-to-collection-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>{t.addToDeck}</h2>
+            
+            {addDeckMessage && (
+              <div className={`add-message ${addDeckMessage.includes('✓') ? 'success' : 'error'}`}>
+                {addDeckMessage}
+              </div>
+            )}
+            
+            {cardToAddToDeck && (
+              <div className="card-to-add-info">
+                <strong>{cardToAddToDeck.name}</strong>
+                <span className="card-type-small">{cardToAddToDeck.type}</span>
+              </div>
+            )}
+            
+            {decks.length === 0 ? (
+              <div className="no-collections-message">
+                <p>{t.noDecks}</p>
+                <p><small>{t.createDeckFirst}</small></p>
+              </div>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label>{t.selectDeck}</label>
+                  <select 
+                    value={selectedDeckId || ''} 
+                    onChange={(e) => setSelectedDeckId(parseInt(e.target.value))}
+                    className="collection-select"
+                  >
+                    {decks.map(deck => (
+                      <option key={deck.id} value={deck.id}>
+                        {deck.name} ({deck.total_cards} {language === 'it' ? 'carte' : 'cards'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label>{t.quantity}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={addDeckQuantity}
+                    onChange={(e) => setAddDeckQuantity(parseInt(e.target.value) || 1)}
+                    className="quantity-input"
+                  />
+                </div>
+              </>
+            )}
+            
+            <div className="modal-actions">
+              <button 
+                className="cancel-btn"
+                onClick={() => setShowAddToDeckModal(false)}
+              >
+                {t.cancel}
+              </button>
+              {decks.length > 0 && (
+                <button 
+                  className="add-btn"
+                  onClick={handleAddToDeck}
+                  disabled={!selectedDeckId}
+                >
+                  {t.add}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 // Componente per le immagini nel modal di dettaglio
-const CardDetailImage = React.memo(function CardDetailImage({ card }) {
+const CardDetailImage = React.memo(function CardDetailImage({ card, language }) {
   const [imageUrl, setImageUrl] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -1044,7 +1377,7 @@ const CardDetailImage = React.memo(function CardDetailImage({ card }) {
           }
           img.onerror = async () => {
             if (mounted && !abortController.signal.aborted) {
-              const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId)
+              const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language)
               if (mounted) {
                 setImageUrl(scryfallUrl)
                 setLoading(false)
@@ -1054,7 +1387,7 @@ const CardDetailImage = React.memo(function CardDetailImage({ card }) {
           img.src = card.image_url
         } else {
           if (!abortController.signal.aborted) {
-            const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId)
+            const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language)
             if (mounted) {
               setImageUrl(scryfallUrl)
               setLoading(false)
@@ -1075,7 +1408,7 @@ const CardDetailImage = React.memo(function CardDetailImage({ card }) {
       mounted = false
       abortController.abort()
     }
-  }, [card.name, card.name_en, card.image_url, card.scryfallId])
+  }, [card.name, card.name_en, card.image_url, card.scryfallId, language])
 
   if (loading) {
     return (

@@ -768,6 +768,68 @@ def get_decks_by_collection(
         "count": len(decks_data)
     }
 
+class AddCardToDeckInput(BaseModel):
+    card_name: str
+    quantity: int = 1
+    card_type: Optional[str] = None
+    colors: Optional[str] = None
+    mana_cost: Optional[str] = None
+    rarity: Optional[str] = None
+
+@router.post("/{deck_id}/add-card")
+def add_card_to_deck(
+    deck_id: int,
+    user_id: int,
+    card_input: AddCardToDeckInput,
+    db: Session = Depends(get_db)
+):
+    """Aggiungi una singola carta a un mazzo esistente"""
+    deck = db.query(SavedDeck).filter(SavedDeck.id == deck_id).first()
+    if not deck:
+        raise HTTPException(status_code=404, detail="Deck not found")
+    if deck.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Check if card already exists in deck
+    existing = db.query(SavedDeckCard).filter(
+        SavedDeckCard.deck_id == deck_id,
+        SavedDeckCard.card_name == card_input.card_name
+    ).first()
+    
+    if existing:
+        existing.quantity += card_input.quantity
+    else:
+        # Enrich with MTG data if available
+        mtg_card = db.query(MTGCard).filter(MTGCard.name == card_input.card_name).first()
+        if mtg_card:
+            card_type = mtg_card.types.split(',')[0].strip() if mtg_card.types else card_input.card_type
+            colors = mtg_card.colors or card_input.colors
+            mana_cost = mtg_card.mana_cost or card_input.mana_cost
+            rarity = mtg_card.rarity or card_input.rarity
+        else:
+            card_type = card_input.card_type
+            colors = card_input.colors
+            mana_cost = card_input.mana_cost
+            rarity = card_input.rarity
+        
+        deck_card = SavedDeckCard(
+            deck_id=deck_id,
+            card_name=card_input.card_name,
+            quantity=card_input.quantity,
+            card_type=card_type,
+            colors=colors,
+            mana_cost=mana_cost,
+            rarity=rarity,
+            is_owned=False,
+            quantity_owned=0
+        )
+        db.add(deck_card)
+    
+    deck.updated_at = datetime.utcnow()
+    db.commit()
+    
+    return {"message": "Card added to deck", "card_name": card_input.card_name}
+
 @router.get("/public/search")
 def search_public_decks(
     user_id: Optional[int] = Query(None),

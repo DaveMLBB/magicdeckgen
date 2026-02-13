@@ -1022,8 +1022,73 @@ function App() {
     }
   }
 
+  const legalViews = ['privacy-policy', 'terms-of-service', 'cookie-settings', 'email-preferences']
+  const showGlobalNav = !legalViews.includes(currentView)
+
   return (
     <div className="app">
+      {showGlobalNav && (
+        <nav className="global-nav">
+          <div className="global-nav-left">
+            <div className="language-selector">
+              <button 
+                className={`lang-btn ${language === 'it' ? 'active' : ''}`}
+                onClick={() => setLanguage('it')}
+              >
+                🇮🇹
+              </button>
+              <button 
+                className={`lang-btn ${language === 'en' ? 'active' : ''}`}
+                onClick={() => setLanguage('en')}
+              >
+                🇬🇧
+              </button>
+            </div>
+            <button 
+              className={`global-nav-btn ${currentView === 'main' ? 'active' : ''}`}
+              onClick={() => setCurrentView('main')}
+            >
+              🔍 {language === 'it' ? 'Ricerca' : 'Search'}
+            </button>
+            <button 
+              className={`global-nav-btn ${currentView === 'collections' || currentView === 'collection-detail' ? 'active' : ''}`}
+              onClick={() => setCurrentView('collections')}
+            >
+              📚 {language === 'it' ? 'Collezioni' : 'Collections'}
+            </button>
+            <button 
+              className={`global-nav-btn ${currentView === 'card-search' ? 'active' : ''}`}
+              onClick={() => setCurrentView('card-search')}
+            >
+              🃏 {language === 'it' ? 'Carte' : 'Cards'}
+            </button>
+            <button 
+              className={`global-nav-btn ${currentView === 'saved-decks' || currentView === 'saved-deck-detail' ? 'active' : ''}`}
+              onClick={() => setCurrentView('saved-decks')}
+            >
+              🗂️ {language === 'it' ? 'Mazzi' : 'Decks'}
+            </button>
+          </div>
+          <div className="global-nav-right">
+            <span className="nav-user-email">{user.email}</span>
+            {subscriptionStatus && (
+              <button 
+                className={`global-nav-btn subscription ${currentView === 'subscriptions' ? 'active' : ''}`}
+                onClick={() => setCurrentView('subscriptions')}
+              >
+                💎 {subscriptionStatus.uploads_remaining} {language === 'it' ? 'caricamenti' : 'uploads'}
+              </button>
+            )}
+            <button className="global-nav-btn" onClick={() => setCurrentView('privacy-settings')}>
+              🔒
+            </button>
+            <button className="global-nav-btn logout" onClick={handleLogout}>
+              🚪
+            </button>
+          </div>
+        </nav>
+      )}
+
       {currentView === 'subscriptions' ? (
         <Subscriptions
           user={user}
@@ -1127,48 +1192,6 @@ function App() {
       ) : (
         <>
           <header>
-            <div className="header-top">
-              <div className="language-selector">
-                <button 
-                  className={`lang-btn ${language === 'it' ? 'active' : ''}`}
-                  onClick={() => setLanguage('it')}
-                >
-                  🇮🇹 IT
-                </button>
-                <button 
-                  className={`lang-btn ${language === 'en' ? 'active' : ''}`}
-                  onClick={() => setLanguage('en')}
-                >
-                  🇬🇧 EN
-                </button>
-              </div>
-              <div className="user-info">
-                <span className="user-email">{user.email}</span>
-                {!user.isVerified && (
-                  <span className="unverified-badge">{t.unverified}</span>
-                )}
-                <button className="collection-btn" onClick={() => setCurrentView('collections')}>
-                  {t.viewCollection}
-                </button>
-                <button className="collection-btn" onClick={() => setCurrentView('card-search')}>
-                  {t.searchCards}
-                </button>
-                <button className="collection-btn" onClick={() => setCurrentView('saved-decks')}>
-                  {t.viewDecks}
-                </button>
-                {subscriptionStatus && (
-                  <button className="subscription-btn" onClick={() => setCurrentView('subscriptions')}>
-                    💎 {subscriptionStatus.uploads_remaining} {t.uploadsRemaining}
-                  </button>
-                )}
-                <button className="collection-btn" onClick={() => setCurrentView('privacy-settings')}>
-                  🔒 {language === 'it' ? 'Privacy' : 'Privacy'}
-                </button>
-                <button className="logout-btn" onClick={handleLogout}>
-                  {t.logout}
-                </button>
-              </div>
-            </div>
             <h1>{t.title}</h1>
             <p>{t.subtitle}</p>
           </header>

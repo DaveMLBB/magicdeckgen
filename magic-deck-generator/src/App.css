@@ -51,6 +51,85 @@ header {
   gap: 1rem;
 }
 
+/* Global Navigation Bar */
+.global-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1.5rem;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.global-nav-left,
+.global-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.global-nav .language-selector {
+  display: flex;
+  gap: 0.25rem;
+  margin-right: 0.5rem;
+}
+
+.global-nav .lang-btn {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.global-nav-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #a0aec0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.global-nav-btn:hover {
+  background: rgba(102, 126, 234, 0.15);
+  color: #fff;
+}
+
+.global-nav-btn.active {
+  background: rgba(102, 126, 234, 0.25);
+  border-color: rgba(102, 126, 234, 0.5);
+  color: #fff;
+}
+
+.global-nav-btn.subscription {
+  color: #667eea;
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+.global-nav-btn.logout {
+  color: #f56565;
+}
+
+.global-nav-btn.logout:hover {
+  background: rgba(245, 101, 101, 0.15);
+  color: #fc8181;
+}
+
+.nav-user-email {
+  color: #718096;
+  font-size: 0.75rem;
+  margin-right: 0.25rem;
+}
+
 .language-selector {
   display: flex;
   gap: 0.5rem;
