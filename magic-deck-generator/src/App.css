@@ -702,34 +702,6 @@ main {
   grid-template-columns: repeat(4, 1fr);
 }
 
-/* Ensure card name is visible in deck search grid */
-.deck-detail.saved-deck-page .card-name {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  flex: 1 !important;
-  min-width: 0 !important;
-  overflow: visible !important;
-  font-size: 1.1rem !important;
-  font-weight: 800 !important;
-  color: #fff !important;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
-}
-
-.deck-detail.saved-deck-page .card-top-row {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  gap: 0.75rem !important;
-  width: 100% !important;
-}
-
-.deck-detail.saved-deck-page .card-type-row {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
 @media (max-width: 1200px) {
   .deck-detail.saved-deck-page .cards-grid {
     grid-template-columns: repeat(3, 1fr);
