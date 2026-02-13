@@ -60,8 +60,8 @@ TOKEN_PACKAGES = {
     'ultra': {
         'name': 'Ultra',
         'price': 100.00,
-        'tokens': 1500,
-        'description': '1500 token',
+        'tokens': 3000,
+        'description': '3000 token',
         'best_value': True
     }
 }

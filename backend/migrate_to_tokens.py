@@ -16,7 +16,7 @@ def migrate():
     with engine.connect() as conn:
         # 1. Add tokens column to users if not exists
         try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN tokens INTEGER DEFAULT 0"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN tokens INTEGER DEFAULT 10"))
             conn.commit()
             print("✅ Added 'tokens' column to users table")
         except Exception as e:
@@ -49,12 +49,12 @@ def migrate():
         
         # 3. Give existing users some free tokens based on their old plan
         try:
-            # Give 5 free tokens to all existing users who have 0 tokens
+            # Give 10 free tokens to all existing users who have 0 tokens
             result = conn.execute(text("""
-                UPDATE users SET tokens = 5 WHERE tokens = 0 OR tokens IS NULL
+                UPDATE users SET tokens = 10 WHERE tokens = 0 OR tokens IS NULL
             """))
             conn.commit()
-            print(f"✅ Gave 5 free tokens to {result.rowcount} existing users")
+            print(f"✅ Gave 10 free tokens to {result.rowcount} existing users")
         except Exception as e:
             conn.rollback()
             print(f"⚠️  Error giving free tokens: {e}")

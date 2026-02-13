@@ -9,14 +9,17 @@ div[class="column-mapper-overlay"] {
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  background: rgba(0, 0, 0, 0.85) !important;
+  background: rgba(0, 0, 0, 0.88) !important;
   backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   z-index: 99999 !important;
   padding: 2rem !important;
   overflow-y: auto !important;
+  will-change: transform !important;
+  transform: translateZ(0) !important;
 }
 
 /* Contenuto modale con gradiente scuro */
@@ -290,14 +293,17 @@ div[class="collection-selector-overlay"] {
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  background: rgba(0, 0, 0, 0.85) !important;
+  background: rgba(0, 0, 0, 0.88) !important;
   backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   z-index: 99999 !important;
   padding: 2rem !important;
   overflow-y: auto !important;
+  will-change: transform !important;
+  transform: translateZ(0) !important;
 }
 
 /* Modal content */
@@ -539,14 +545,17 @@ div[class="format-warning-overlay"] {
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  background: rgba(0, 0, 0, 0.85) !important;
+  background: rgba(0, 0, 0, 0.88) !important;
   backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   z-index: 99999 !important;
   padding: 2rem !important;
   overflow-y: auto !important;
+  will-change: transform !important;
+  transform: translateZ(0) !important;
 }
 
 /* Modal content */

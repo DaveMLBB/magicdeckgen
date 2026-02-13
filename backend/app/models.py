@@ -32,7 +32,7 @@ class User(Base):
     searches_limit = Column(Integer, default=10)
     
     # Token system
-    tokens = Column(Integer, default=0)  # Current token balance
+    tokens = Column(Integer, default=10)  # Current token balance (10 free on registration)
     
     # Stripe
     stripe_customer_id = Column(String, nullable=True, unique=True)

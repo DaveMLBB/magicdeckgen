@@ -9,8 +9,7 @@
 
 .collections-header {
   padding: 1.5rem 2rem;
-  background: rgba(15, 12, 41, 0.3);
-  backdrop-filter: blur(2px);
+  background: rgba(15, 12, 41, 0.4);
   border-bottom: 2px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -59,8 +58,7 @@
   max-width: 1400px;
   width: 100%;
   margin: 1rem auto;
-  background: rgba(15, 12, 41, 0.3);
-  backdrop-filter: blur(2px);
+  background: rgba(15, 12, 41, 0.4);
   border-radius: 20px;
   border: 1px solid rgba(255,255,255,0.12);
 }

@@ -69,6 +69,7 @@ function App() {
   const [hoveredCard, setHoveredCard] = useState(null)
   const [cardImageUrl, setCardImageUrl] = useState(null)
   const [imageLoading, setImageLoading] = useState(false)
+  const [animatedBg, setAnimatedBg] = useState(() => localStorage.getItem('animatedBg') !== 'false')
 
   // Traduzioni
   const translations = {
@@ -1028,7 +1029,8 @@ function App() {
 
   return (
     <div className="app">
-      <RandomArtBackground />
+      {animatedBg && <RandomArtBackground />}
+      <div className="app-content">
       {showGlobalNav && (
         <nav className="global-nav">
           <div className="global-nav-left">
@@ -1081,6 +1083,17 @@ function App() {
                 🪙 {subscriptionStatus.tokens ?? 0} token
               </button>
             )}
+            <button
+              className={`global-nav-btn bg-toggle ${!animatedBg ? 'bg-off' : ''}`}
+              onClick={() => {
+                const next = !animatedBg
+                setAnimatedBg(next)
+                localStorage.setItem('animatedBg', String(next))
+              }}
+              title={language === 'it' ? (animatedBg ? 'Disattiva sfondo animato' : 'Attiva sfondo animato') : (animatedBg ? 'Disable animated background' : 'Enable animated background')}
+            >
+              {animatedBg ? '🖼️' : '🚫'}
+            </button>
             <button className="global-nav-btn" onClick={() => setCurrentView('privacy-settings')}>
               🔒
             </button>
@@ -1803,6 +1816,7 @@ function App() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

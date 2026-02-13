@@ -4,8 +4,7 @@
   left: 0;
   right: 0;
   z-index: 10000;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
   padding: 1rem;
   animation: slideUp 0.3s ease-out;
 }
