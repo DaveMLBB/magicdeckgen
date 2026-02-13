@@ -341,7 +341,7 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
     setCardImageUrl(null)
     
     // Usa la cache per ottenere l'immagine
-    const imageUrl = await cardImageCache.getCardImage(cardName)
+    const imageUrl = await cardImageCache.getCardImage(cardName, null, language)
     setCardImageUrl(imageUrl)
     setImageLoading(false)
   }

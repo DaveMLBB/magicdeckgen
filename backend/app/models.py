@@ -60,6 +60,7 @@ class Card(Base):
     card_type = Column(String)  # creature, instant, sorcery, etc.
     colors = Column(String)  # W, U, B, R, G or combinations
     rarity = Column(String, nullable=True)
+    name_it = Column(String, nullable=True)  # Nome italiano
     quantity_owned = Column(Integer, default=1)
     user_id = Column(Integer, ForeignKey('users.id'), index=True)  # FK to User
     collection_id = Column(Integer, ForeignKey('card_collections.id'), index=True, nullable=True)  # FK to Collection

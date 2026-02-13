@@ -222,6 +222,31 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     'G': { bg: '#00733e', border: '#00733e', text: '#fff' }
   }
 
+  const typeTranslations = {
+    'Creature': 'Creatura',
+    'Instant': 'Istantaneo',
+    'Sorcery': 'Stregoneria',
+    'Enchantment': 'Incantesimo',
+    'Artifact': 'Artefatto',
+    'Planeswalker': 'Planeswalker',
+    'Land': 'Terra',
+    'Battle': 'Battaglia',
+    'Kindred': 'Stirpe',
+    'Tribal': 'Tribale',
+    'Conspiracy': 'Cospirazione',
+    'Phenomenon': 'Fenomeno',
+    'Plane': 'Piano',
+    'Scheme': 'Stratagemma',
+    'Vanguard': 'Avanguardia',
+    'Dungeon': 'Sotterraneo',
+    'Unknown': 'Sconosciuto'
+  }
+
+  const translateType = (type) => {
+    if (!type) return 'Sconosciuto'
+    return typeTranslations[type] || type
+  }
+
   const typeOptions = ['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land']
   const rarityOptions = ['common', 'uncommon', 'rare', 'mythic']
 
@@ -582,7 +607,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     // Debounce: carica immagine solo se il mouse resta sulla riga
     hoverTimerRef.current = setTimeout(async () => {
       if (hoveredCardRef.current !== cardName) return
-      const imageUrl = await cardImageCache.getCardImage(cardName)
+      const imageUrl = await cardImageCache.getCardImage(cardName, null, language)
       if (hoveredCardRef.current === cardName) {
         setCardImageUrl(imageUrl)
         setImageLoading(false)
@@ -825,6 +850,11 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
           </div>
         ) : (
           <>
+            {language === 'it' && (
+              <div className="translation-disclaimer">
+                Non tutte le carte sono state tradotte in italiano. Anche le immagini di anteprima potrebbero essere disponibili solo in inglese.
+              </div>
+            )}
             <div className="cards-table">
               <table>
                 <thead>
@@ -859,7 +889,12 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                             <span className="lock-badge">{t.lockedCard}</span>
                           </span>
                         ) : (
-                          card.name
+                          <>
+                            {language === 'it' && card.name_it ? card.name_it : card.name}
+                            {language === 'it' && card.name_it && (
+                              <span className="card-name-en">{card.name}</span>
+                            )}
+                          </>
                         )}
                       </td>
                       <td className="card-quantity">
@@ -893,7 +928,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                         )}
                       </td>
                       <td className="card-type">
-                        {card.locked ? <span className="blur-text">{card.type}</span> : card.type}
+                        {card.locked ? <span className="blur-text">{card.type}</span> : (language === 'it' ? translateType(card.type) : card.type)}
                       </td>
                       <td className="card-mana">
                         {card.locked ? <span className="blur-text">{renderManaCost(card.mana_cost)}</span> : renderManaCost(card.mana_cost)}

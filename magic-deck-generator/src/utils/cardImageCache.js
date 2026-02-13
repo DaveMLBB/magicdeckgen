@@ -15,9 +15,9 @@ class CardImageCache {
   /**
    * Ottiene l'URL dell'immagine dalla cache o da Scryfall
    */
-  async getCardImage(cardName, scryfallId = null) {
-    // Normalizza il nome della carta per la cache
-    const cacheKey = cardName.toLowerCase().trim()
+  async getCardImage(cardName, scryfallId = null, lang = 'en') {
+    // Normalizza il nome della carta per la cache (include lingua)
+    const cacheKey = `${lang}:${cardName.toLowerCase().trim()}`
 
     // Controlla se è già in cache
     if (this.cache.has(cacheKey)) {
@@ -32,7 +32,7 @@ class CardImageCache {
 
     // Crea una nuova richiesta
     this.cacheMisses++
-    const requestPromise = this.fetchCardImage(cardName, scryfallId)
+    const requestPromise = this.fetchCardImage(cardName, scryfallId, lang)
     this.pendingRequests.set(cacheKey, requestPromise)
 
     try {
@@ -55,7 +55,7 @@ class CardImageCache {
   /**
    * Recupera l'immagine da Scryfall
    */
-  async fetchCardImage(cardName, scryfallId = null) {
+  async fetchCardImage(cardName, scryfallId = null, lang = 'en') {
     try {
       // Normalizza il nome della carta
       let normalizedName = cardName
@@ -63,57 +63,25 @@ class CardImageCache {
         .replace(/æ/g, 'ae')
         .trim()
 
-      // Prova prima con exact match
-      let response = await fetch(
-        `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(normalizedName)}`
-      )
+      let imageUrl = null
 
-      // Se non funziona, prova senza virgolette (alcune carte le hanno su Scryfall)
-      if (!response.ok && (normalizedName.includes('"') || normalizedName.includes('!'))) {
-        const withoutQuotes = normalizedName.replace(/"/g, '')
-        response = await fetch(
-          `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(withoutQuotes)}`
-        )
+      // Se la lingua non è inglese, cerca prima la versione localizzata
+      if (lang && lang !== 'en') {
+        imageUrl = await this._searchScryfall(normalizedName, lang)
+        if (imageUrl) return imageUrl
       }
 
-      // Se non funziona, prova con virgolette aggiunte (caso "Ach! Hans, Run!")
-      if (!response.ok && !normalizedName.startsWith('"')) {
-        const withQuotes = `"${normalizedName}"`
-        response = await fetch(
-          `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(withQuotes)}`
-        )
-      }
+      // Fallback: cerca in inglese
+      imageUrl = await this._searchScryfall(normalizedName, null)
+      if (imageUrl) return imageUrl
 
-      // Se ancora non funziona, prova con fuzzy search (rimuovi punteggiatura problematica)
-      if (!response.ok) {
-        const fuzzyName = normalizedName
-          .replace(/[!"]/g, '')
-          .replace(/,/g, '')
-          .trim()
-        response = await fetch(
-          `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(fuzzyName)}`
-        )
-      }
-
-      // Se ancora non funziona e abbiamo uno scryfallId, prova con quello
-      if (!response.ok && scryfallId) {
-        response = await fetch(`https://api.scryfall.com/cards/${scryfallId}`)
-      }
-
-      if (response.ok) {
-        const data = await response.json()
-        let imageUrl = null
-
-        // Gestisci carte normali - usa normal o large per qualità migliore
-        if (data.image_uris) {
-          imageUrl = data.image_uris.normal || data.image_uris.large || data.image_uris.small
-        } 
-        // Gestisci carte double-faced
-        else if (data.card_faces && data.card_faces[0]?.image_uris) {
-          imageUrl = data.card_faces[0].image_uris.normal || data.card_faces[0].image_uris.large || data.card_faces[0].image_uris.small
+      // Ultimo tentativo con scryfallId
+      if (scryfallId) {
+        const response = await fetch(`https://api.scryfall.com/cards/${scryfallId}`)
+        if (response.ok) {
+          const data = await response.json()
+          return this._extractImageUrl(data)
         }
-
-        return imageUrl
       }
 
       console.warn(`⚠️ Image not found for: "${cardName}"`)
@@ -122,6 +90,78 @@ class CardImageCache {
       console.error(`❌ Error loading image for "${cardName}":`, err.message)
       return null
     }
+  }
+
+  /**
+   * Cerca una carta su Scryfall con lingua opzionale
+   */
+  async _searchScryfall(normalizedName, lang) {
+    // Per lingue non-inglesi, usa /cards/search con filtro lang
+    if (lang) {
+      const searchQuery = `!"${normalizedName}" lang:${lang}`
+      const response = await fetch(
+        `https://api.scryfall.com/cards/search?q=${encodeURIComponent(searchQuery)}&unique=prints&order=released&dir=desc`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        if (data.data && data.data.length > 0) {
+          return this._extractImageUrl(data.data[0])
+        }
+      }
+      return null
+    }
+
+    // Per inglese: usa /cards/named (più veloce e preciso)
+    let response = await fetch(
+      `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(normalizedName)}`
+    )
+
+    // Se non funziona, prova senza virgolette
+    if (!response.ok && (normalizedName.includes('"') || normalizedName.includes('!'))) {
+      const withoutQuotes = normalizedName.replace(/"/g, '')
+      response = await fetch(
+        `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(withoutQuotes)}`
+      )
+    }
+
+    // Se non funziona, prova con virgolette aggiunte
+    if (!response.ok && !normalizedName.startsWith('"')) {
+      const withQuotes = `"${normalizedName}"`
+      response = await fetch(
+        `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(withQuotes)}`
+      )
+    }
+
+    // Prova fuzzy search
+    if (!response.ok) {
+      const fuzzyName = normalizedName
+        .replace(/[!"]/g, '')
+        .replace(/,/g, '')
+        .trim()
+      response = await fetch(
+        `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(fuzzyName)}`
+      )
+    }
+
+    if (response.ok) {
+      const data = await response.json()
+      return this._extractImageUrl(data)
+    }
+
+    return null
+  }
+
+  /**
+   * Estrae l'URL dell'immagine dai dati Scryfall
+   */
+  _extractImageUrl(data) {
+    if (data.image_uris) {
+      return data.image_uris.normal || data.image_uris.large || data.image_uris.small
+    }
+    if (data.card_faces && data.card_faces[0]?.image_uris) {
+      return data.card_faces[0].image_uris.normal || data.card_faces[0].image_uris.large || data.card_faces[0].image_uris.small
+    }
+    return null
   }
 
   /**

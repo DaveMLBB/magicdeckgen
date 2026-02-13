@@ -395,6 +395,8 @@ async def upload_cards(
             needs_mana = not mana_cost or mana_cost.lower() in ['nan', 'none', '']
             needs_colors = not colors or colors.lower() in ['nan', 'none', '']
             
+            name_it = None
+            
             if needs_type or needs_mana or needs_colors:
                 mtg_card = db.query(MTGCard).filter(MTGCard.name == name).first()
                 if mtg_card:
@@ -408,7 +410,16 @@ async def upload_cards(
                         mana_cost = mtg_card.mana_cost
                     if needs_colors and mtg_card.colors:
                         colors = mtg_card.colors
+                    if mtg_card.name_it and mtg_card.name_it != 'None':
+                        name_it = mtg_card.name_it
                     cards_enriched += 1
+            
+            # Se non abbiamo ancora name_it, cercalo comunque
+            if not name_it:
+                if not (needs_type or needs_mana or needs_colors):
+                    mtg_card = db.query(MTGCard).filter(MTGCard.name == name).first()
+                    if mtg_card and mtg_card.name_it and mtg_card.name_it != 'None':
+                        name_it = mtg_card.name_it
             
             # Se ancora non abbiamo un tipo, usa Unknown
             if not card_type or card_type.lower() in ['nan', 'none', '']:
@@ -416,6 +427,7 @@ async def upload_cards(
             
             card = Card(
                 name=name,
+                name_it=name_it,
                 mana_cost=mana_cost,
                 card_type=card_type,
                 colors=colors,
@@ -597,9 +609,11 @@ def get_user_collection(
     if collection_id:
         query = query.filter(Card.collection_id == collection_id)
     
-    # Apply search filter
+    # Apply search filter (cerca sia nel nome inglese che italiano)
     if search:
-        query = query.filter(Card.name.ilike(f"%{search}%"))
+        query = query.filter(
+            or_(Card.name.ilike(f"%{search}%"), Card.name_it.ilike(f"%{search}%"))
+        )
     
     # Apply color filter - check both Card.colors and MTGCard.colors
     if colors:
@@ -700,9 +714,15 @@ def get_user_collection(
             rarity = mtg_card.rarity or rarity
             mana_value = mtg_card.mana_value
         
+        # Nome italiano: prendi dal card, altrimenti dal mtg_card
+        name_it = card.name_it or ''
+        if not name_it and mtg_card and mtg_card.name_it and mtg_card.name_it != 'None':
+            name_it = mtg_card.name_it
+        
         cards_data.append({
             "id": card.id,
             "name": card.name,
+            "name_it": name_it,
             "quantity": card.quantity_owned,
             "type": card_type,
             "colors": colors,

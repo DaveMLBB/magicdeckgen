@@ -1,6 +1,7 @@
 """
 Script per arricchire le carte nella tabella 'cards' con dati dal database MTG.
 - Aggiunge mana_cost, colors e card_type mancanti
+- Aggiunge nomi italiani (name_it) dal database MTG
 - Rimuove duplicati con newline nel nome
 - Pulisce nomi con spazi/newline
 
@@ -151,6 +152,43 @@ def enrich_cards(db, dry_run=False):
     return enriched, not_found
 
 
+def enrich_italian_names(db, dry_run=False):
+    """Aggiunge nomi italiani a tutte le carte dalla tabella MTG"""
+    print("\n=== NOMI ITALIANI ===")
+    
+    # Trova carte senza nome italiano
+    cards = db.query(Card).filter(
+        or_(Card.name_it == None, Card.name_it == '')
+    ).all()
+    
+    print(f"Trovate {len(cards)} carte senza nome italiano")
+    
+    enriched = 0
+    not_found = 0
+    
+    for c in cards:
+        name = c.name.strip() if c.name else None
+        if not name:
+            continue
+        
+        mtg = db.query(MTGCard).filter(MTGCard.name == name).first()
+        if not mtg or not mtg.name_it or mtg.name_it == 'None':
+            not_found += 1
+            continue
+        
+        if not dry_run:
+            c.name_it = mtg.name_it
+        enriched += 1
+        if enriched <= 10:
+            print(f"  {name} -> {mtg.name_it}")
+    
+    if enriched > 10:
+        print(f"  ... e altre {enriched - 10} carte")
+    
+    print(f"Risultato: {enriched} nomi italiani aggiunti, {not_found} non trovati")
+    return enriched, not_found
+
+
 def main():
     dry_run = '--dry-run' in sys.argv
     
@@ -163,6 +201,7 @@ def main():
     try:
         removed, cleaned = clean_card_names(db, dry_run)
         enriched, not_found = enrich_cards(db, dry_run)
+        it_enriched, it_not_found = enrich_italian_names(db, dry_run)
         
         if not dry_run:
             db.commit()
@@ -175,6 +214,7 @@ def main():
         print(f"  Duplicati rimossi: {removed}")
         print(f"  Nomi puliti: {cleaned}")
         print(f"  Carte arricchite: {enriched}")
+        print(f"  Nomi italiani aggiunti: {it_enriched}")
         print(f"  Non trovate in MTG DB: {not_found}")
         
     except Exception as e:
