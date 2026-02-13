@@ -328,6 +328,8 @@ def match_decks(
             deck_list.append({
                 "name": tc.card_name,
                 "type": tc.card_type or "Unknown",
+                "mana_cost": tc.mana_cost or "",
+                "colors": tc.colors or "",
                 "quantity_needed": quantity_needed,
                 "quantity_owned": quantity_have,
                 "missing": missing_qty

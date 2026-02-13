@@ -740,6 +740,29 @@ main {
   font-size: 0.85rem;
 }
 
+/* Override SavedDeck grid: 4 columns in deck search results */
+.deck-detail.saved-deck-page .cards-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1200px) {
+  .deck-detail.saved-deck-page .cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .deck-detail.saved-deck-page .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .deck-detail.saved-deck-page .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 footer {
   text-align: center;
   margin-top: 4rem;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import './mobile.css'
 import Auth from './components/Auth'
@@ -15,7 +15,24 @@ import CookieSettings from './components/CookieSettings'
 import EmailPreferences from './components/EmailPreferences'
 import { cardImageCache } from './utils/cardImageCache'
 import RandomArtBackground from './components/RandomArtBackground'
+import './components/SavedDeck.css'
 import './components/ColumnMapper.css' // IMPORTATO PER ULTIMO - VINCE SU TUTTO
+
+function CardArtBackground({ cardName }) {
+  const [artUrl, setArtUrl] = useState(null)
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    cardImageCache.getCardArt(cardName, 'en').then(url => {
+      if (mounted.current) setArtUrl(url)
+    })
+    return () => { mounted.current = false }
+  }, [cardName])
+  if (!artUrl) return null
+  return (
+    <div className="card-art-bg" style={{ backgroundImage: `url(${artUrl})` }} />
+  )
+}
 
 const API_URL = import.meta.env.PROD 
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
@@ -414,7 +431,10 @@ function App() {
               deck_list: data.cards.map(card => ({
                 name: card.card_name,
                 quantity_needed: card.quantity,
-                type: card.card_type,
+                quantity_owned: card.quantity_owned || 0,
+                type: card.card_type || '',
+                mana_cost: card.mana_cost || '',
+                colors: card.colors || '',
                 missing: card.quantity_missing
               }))
             }
@@ -887,6 +907,41 @@ function App() {
     if (!colors) return '⚪'
     const colorMap = { W: '⚪', U: '🔵', B: '⚫', R: '🔴', G: '🟢' }
     return colors.split('/').map(c => colorMap[c] || c).join('')
+  }
+
+  const manaSymbolMap = {
+    W: { color: '#F9FAF4', textColor: '#333', label: 'W' },
+    U: { color: '#0E68AB', textColor: '#fff', label: 'U' },
+    B: { color: '#2B2B2B', textColor: '#fff', label: 'B' },
+    R: { color: '#D32029', textColor: '#fff', label: 'R' },
+    G: { color: '#00733E', textColor: '#fff', label: 'G' },
+    C: { color: '#888', textColor: '#fff', label: 'C' },
+  }
+
+  const renderManaCost = (manaCost) => {
+    if (!manaCost) return null
+    const symbols = manaCost.match(/\{([^}]+)\}/g)
+    if (!symbols) return <span className="mana-cost-text">{manaCost}</span>
+    return (
+      <span className="mana-symbols">
+        {symbols.map((sym, i) => {
+          const val = sym.replace(/[{}]/g, '')
+          const mapped = manaSymbolMap[val]
+          if (mapped) {
+            return (
+              <span key={i} className="mana-symbol" style={{ background: mapped.color, color: mapped.textColor }}>
+                {mapped.label}
+              </span>
+            )
+          }
+          return (
+            <span key={i} className="mana-symbol mana-generic">
+              {val}
+            </span>
+          )
+        })}
+      </span>
+    )
   }
 
   const handleCardHover = async (cardName) => {
@@ -1621,7 +1676,7 @@ function App() {
         )}
 
         {selectedDeck !== null && decks[selectedDeck] && (
-          <section className="deck-detail">
+          <section className="deck-detail saved-deck-page">
             <div className="deck-detail-header">
               <h2>{decks[selectedDeck].name}</h2>
               <div className="deck-actions-group">
@@ -1690,22 +1745,41 @@ function App() {
             ) : decks[selectedDeck].deck_list && decks[selectedDeck].deck_list.length > 0 ? (
               <>
                 <h3>{t.completeList} ({decks[selectedDeck].deck_list.length} {t.uniqueCards})</h3>
-                <div className="cards-list">
+                <div className="cards-grid">
                   {decks[selectedDeck].deck_list.map((card, i) => (
                     <div 
                       key={i} 
-                      className={`card-item ${card.missing > 0 ? 'missing' : 'owned'}`}
+                      className={`card-item ${card.missing === 0 ? 'owned' : 'missing'}`}
                       onMouseEnter={() => handleCardHover(card.name)}
                       onMouseLeave={handleCardLeave}
                     >
-                      <span className="card-qty">{card.quantity_needed}x</span>
-                      <span className="card-name">{card.name}</span>
-                      {card.type && card.type !== 'Unknown' && (
-                        <span className="card-type">{card.type}</span>
-                      )}
-                      <span className="card-status">
-                        {card.missing > 0 ? `❌ -${card.missing}` : '✅'}
-                      </span>
+                      <CardArtBackground cardName={card.name} />
+                      <div className="card-item-content">
+                        <div className="card-top-row">
+                          <span className="card-name">{card.name}</span>
+                          <span className="quantity-badge">{card.quantity_needed}x</span>
+                        </div>
+                        {card.type && card.type !== 'Unknown' && (
+                          <div className="card-type-row">{card.type}</div>
+                        )}
+                        <div className="card-bottom-row">
+                          {card.mana_cost && (
+                            <span className="mana-cost">{renderManaCost(card.mana_cost)}</span>
+                          )}
+                          <div className="ownership-status">
+                            {card.missing === 0 ? (
+                              <span className="status-owned-badge">✅ {language === 'it' ? 'Posseduta' : 'Owned'}</span>
+                            ) : (
+                              <span className="status-missing-badge">
+                                ❌ {card.quantity_owned > 0 
+                                  ? `${card.quantity_owned}/${card.quantity_needed}` 
+                                  : (language === 'it' ? `Mancano ${card.missing}` : `Need ${card.missing}`)
+                                }
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
