@@ -384,27 +384,35 @@ async def upload_cards(
             type_col = column_mapping.get('card_type')
             card_type = str(row[type_col]) if type_col and type_col in df.columns and pd.notna(row[type_col]) else None
             
-            # Se il tipo è vuoto, Unknown o nan, cerca nel database MTG
-            if not card_type or card_type.lower() in ['unknown', 'nan', 'none', '']:
-                mtg_card = db.query(MTGCard).filter(MTGCard.name == name).first()
-                if mtg_card:
-                    if mtg_card.types:
-                        card_type = mtg_card.types.split(',')[0].strip()
-                        cards_enriched += 1
-                    elif mtg_card.type_line:
-                        type_parts = mtg_card.type_line.split('—')[0].strip()
-                        card_type = type_parts.split()[0] if type_parts else 'Unknown'
-                        cards_enriched += 1
-            
-            # Se ancora non abbiamo un tipo, usa Unknown
-            if not card_type or card_type.lower() in ['nan', 'none', '']:
-                card_type = 'Unknown'
-            
             colors_col = column_mapping.get('colors')
             colors = str(row[colors_col]) if colors_col and colors_col in df.columns and pd.notna(row[colors_col]) else ''
             
             rarity_col = column_mapping.get('rarity')
             rarity = str(row[rarity_col]) if rarity_col and rarity_col in df.columns and pd.notna(row[rarity_col]) else None
+            
+            # Arricchisci dal database MTG se mancano tipo, mana_cost o colors
+            needs_type = not card_type or card_type.lower() in ['unknown', 'nan', 'none', '']
+            needs_mana = not mana_cost or mana_cost.lower() in ['nan', 'none', '']
+            needs_colors = not colors or colors.lower() in ['nan', 'none', '']
+            
+            if needs_type or needs_mana or needs_colors:
+                mtg_card = db.query(MTGCard).filter(MTGCard.name == name).first()
+                if mtg_card:
+                    if needs_type:
+                        if mtg_card.types:
+                            card_type = mtg_card.types.split(',')[0].strip()
+                        elif mtg_card.type_line:
+                            type_parts = mtg_card.type_line.split('—')[0].strip()
+                            card_type = type_parts.split()[0] if type_parts else 'Unknown'
+                    if needs_mana and mtg_card.mana_cost:
+                        mana_cost = mtg_card.mana_cost
+                    if needs_colors and mtg_card.colors:
+                        colors = mtg_card.colors
+                    cards_enriched += 1
+            
+            # Se ancora non abbiamo un tipo, usa Unknown
+            if not card_type or card_type.lower() in ['nan', 'none', '']:
+                card_type = 'Unknown'
             
             card = Card(
                 name=name,

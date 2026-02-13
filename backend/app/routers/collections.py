@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from app.database import get_db
-from app.models import CardCollection, Card, User, saved_deck_collections
+from app.models import CardCollection, Card, User, saved_deck_collections, SavedDeck
 from datetime import datetime
 
 router = APIRouter()
@@ -61,6 +61,15 @@ def get_user_collections(user_id: int, db: Session = Depends(get_db)):
             Card.collection_id == collection.id
         ).scalar() or 0
         
+        # Get linked decks
+        deck_ids = db.query(saved_deck_collections.c.deck_id).filter(
+            saved_deck_collections.c.collection_id == collection.id
+        ).all()
+        linked_decks = []
+        if deck_ids:
+            decks = db.query(SavedDeck).filter(SavedDeck.id.in_([d[0] for d in deck_ids])).all()
+            linked_decks = [{"id": d.id, "name": d.name} for d in decks]
+        
         result.append({
             "id": collection.id,
             "name": collection.name,
@@ -68,7 +77,8 @@ def get_user_collections(user_id: int, db: Session = Depends(get_db)):
             "card_count": card_count,
             "total_cards": int(total_cards),
             "created_at": collection.created_at.isoformat(),
-            "updated_at": collection.updated_at.isoformat()
+            "updated_at": collection.updated_at.isoformat(),
+            "linked_decks": linked_decks
         })
     
     return {
@@ -353,4 +363,63 @@ def import_deck_as_collection(
         "cards_enriched": cards_enriched,
         "created_at": new_collection.created_at.isoformat()
     }
+
+@router.post("/{collection_id}/link-deck/{deck_id}")
+def link_deck_to_collection(
+    collection_id: int,
+    deck_id: int,
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """Link a saved deck to a collection"""
+    collection = db.query(CardCollection).filter(
+        CardCollection.id == collection_id,
+        CardCollection.user_id == user_id
+    ).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    
+    deck = db.query(SavedDeck).filter(
+        SavedDeck.id == deck_id,
+        SavedDeck.user_id == user_id
+    ).first()
+    if not deck:
+        raise HTTPException(status_code=404, detail="Deck not found")
+    
+    # Check if already linked
+    existing = db.execute(
+        saved_deck_collections.select().where(
+            saved_deck_collections.c.deck_id == deck_id,
+            saved_deck_collections.c.collection_id == collection_id
+        )
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Deck already linked to this collection")
+    
+    db.execute(
+        saved_deck_collections.insert().values(
+            deck_id=deck_id,
+            collection_id=collection_id
+        )
+    )
+    db.commit()
+    
+    return {"message": "Deck linked successfully"}
+
+@router.delete("/{collection_id}/unlink-deck/{deck_id}")
+def unlink_deck_from_collection(
+    collection_id: int,
+    deck_id: int,
+    db: Session = Depends(get_db)
+):
+    """Unlink a saved deck from a collection"""
+    db.execute(
+        saved_deck_collections.delete().where(
+            saved_deck_collections.c.deck_id == deck_id,
+            saved_deck_collections.c.collection_id == collection_id
+        )
+    )
+    db.commit()
+    
+    return {"message": "Deck unlinked successfully"}
 

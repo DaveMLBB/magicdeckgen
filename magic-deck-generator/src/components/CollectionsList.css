@@ -200,6 +200,42 @@
   line-height: 1.4;
 }
 
+.clist-linked-decks {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.clist-decks-label {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  font-weight: 600;
+  margin-right: 0.2rem;
+}
+
+.clist-deck-btn {
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(102, 126, 234, 0.3);
+  background: rgba(102, 126, 234, 0.1);
+  color: #8b9cf7;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.clist-deck-btn:hover {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.25);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
 .collection-stats {
   display: flex;
   gap: 2rem;
@@ -228,9 +264,12 @@
   letter-spacing: 0.5px;
 }
 
-.collection-date {
+.collection-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
   color: #a0aec0;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   margin-bottom: 1rem;
 }
 

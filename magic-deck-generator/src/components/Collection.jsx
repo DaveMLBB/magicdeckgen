@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './Collection.css'
 import { cardImageCache } from '../utils/cardImageCache'
 
@@ -6,7 +6,7 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
   : 'http://localhost:8000'
 
-function Collection({ user, collection, onBack, language, onShowSubscriptions, onUploadComplete, onLimitError }) {
+function Collection({ user, collection, onBack, onSelectDeck, language, onShowSubscriptions, onUploadComplete, onLimitError }) {
   const [cards, setCards] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -49,9 +49,15 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
   const [hoveredCard, setHoveredCard] = useState(null)
   const [cardImageUrl, setCardImageUrl] = useState(null)
   const [imageLoading, setImageLoading] = useState(false)
+  const hoverTimerRef = useRef(null)
+  const hoveredCardRef = useRef(null)
+  const [linkedDecks, setLinkedDecks] = useState([])
+  const [showLinkDeckModal, setShowLinkDeckModal] = useState(false)
+  const [availableDecks, setAvailableDecks] = useState([])
+  const [loadingDecks, setLoadingDecks] = useState(false)
 
   // Debug: verify onShowSubscriptions is available
-  console.log('Collection mounted - onShowSubscriptions type:', typeof onShowSubscriptions, 'value:', !!onShowSubscriptions)
+  //console.log('Collection mounted - onShowSubscriptions type:', typeof onShowSubscriptions, 'value:', !!onShowSubscriptions)
 
   const translations = {
     it: {
@@ -223,6 +229,50 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
     loadCollection()
     loadStats()
   }, [page, search, sortBy, sortOrder, filters])
+
+  useEffect(() => {
+    if (collection) {
+      loadLinkedDecks()
+    }
+  }, [collection])
+
+  const loadLinkedDecks = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/saved-decks/by-collection/${collection.id}`)
+      const data = await res.json()
+      setLinkedDecks(data.decks || [])
+    } catch (err) {
+      console.error('Error loading linked decks:', err)
+    }
+  }
+
+  const openLinkDeckModal = async () => {
+    setShowLinkDeckModal(true)
+    setLoadingDecks(true)
+    try {
+      const res = await fetch(`${API_URL}/api/saved-decks/user/${user.userId}`)
+      const data = await res.json()
+      const linkedIds = linkedDecks.map(d => d.id)
+      setAvailableDecks((data.decks || []).filter(d => !linkedIds.includes(d.id)))
+    } catch (err) {
+      console.error('Error loading decks:', err)
+    }
+    setLoadingDecks(false)
+  }
+
+  const handleLinkDeck = async (deckId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/collections/${collection.id}/link-deck/${deckId}?user_id=${user.userId}`, {
+        method: 'POST'
+      })
+      if (res.ok) {
+        setShowLinkDeckModal(false)
+        loadLinkedDecks()
+      }
+    } catch (err) {
+      console.error('Error linking deck:', err)
+    }
+  }
 
   const loadCollection = async () => {
     setLoading(true)
@@ -516,22 +566,39 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
     setEditQuantity('')
   }
 
-  const handleCardHover = async (cardName) => {
-    if (!cardName || cardName === hoveredCard) return
+  const handleCardHover = (cardName) => {
+    if (!cardName) return
     
+    // Cancella timer precedente
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current)
+    }
+    
+    hoveredCardRef.current = cardName
     setHoveredCard(cardName)
     setImageLoading(true)
     setCardImageUrl(null)
     
-    // Usa la cache per ottenere l'immagine
-    const imageUrl = await cardImageCache.getCardImage(cardName)
-    setCardImageUrl(imageUrl)
-    setImageLoading(false)
+    // Debounce: carica immagine solo se il mouse resta sulla riga
+    hoverTimerRef.current = setTimeout(async () => {
+      if (hoveredCardRef.current !== cardName) return
+      const imageUrl = await cardImageCache.getCardImage(cardName)
+      if (hoveredCardRef.current === cardName) {
+        setCardImageUrl(imageUrl)
+        setImageLoading(false)
+      }
+    }, 150)
   }
 
   const handleCardLeave = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current)
+      hoverTimerRef.current = null
+    }
+    hoveredCardRef.current = null
     setHoveredCard(null)
     setCardImageUrl(null)
+    setImageLoading(false)
   }
 
   return (
@@ -577,6 +644,26 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
         {collection && collection.description && (
           <p className="collection-description">{collection.description}</p>
         )}
+        <div className={`collection-linked-decks ${linkedDecks.length === 0 ? 'collection-linked-decks-empty' : ''}`}>
+          <div className="linked-decks-title">
+            🃏 {language === 'it' ? 'Mazzi Collegati' : 'Linked Decks'}
+          </div>
+          <div className="linked-decks-chips">
+            {linkedDecks.map(deck => (
+              <button
+                key={deck.id}
+                className="linked-deck-chip"
+                onClick={() => onSelectDeck && onSelectDeck(deck)}
+              >
+                {deck.name}
+                <span className="deck-chip-info">{deck.total_cards} {language === 'it' ? 'carte' : 'cards'}</span>
+              </button>
+            ))}
+            <button className="link-deck-btn" onClick={openLinkDeckModal}>
+              + {language === 'it' ? 'Collega Deck' : 'Link Deck'}
+            </button>
+          </div>
+        </div>
       </header>
 
       <main className="collection-main">
@@ -895,6 +982,38 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
                 disabled={!newCollectionName.trim() || renaming}
               >
                 {renaming ? `${t.save}...` : t.save}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Link Deck Modal */}
+      {showLinkDeckModal && (
+        <div className="modal-overlay" onClick={() => setShowLinkDeckModal(false)}>
+          <div className="modal-content link-deck-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>{language === 'it' ? 'Collega un Deck' : 'Link a Deck'}</h2>
+            {loadingDecks ? (
+              <div className="loading-spinner"><div className="spinner"></div></div>
+            ) : availableDecks.length === 0 ? (
+              <p className="no-decks-msg">{language === 'it' ? 'Nessun deck disponibile da collegare' : 'No available decks to link'}</p>
+            ) : (
+              <div className="link-deck-list">
+                {availableDecks.map(deck => (
+                  <button
+                    key={deck.id}
+                    className="link-deck-option"
+                    onClick={() => handleLinkDeck(deck.id)}
+                  >
+                    <span className="link-deck-name">🃏 {deck.name}</span>
+                    <span className="link-deck-info">{deck.total_cards} {language === 'it' ? 'carte' : 'cards'}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="modal-actions">
+              <button className="cancel-btn" onClick={() => setShowLinkDeckModal(false)}>
+                {language === 'it' ? 'Chiudi' : 'Close'}
               </button>
             </div>
           </div>

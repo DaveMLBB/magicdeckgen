@@ -5,7 +5,7 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
   : 'http://localhost:8000'
 
-function CollectionsList({ user, onBack, onSelectCollection, language, onShowSubscriptions, onLimitError }) {
+function CollectionsList({ user, onBack, onSelectCollection, onSelectDeck, language, onShowSubscriptions, onLimitError }) {
   const [collections, setCollections] = useState([])
   const [subscriptionInfo, setSubscriptionInfo] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -28,6 +28,7 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
       cards: 'carte',
       uniqueCards: 'carte uniche',
       createdOn: 'Creata il',
+      updatedOn: 'Modificata il',
       viewCollection: 'Visualizza',
       deleteCollection: 'Elimina',
       modalTitle: 'Crea Nuova Collezione',
@@ -65,6 +66,7 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
       cards: 'cards',
       uniqueCards: 'unique cards',
       createdOn: 'Created on',
+      updatedOn: 'Updated on',
       viewCollection: 'View',
       deleteCollection: 'Delete',
       modalTitle: 'Create New Collection',
@@ -279,6 +281,23 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
                       <p className="collection-desc">{collection.description}</p>
                     )}
                   </div>
+                  {collection.linked_decks && collection.linked_decks.length > 0 && (
+                    <div className="clist-linked-decks">
+                      <span className="clist-decks-label">{language === 'it' ? 'Mazzi:' : 'Decks:'}</span>
+                      {collection.linked_decks.map(deck => (
+                        <button
+                          key={deck.id}
+                          className="clist-deck-btn"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onSelectDeck && onSelectDeck(deck)
+                          }}
+                        >
+                          {deck.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="collection-stats">
                     <div className="stat">
                       <span className="stat-value">{collection.card_count}</span>
@@ -289,8 +308,11 @@ function CollectionsList({ user, onBack, onSelectCollection, language, onShowSub
                       <span className="stat-label">{t.cards}</span>
                     </div>
                   </div>
-                  <div className="collection-date">
-                    {t.createdOn} {new Date(collection.created_at).toLocaleDateString()}
+                  <div className="collection-dates">
+                    <span>{t.createdOn} {new Date(collection.created_at).toLocaleDateString()}</span>
+                    {collection.updated_at && collection.updated_at !== collection.created_at && (
+                      <span>{t.updatedOn} {new Date(collection.updated_at).toLocaleDateString()}</span>
+                    )}
                   </div>
                   <div className="collection-actions">
                     <button 

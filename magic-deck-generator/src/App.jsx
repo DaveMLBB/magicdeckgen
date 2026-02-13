@@ -1038,6 +1038,10 @@ function App() {
             setSelectedCollection(collection)
             setCurrentView('collection-detail')
           }}
+          onSelectDeck={(deck) => {
+            setSelectedSavedDeck(deck)
+            setCurrentView('saved-deck-detail')
+          }}
           language={language}
           onShowSubscriptions={() => setCurrentView('subscriptions')}
           onLimitError={showLimitError}
@@ -1049,6 +1053,10 @@ function App() {
           onBack={() => {
             setSelectedCollection(null)
             setCurrentView('collections')
+          }}
+          onSelectDeck={(deck) => {
+            setSelectedSavedDeck(deck)
+            setCurrentView('saved-deck-detail')
           }}
           language={language}
           onShowSubscriptions={() => setCurrentView('subscriptions')}
