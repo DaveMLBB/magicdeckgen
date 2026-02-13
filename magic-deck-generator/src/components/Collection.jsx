@@ -20,8 +20,8 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
   // Filters
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
+    colors: [],
     types: [],
-    rarity: '',
     cmcMin: '',
     cmcMax: ''
   })
@@ -243,11 +243,11 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       }
 
       // Add filters
+      if (filters.colors.length > 0) {
+        params.append('colors', filters.colors.join(','))
+      }
       if (filters.types.length > 0) {
         params.append('types', filters.types.join(','))
-      }
-      if (filters.rarity) {
-        params.append('rarity', filters.rarity)
       }
       if (filters.cmcMin) {
         params.append('cmc_min', filters.cmcMin)
@@ -297,6 +297,16 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
     setPage(1)
   }
 
+  const toggleColor = (color) => {
+    setFilters(prev => ({
+      ...prev,
+      colors: prev.colors.includes(color)
+        ? prev.colors.filter(c => c !== color)
+        : [...prev.colors, color]
+    }))
+    setPage(1)
+  }
+
   const toggleType = (type) => {
     setFilters(prev => ({
       ...prev,
@@ -309,8 +319,8 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
 
   const resetFilters = () => {
     setFilters({
+      colors: [],
       types: [],
-      rarity: '',
       cmcMin: '',
       cmcMax: ''
     })
@@ -649,61 +659,62 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
 
         {showFilters && (
           <div className="filters-panel">
-            <div className="filter-group">
-              <label>{t.type}</label>
-              <div className="type-filters">
-                {typeOptions.map(type => (
-                  <button
-                    key={type}
-                    className={`type-btn ${filters.types.includes(type) ? 'active' : ''}`}
-                    onClick={() => toggleType(type)}
-                  >
-                    {t[type.toLowerCase()] || type}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="filter-row">
+            <div className="filters-row">
               <div className="filter-group">
-                <label>{t.rarity}</label>
-                <select 
-                  value={filters.rarity} 
-                  onChange={(e) => { setFilters({...filters, rarity: e.target.value}); setPage(1); }}
-                  className="filter-select"
-                >
-                  <option value="">All</option>
-                  {rarityOptions.map(r => (
-                    <option key={r} value={r}>{t[r] || r}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="filter-group">
-                <label>{t.cmc}</label>
-                <div className="cmc-inputs">
-                  <input
-                    type="number"
-                    placeholder={t.min}
-                    value={filters.cmcMin}
-                    onChange={(e) => { setFilters({...filters, cmcMin: e.target.value}); setPage(1); }}
-                    className="cmc-input"
-                    min="0"
-                  />
-                  <span>-</span>
-                  <input
-                    type="number"
-                    placeholder={t.max}
-                    value={filters.cmcMax}
-                    onChange={(e) => { setFilters({...filters, cmcMax: e.target.value}); setPage(1); }}
-                    className="cmc-input"
-                    min="0"
-                  />
+                <label>{language === 'it' ? 'Colore' : 'Color'}</label>
+                <div className="mana-cmc-group">
+                  <div className="mana-color-filters">
+                    {Object.entries(manaSymbolMap).map(([key, info]) => (
+                      <button
+                        key={key}
+                        className={`mana-color-btn ${filters.colors.includes(key) ? 'active' : ''}`}
+                        style={{ background: info.bg, borderColor: info.border, color: info.text }}
+                        onClick={() => toggleColor(key)}
+                      >
+                        {key}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="cmc-inputs">
+                    <span className="cmc-label">{t.cmc}</span>
+                    <input
+                      type="number"
+                      placeholder={t.min}
+                      value={filters.cmcMin}
+                      onChange={(e) => { setFilters({...filters, cmcMin: e.target.value}); setPage(1); }}
+                      className="cmc-input"
+                      min="0"
+                    />
+                    <span className="cmc-separator">–</span>
+                    <input
+                      type="number"
+                      placeholder={t.max}
+                      value={filters.cmcMax}
+                      onChange={(e) => { setFilters({...filters, cmcMax: e.target.value}); setPage(1); }}
+                      className="cmc-input"
+                      min="0"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <button className="reset-btn" onClick={resetFilters}>{t.reset}</button>
+              <div className="filter-group">
+                <label>{t.type}</label>
+                <div className="type-filters">
+                  {typeOptions.map(type => (
+                    <button
+                      key={type}
+                      className={`type-btn ${filters.types.includes(type) ? 'active' : ''}`}
+                      onClick={() => toggleType(type)}
+                    >
+                      {t[type.toLowerCase()] || type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button className="reset-btn" onClick={resetFilters}>{t.reset}</button>
+            </div>
           </div>
         )}
 

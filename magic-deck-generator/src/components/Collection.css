@@ -436,9 +436,9 @@
 }
 
 .cards-table th:nth-child(1) { width: 30%; }
-.cards-table th:nth-child(2) { width: 10%; }
+.cards-table th:nth-child(2) { width: 15%; }
 .cards-table th:nth-child(3) { width: 22%; }
-.cards-table th:nth-child(4) { width: 25%; }
+.cards-table th:nth-child(4) { width: 20%; }
 .cards-table th:nth-child(5) { width: 13%; }
 
 .cards-table th.sortable {
@@ -482,6 +482,8 @@
   text-align: center;
   font-weight: 700;
   color: #68d391;
+  overflow: visible;
+  position: relative;
 }
 
 .card-type {
@@ -909,55 +911,62 @@
   gap: 0.5rem;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .quantity-input {
-  width: 60px;
-  padding: 0.4rem;
-  border-radius: 6px;
-  border: 2px solid rgba(102, 126, 234, 0.5);
-  background: rgba(255, 255, 255, 0.05);
+  width: 55px;
+  padding: 0.35rem 0.4rem;
+  border-radius: 5px;
+  border: 2px solid #667eea;
+  background: rgba(0, 0, 0, 0.4);
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  font-weight: 700;
   text-align: center;
 }
 
 .quantity-input:focus {
   outline: none;
-  border-color: #667eea;
-  background: rgba(255, 255, 255, 0.1);
+  border-color: #8b9cf7;
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.4);
 }
 
 .save-qty-btn,
 .cancel-qty-btn {
-  padding: 0.4rem 0.6rem;
-  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 5px;
   border: none;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .save-qty-btn {
-  background: rgba(104, 211, 145, 0.2);
+  background: rgba(104, 211, 145, 0.25);
   color: #68d391;
   border: 1px solid rgba(104, 211, 145, 0.5);
 }
 
 .save-qty-btn:hover {
-  background: rgba(104, 211, 145, 0.3);
-  transform: scale(1.1);
+  background: rgba(104, 211, 145, 0.4);
 }
 
 .cancel-qty-btn {
-  background: rgba(245, 87, 108, 0.2);
+  background: rgba(245, 87, 108, 0.25);
   color: #f5576c;
   border: 1px solid rgba(245, 87, 108, 0.5);
 }
 
 .cancel-qty-btn:hover {
-  background: rgba(245, 87, 108, 0.3);
-  transform: scale(1.1);
+  background: rgba(245, 87, 108, 0.4);
 }
 
 .card-actions {
@@ -1165,10 +1174,10 @@
 .filters-panel {
   background: rgba(255,255,255,0.05);
   border-radius: 12px;
-  padding: 1.5rem;
-  margin: 1rem 0;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
   border: 1px solid rgba(255,255,255,0.1);
-  animation: slideDown 0.3s ease-out;
+  animation: slideDown 0.2s ease-out;
 }
 
 @keyframes slideDown {
@@ -1182,33 +1191,85 @@
   }
 }
 
+.filters-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
 .filter-group {
-  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .filter-group label {
-  display: block;
-  margin-bottom: 0.5rem;
   font-weight: 600;
-  color: #cbd5e0;
-  font-size: 0.85rem;
+  color: #a0aec0;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+.mana-cmc-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mana-color-filters {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.cmc-label {
+  color: #a0aec0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mana-color-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+}
+
+.mana-color-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.mana-color-btn.active {
+  opacity: 1;
+  transform: scale(1.15);
+  box-shadow: 0 0 10px rgba(255,255,255,0.3);
+}
+
 .type-filters {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
 }
 
 .type-btn {
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  border: 2px solid rgba(255,255,255,0.2);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.15);
   background: rgba(255,255,255,0.05);
-  color: #fff;
-  font-size: 0.85rem;
+  color: #cbd5e0;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -1216,32 +1277,27 @@
 }
 
 .type-btn:hover {
-  border-color: rgba(255,255,255,0.4);
+  border-color: rgba(255,255,255,0.35);
   background: rgba(255,255,255,0.1);
+  color: #fff;
 }
 
 .type-btn.active {
   border-color: #667eea;
-  background: rgba(102, 126, 234, 0.3);
+  background: rgba(102, 126, 234, 0.25);
   color: #fff;
-}
-
-.filter-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
 }
 
 .filter-select {
-  width: 100%;
-  padding: 0.6rem;
-  border-radius: 8px;
-  border: 2px solid rgba(255,255,255,0.2);
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.15);
   background: rgba(255,255,255,0.05);
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
+  min-width: 120px;
 }
 
 .filter-select:focus {
@@ -1257,19 +1313,23 @@
 .cmc-inputs {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
+}
+
+.cmc-separator {
+  color: #555;
+  font-size: 0.9rem;
 }
 
 .cmc-input {
-  flex: 1;
-  padding: 0.6rem;
-  border-radius: 8px;
-  border: 2px solid rgba(255,255,255,0.2);
+  padding: 0.45rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.15);
   background: rgba(255,255,255,0.05);
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   text-align: center;
-  max-width: 80px;
+  width: 55px;
 }
 
 .cmc-input:focus {
@@ -1278,20 +1338,20 @@
 }
 
 .reset-btn {
-  width: 100%;
-  padding: 0.6rem;
-  border-radius: 8px;
-  border: 2px solid rgba(245, 87, 108, 0.5);
-  background: rgba(245, 87, 108, 0.2);
-  color: #fff;
-  font-size: 0.9rem;
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(245, 87, 108, 0.4);
+  background: rgba(245, 87, 108, 0.15);
+  color: #f5576c;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  margin-top: 0.75rem;
+  white-space: nowrap;
+  align-self: flex-end;
 }
 
 .reset-btn:hover {
   background: rgba(245, 87, 108, 0.3);
-  transform: translateY(-2px);
+  color: #fff;
 }
