@@ -84,13 +84,6 @@ def create_collection(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check if user has tokens
-    if user.tokens <= 0:
-        raise HTTPException(
-            status_code=403,
-            detail="Insufficient tokens. Please purchase more tokens to continue."
-        )
-    
     # Check if collection name already exists for this user
     existing = db.query(CardCollection).filter(
         CardCollection.user_id == user_id,
@@ -103,6 +96,10 @@ def create_collection(
             detail="A collection with this name already exists"
         )
     
+    # Consume 1 token for creating collection (before processing)
+    from app.routers.tokens import consume_token
+    consume_token(user, 'collection', f'Create collection: {collection_data.name}', db)
+    
     new_collection = CardCollection(
         name=collection_data.name,
         description=collection_data.description,
@@ -112,10 +109,6 @@ def create_collection(
     db.add(new_collection)
     db.commit()
     db.refresh(new_collection)
-    
-    # Consume 1 token for creating collection
-    from app.routers.tokens import consume_token
-    consume_token(user, 'collection', f'Create collection: {new_collection.name}', db)
     
     return {
         "id": new_collection.id,
@@ -223,13 +216,6 @@ def import_deck_as_collection(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check if user has tokens
-    if user.tokens <= 0:
-        raise HTTPException(
-            status_code=403,
-            detail="Insufficient tokens. Please purchase more tokens to continue."
-        )
-    
     # Get deck template
     deck_template = db.query(DeckTemplate).filter(DeckTemplate.id == deck_template_id).first()
     if not deck_template:
@@ -242,6 +228,10 @@ def import_deck_as_collection(
     
     if not template_cards:
         raise HTTPException(status_code=400, detail="Deck template has no cards")
+    
+    # Consume 1 token for importing deck as collection (before processing)
+    from app.routers.tokens import consume_token
+    consume_token(user, 'collection', f'Import deck as collection: {deck_template.name}', db)
     
     # Check if collection with this name already exists
     base_name = deck_template.name
@@ -308,10 +298,6 @@ def import_deck_as_collection(
     
     db.commit()
     db.refresh(new_collection)
-    
-    # Consume 1 token for importing deck as collection
-    from app.routers.tokens import consume_token
-    consume_token(user, 'collection', f'Import deck as collection: {new_collection.name}', db)
     
     print(f"✅ Importate {cards_added} carte, {cards_enriched} arricchite dal database MTG")
     

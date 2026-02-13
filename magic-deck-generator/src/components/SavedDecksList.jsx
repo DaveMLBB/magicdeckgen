@@ -5,7 +5,7 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
   : 'http://localhost:8000'
 
-function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscriptions }) {
+function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscriptions, onLimitError }) {
   const [decks, setDecks] = useState([])
   const [loading, setLoading] = useState(true)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -282,6 +282,9 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
           cardsText: ''
         })
         loadDecks()
+      } else if (res.status === 403 && onLimitError) {
+        const error = await res.json()
+        onLimitError(error.detail)
       } else {
         const error = await res.json()
         alert(`${t.errorCreating}: ${error.detail || ''}`)

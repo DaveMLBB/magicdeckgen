@@ -13,6 +13,11 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Firefox fix: prevent black rectangle artifacts caused by transition: all + overflow: hidden + border-radius */
+body.firefox * {
+  transition-property: color, background-color, border-color, box-shadow, opacity !important;
+}
+
 a {
   font-weight: 500;
   color: #646cff;

@@ -6,45 +6,6 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Previeni artefatti neri durante hover/scroll: pre-alloca GPU layer per elementi con transform */
-button,
-.deck-card,
-.card-item,
-.collection-item,
-.source-option,
-.feature-card,
-.step-card,
-.testimonial-card,
-.linked-deck-chip,
-.link-deck-btn,
-.type-btn,
-.mana-color-btn,
-.back-btn,
-.upload-cards-btn,
-.upload-btn,
-.preload-btn,
-.subscription-btn,
-.collection-btn,
-.global-nav-btn,
-.pagination-btn,
-.sort-order-btn,
-.filters-toggle-btn,
-.confirm-btn,
-.cancel-btn,
-.rename-btn,
-.edit-qty-btn,
-.cta-primary,
-.cta-secondary,
-.cta-large,
-.upgrade-btn-inline,
-.cards-table tbody tr,
-.card-search-table tbody tr,
-.link-deck-option,
-.suggestion-item {
-  will-change: transform;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
 
 html, body, #root {
   width: 100%;
@@ -109,15 +70,11 @@ main {
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 1.5rem;
-  background: rgba(15, 12, 41, 0.55);
-  backdrop-filter: blur(46px);
-  -webkit-backdrop-filter: blur(46px);
+  background: rgba(15, 12, 41, 0.92);
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   position: sticky;
   top: 0;
   z-index: 100;
-  will-change: transform;
-  transform: translateZ(0);
   gap: 0.5rem;
   flex-wrap: wrap;
 }
@@ -705,7 +662,7 @@ main {
   width: 100%;
 }
 
-.card-item {
+.cards-list .card-item {
   display: flex;
   gap: 0.75rem;
   padding: 0.75rem;
@@ -717,25 +674,25 @@ main {
   cursor: pointer;
 }
 
-.card-item:hover {
+.cards-list .card-item:hover {
   background: rgba(255,255,255,0.1);
   transform: translateX(5px);
 }
 
-.card-qty {
+.cards-list .card-qty {
   color: #68d391;
   font-weight: bold;
   min-width: 35px;
   font-size: 1rem;
 }
 
-.card-name {
+.cards-list .card-name {
   flex: 1;
   font-size: 0.95rem;
   color: #fff;
 }
 
-.card-type {
+.cards-list .card-type {
   color: #a0aec0;
   font-size: 0.85rem;
 }
@@ -743,6 +700,34 @@ main {
 /* Override SavedDeck grid: 4 columns in deck search results */
 .deck-detail.saved-deck-page .cards-grid {
   grid-template-columns: repeat(4, 1fr);
+}
+
+/* Ensure card name is visible in deck search grid */
+.deck-detail.saved-deck-page .card-name {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  font-size: 1.1rem !important;
+  font-weight: 800 !important;
+  color: #fff !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
+}
+
+.deck-detail.saved-deck-page .card-top-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+}
+
+.deck-detail.saved-deck-page .card-type-row {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 @media (max-width: 1200px) {
@@ -1195,21 +1180,21 @@ footer {
     gap: 0.5rem;
   }
   
-  .card-item {
+  .cards-list .card-item {
     padding: 0.65rem;
     font-size: 0.9rem;
   }
   
-  .card-qty {
+  .cards-list .card-qty {
     min-width: 30px;
     font-size: 0.9rem;
   }
   
-  .card-name {
+  .cards-list .card-name {
     font-size: 0.9rem;
   }
   
-  .card-type {
+  .cards-list .card-type {
     font-size: 0.8rem;
   }
   
@@ -1800,14 +1785,10 @@ div.column-mapper-overlay.column-mapper-overlay {
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  background: rgba(0, 0, 0, 0.88) !important;
-  backdrop-filter: blur(5px) !important;
-  -webkit-backdrop-filter: blur(5px) !important;
+  background: rgba(0, 0, 0, 0.93) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  will-change: transform !important;
-  transform: translateZ(0) !important;
   z-index: 10001 !important;
   padding: 2rem !important;
   overflow-y: auto !important;

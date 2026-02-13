@@ -224,12 +224,9 @@ async def upload_cards(
         if not collection:
             raise HTTPException(status_code=404, detail="Collection not found")
     
-    # Check if user has tokens
-    if user.tokens <= 0:
-        raise HTTPException(
-            status_code=403,
-            detail="Insufficient tokens. Please purchase more tokens to continue."
-        )
+    # Consume 1 token for upload (before processing)
+    from app.routers.tokens import consume_token
+    consume_token(user, 'upload', f'Upload file: {file.filename}', db)
     
     if not file.filename.endswith(('.xlsx', '.csv')):
         raise HTTPException(status_code=400, detail="Il file deve essere .xlsx o .csv")
@@ -420,10 +417,6 @@ async def upload_cards(
                 print(f"❌ Errore riga {idx+1}: {e}")
     
     db.commit()
-    
-    # Consume 1 token for upload
-    from app.routers.tokens import consume_token
-    consume_token(user, 'upload', f'Upload file: {file.filename}', db)
     
     print(f"✅ Caricate {cards_added} carte su {len(df)} righe")
     print(f"🔍 Arricchite {cards_enriched} carte dal database MTG")

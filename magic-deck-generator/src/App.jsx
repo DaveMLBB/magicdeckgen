@@ -603,13 +603,7 @@ function App() {
     setMessage('')
     
     try {
-      // 1. Elimina tutte le carte esistenti dell'utente (per evitare duplicati nell'analisi mazzi)
-      console.log('🗑️ Eliminazione carte esistenti...')
-      await fetch(`${API_URL}/api/cards/${user.userId}`, {
-        method: 'DELETE'
-      })
-      
-      // 2. Crea automaticamente una collezione con la data come nome
+      // 1. Crea automaticamente una collezione con la data come nome
       const now = new Date()
       const collectionName = now.toLocaleString(language === 'it' ? 'it-IT' : 'en-US', {
         year: 'numeric',
@@ -646,7 +640,7 @@ function App() {
       const newCollection = await createCollectionRes.json()
       console.log('✅ Collezione creata:', newCollection)
       
-      // 3. Carica le carte nella nuova collezione
+      // 2. Carica le carte nella nuova collezione
       const formData = new FormData()
       formData.append('file', fileToUpload)
       formData.append('mapping', JSON.stringify(columnMapping))
@@ -1215,6 +1209,7 @@ function App() {
           }}
           language={language}
           onShowSubscriptions={() => setCurrentView('subscriptions')}
+          onLimitError={showLimitError}
         />
       ) : currentView === 'saved-deck-detail' ? (
         <SavedDeck

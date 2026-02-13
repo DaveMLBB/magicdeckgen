@@ -213,12 +213,9 @@ def match_decks(
     if not user:
         return {"decks": [], "message": "User not found"}
     
-    # Check if user has tokens
-    if user.tokens <= 0:
-        raise HTTPException(
-            status_code=403,
-            detail="Insufficient tokens. Please purchase more tokens to continue."
-        )
+    # Consume 1 token for search (before heavy computation)
+    from app.routers.tokens import consume_token
+    consume_token(user, 'search', f'Deck search: format={format}, colors={colors}', db)
     
     # No result limit with token system
     result_limit = None
@@ -391,10 +388,6 @@ def match_decks(
     
     # No result limit with token system
     limited_decks = matched_decks
-    
-    # Consume 1 token for search
-    from app.routers.tokens import consume_token
-    consume_token(user, 'search', f'Deck search: format={format}, colors={colors}', db)
     
     print(f"✅ Trovati {len(matched_decks)} mazzi con match >= {min_match}%")
     print(f"📊 Restituiti {len(limited_decks)} mazzi")

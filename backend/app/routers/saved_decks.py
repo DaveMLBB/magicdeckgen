@@ -158,12 +158,9 @@ def create_deck(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check if user has tokens
-    if user.tokens <= 0:
-        raise HTTPException(
-            status_code=403,
-            detail="Insufficient tokens. Please purchase more tokens to continue."
-        )
+    # Consume 1 token for saving deck (before processing)
+    from app.routers.tokens import consume_token
+    consume_token(user, 'save_deck', f'Save deck: {deck_input.name}', db)
     
     # Verify collections exist if provided
     from app.models import CardCollection, saved_deck_collections
@@ -263,10 +260,6 @@ def create_deck(
     
     db.commit()
     db.refresh(deck)
-    
-    # Consume 1 token for saving deck
-    from app.routers.tokens import consume_token
-    consume_token(user, 'save_deck', f'Save deck: {deck.name}', db)
     
     return {
         "id": deck.id,
@@ -517,12 +510,9 @@ def duplicate_deck(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check if user has tokens
-    if user.tokens <= 0:
-        raise HTTPException(
-            status_code=403,
-            detail="Insufficient tokens. Please purchase more tokens to continue."
-        )
+    # Consume 1 token for duplicating deck (before processing)
+    from app.routers.tokens import consume_token
+    consume_token(user, 'save_deck', f'Duplicate deck #{deck_id}', db)
     
     # Carica mazzo originale
     original = db.query(SavedDeck).filter(SavedDeck.id == deck_id).first()
@@ -580,10 +570,6 @@ def duplicate_deck(
     # Refresh ownership sulla copia
     if linked:
         refresh_deck_ownership(new_deck.id, user_id, db)
-    
-    # Consume 1 token for duplicating deck
-    from app.routers.tokens import consume_token
-    consume_token(user, 'save_deck', f'Duplicate deck: {new_deck.name}', db)
     
     return {
         "message": "Deck duplicated successfully",
@@ -821,11 +807,6 @@ def search_public_decks(
     if user_id and count_search:
         user = db.query(User).filter(User.id == user_id).first()
         if user:
-            if user.tokens <= 0:
-                raise HTTPException(
-                    status_code=403,
-                    detail="Insufficient tokens. Please purchase more tokens to continue."
-                )
             from app.routers.tokens import consume_token
             consume_token(user, 'public_search', 'Public deck search', db)
     

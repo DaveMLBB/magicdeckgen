@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import './RandomArtBackground.css'
 
 const ROTATE_INTERVAL = 20000
 
 function RandomArtBackground() {
   const [images, setImages] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [activeLayer, setActiveLayer] = useState(0)
   const mounted = useRef(true)
 
   useEffect(() => {
@@ -30,33 +28,37 @@ function RandomArtBackground() {
     const interval = setInterval(() => {
       if (!mounted.current) return
       setCurrentIndex(prev => (prev + 1) % images.length)
-      setActiveLayer(prev => prev === 0 ? 1 : 0)
     }, ROTATE_INTERVAL)
 
     return () => clearInterval(interval)
   }, [images])
 
-  if (images.length === 0) return null
+  // Apply background directly on .app element — no separate DOM layer
+  useEffect(() => {
+    const appEl = document.querySelector('.app')
+    if (!appEl || images.length === 0) return
 
-  const layer0Img = activeLayer === 0
-    ? images[currentIndex]
-    : images[(currentIndex - 1 + images.length) % images.length]
-  const layer1Img = activeLayer === 1
-    ? images[currentIndex]
-    : images[(currentIndex - 1 + images.length) % images.length]
+    const img = images[currentIndex]
+    appEl.style.backgroundImage = `url(/backgrounds/${img})`
+    appEl.style.backgroundSize = 'cover'
+    appEl.style.backgroundPosition = 'center'
+    appEl.style.backgroundAttachment = 'fixed'
+  }, [currentIndex, images])
 
-  return (
-    <div className="random-art-background">
-      <div
-        className={`random-art-layer ${activeLayer === 0 ? 'active' : ''}`}
-        style={{ backgroundImage: `url(/backgrounds/${layer0Img})` }}
-      />
-      <div
-        className={`random-art-layer ${activeLayer === 1 ? 'active' : ''}`}
-        style={{ backgroundImage: `url(/backgrounds/${layer1Img})` }}
-      />
-    </div>
-  )
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      const appEl = document.querySelector('.app')
+      if (appEl) {
+        appEl.style.backgroundImage = ''
+        appEl.style.backgroundSize = ''
+        appEl.style.backgroundPosition = ''
+        appEl.style.backgroundAttachment = ''
+      }
+    }
+  }, [])
+
+  return null
 }
 
 export default RandomArtBackground
