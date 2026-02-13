@@ -50,17 +50,6 @@ def get_user_decks(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check if subscription is expired -> check Stripe first, then reset to free
-    if user.subscription_expires_at and datetime.utcnow() > user.subscription_expires_at:
-        if user.subscription_type != 'lifetime':
-            from app.routers.subscriptions import check_stripe_subscription_active
-            if not check_stripe_subscription_active(user, db):
-                user.subscription_type = 'free'
-                user.uploads_limit = 3
-                user.uploads_count = 0
-                user.subscription_expires_at = None
-                db.commit()
-    
     # Base query
     query = db.query(SavedDeck).filter(SavedDeck.user_id == user_id)
     
@@ -137,17 +126,6 @@ def get_user_decks(
             "updated_at": deck.updated_at.isoformat()
         })
     
-    # Saved decks limits
-    saved_decks_limits = {
-        'free': 3,
-        'monthly_10': 10,
-        'monthly_30': 30,
-        'yearly': 50,
-        'lifetime': None
-    }
-    deck_limit = saved_decks_limits.get(user.subscription_type, 3)
-    can_create_more = deck_limit is None or total < deck_limit
-    
     return {
         "decks": decks_data,
         "pagination": {
@@ -159,11 +137,12 @@ def get_user_decks(
             "has_prev": page > 1
         },
         "subscription": {
-            "type": user.subscription_type,
-            "deck_limit": deck_limit,
+            "type": "token",
+            "deck_limit": None,
             "current_count": total,
-            "can_create_more": can_create_more,
-            "remaining": (deck_limit - total) if deck_limit else None
+            "can_create_more": user.tokens > 0,
+            "remaining": None,
+            "tokens": user.tokens
         }
     }
 
@@ -179,24 +158,11 @@ def create_deck(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check saved decks limit based on subscription
-    saved_decks_limits = {
-        'free': 3,
-        'monthly_10': 10,
-        'monthly_30': 30,
-        'yearly': 50,
-        'lifetime': None  # unlimited
-    }
-    saved_decks_limit = saved_decks_limits.get(user.subscription_type, 3)
-    
-    # Count current saved decks
-    current_decks_count = db.query(SavedDeck).filter(SavedDeck.user_id == user_id).count()
-    
-    # Check if limit reached (only if not unlimited)
-    if saved_decks_limit is not None and current_decks_count >= saved_decks_limit:
+    # Check if user has tokens
+    if user.tokens <= 0:
         raise HTTPException(
             status_code=403,
-            detail=f"Saved decks limit reached ({saved_decks_limit}). Please upgrade your subscription."
+            detail="Insufficient tokens. Please purchase more tokens to continue."
         )
     
     # Verify collections exist if provided
@@ -298,12 +264,17 @@ def create_deck(
     db.commit()
     db.refresh(deck)
     
+    # Consume 1 token for saving deck
+    from app.routers.tokens import consume_token
+    consume_token(user, 'save_deck', f'Save deck: {deck.name}', db)
+    
     return {
         "id": deck.id,
         "name": deck.name,
         "completion_percentage": deck.completion_percentage,
         "total_cards": total_cards_needed,
-        "owned_cards": cards_owned_qty
+        "owned_cards": cards_owned_qty,
+        "tokens_remaining": user.tokens
     }
 
 @router.get("/{deck_id}")
@@ -546,20 +517,11 @@ def duplicate_deck(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Verifica limiti
-    saved_decks_limits = {
-        'free': 3,
-        'monthly_10': 10,
-        'monthly_30': 30,
-        'yearly': 50,
-        'lifetime': None
-    }
-    saved_decks_limit = saved_decks_limits.get(user.subscription_type, 3)
-    current_decks_count = db.query(SavedDeck).filter(SavedDeck.user_id == user_id).count()
-    if saved_decks_limit is not None and current_decks_count >= saved_decks_limit:
+    # Check if user has tokens
+    if user.tokens <= 0:
         raise HTTPException(
             status_code=403,
-            detail=f"Deck limit reached ({saved_decks_limit}). Upgrade to save more decks."
+            detail="Insufficient tokens. Please purchase more tokens to continue."
         )
     
     # Carica mazzo originale
@@ -619,10 +581,15 @@ def duplicate_deck(
     if linked:
         refresh_deck_ownership(new_deck.id, user_id, db)
     
+    # Consume 1 token for duplicating deck
+    from app.routers.tokens import consume_token
+    consume_token(user, 'save_deck', f'Duplicate deck: {new_deck.name}', db)
+    
     return {
         "message": "Deck duplicated successfully",
         "id": new_deck.id,
-        "name": new_deck.name
+        "name": new_deck.name,
+        "tokens_remaining": user.tokens
     }
 
 @router.post("/{deck_id}/collections")
@@ -850,23 +817,17 @@ def search_public_decks(
     db: Session = Depends(get_db)
 ):
     """Cerca tra i mazzi pubblici degli utenti con calcolo compatibilità"""
-    # Check search limits if user_id provided
-    if user_id:
+    # Check token balance if user_id provided and counting search
+    if user_id and count_search:
         user = db.query(User).filter(User.id == user_id).first()
         if user:
-            search_limits = {
-                'free': 10, 'monthly_10': 20, 'monthly_30': 30,
-                'yearly': 999999, 'lifetime': 999999
-            }
-            limit = search_limits.get(user.subscription_type, 10)
-            if user.searches_count >= limit:
+            if user.tokens <= 0:
                 raise HTTPException(
                     status_code=403,
-                    detail=f"Search limit reached ({limit}). Please upgrade your subscription to continue."
+                    detail="Insufficient tokens. Please purchase more tokens to continue."
                 )
-            if count_search:
-                user.searches_count += 1
-                db.commit()
+            from app.routers.tokens import consume_token
+            consume_token(user, 'public_search', 'Public deck search', db)
     
     query = db.query(SavedDeck).filter(SavedDeck.is_public == True)
     

@@ -84,12 +84,12 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       previous: 'Precedente',
       next: 'Successivo',
       close: 'Chiudi',
-      limitedView: '⚠️ Piano Free: limite di 20 carte uniche per collezione',
-      upgradeToView: 'Aggiorna il tuo piano per vedere tutte le',
+      limitedView: '⚠️ Token insufficienti',
+      upgradeToView: 'Acquista token per vedere tutte le',
       upgradeWarning: '⚠️ Ti rimangono solo',
       cardsRemaining: 'carte uniche disponibili',
-      upgradePlan: 'Aggiorna Piano',
-      lockedCard: '🔒 Aggiorna piano',
+      upgradePlan: 'Acquista Token',
+      lockedCard: '🔒 Acquista token',
       cards: 'carte',
       asc: 'Crescente',
       desc: 'Decrescente',
@@ -159,12 +159,12 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       previous: 'Previous',
       next: 'Next',
       close: 'Close',
-      limitedView: '⚠️ Free Plan: limit of 20 unique cards per collection',
-      upgradeToView: 'Upgrade your plan to view all',
+      limitedView: '⚠️ Insufficient tokens',
+      upgradeToView: 'Purchase tokens to view all',
       upgradeWarning: '⚠️ You only have',
       cardsRemaining: 'unique cards remaining',
-      upgradePlan: 'Upgrade Plan',
-      lockedCard: '🔒 Upgrade plan',
+      upgradePlan: 'Buy Tokens',
+      lockedCard: '🔒 Buy tokens',
       cards: 'cards',
       asc: 'Ascending',
       desc: 'Descending',
@@ -639,11 +639,10 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
               className="subscription-btn-small" 
               onClick={(e) => {
                 e.stopPropagation()
-                console.log('Subscription button (💎) clicked!')
                 onShowSubscriptions && onShowSubscriptions()
               }}
             >
-              💎
+              🪙
             </button>
           </div>
         </div>

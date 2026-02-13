@@ -39,11 +39,9 @@ function CollectionsList({ user, onBack, onSelectCollection, onSelectDeck, langu
       creating: 'Creazione...',
       namePlaceholder: 'Es: Mazzo Rosso, Collezione Standard...',
       descPlaceholder: 'Descrizione della collezione...',
-      limitReached: 'Limite collezioni raggiunto',
-      limitReachedDesc: 'Hai raggiunto il limite di',
-      collectionsForPlan: 'collezioni per il tuo piano',
-      upgradeToCreate: 'Aggiorna il tuo piano per creare più collezioni',
-      collectionsRemaining: 'collezioni rimanenti',
+      limitReached: 'Token insufficienti',
+      limitReachedDesc: 'Non hai abbastanza token per creare una nuova collezione.',
+      buyTokens: 'Acquista Token',
       deleteModalTitle: 'Elimina Collezione',
       deleteModalMessage: 'Sei sicuro di voler eliminare questa collezione?',
       deleteModalWarning: 'Questa azione eliminerà tutte le carte contenute e non può essere annullata.',
@@ -53,9 +51,6 @@ function CollectionsList({ user, onBack, onSelectCollection, onSelectDeck, langu
       linkedDecksWillBeDeleted: 'che verranno eliminati insieme alla collezione:',
       confirmDelete: 'Sì, Elimina',
       cancelDelete: 'Annulla',
-      lockedCollection: 'Collezione bloccata',
-      upgradeToAccess: 'Aggiorna il piano per accedere a questa collezione',
-      upgradePlan: 'Aggiorna Piano'
     },
     en: {
       title: 'My Collections',
@@ -77,11 +72,9 @@ function CollectionsList({ user, onBack, onSelectCollection, onSelectDeck, langu
       creating: 'Creating...',
       namePlaceholder: 'E.g: Red Deck, Standard Collection...',
       descPlaceholder: 'Collection description...',
-      limitReached: 'Collection limit reached',
-      limitReachedDesc: 'You have reached the limit of',
-      collectionsForPlan: 'collections for your plan',
-      upgradeToCreate: 'Upgrade your plan to create more collections',
-      collectionsRemaining: 'collections remaining',
+      limitReached: 'Insufficient tokens',
+      limitReachedDesc: 'You don\'t have enough tokens to create a new collection.',
+      buyTokens: 'Buy Tokens',
       deleteModalTitle: 'Delete Collection',
       deleteModalMessage: 'Are you sure you want to delete this collection?',
       deleteModalWarning: 'This action will delete all contained cards and cannot be undone.',
@@ -91,9 +84,6 @@ function CollectionsList({ user, onBack, onSelectCollection, onSelectDeck, langu
       linkedDecksWillBeDeleted: 'that will be deleted along with the collection:',
       confirmDelete: 'Yes, Delete',
       cancelDelete: 'Cancel',
-      lockedCollection: 'Locked collection',
-      upgradeToAccess: 'Upgrade your plan to access this collection',
-      upgradePlan: 'Upgrade Plan'
     }
   }
 
@@ -119,11 +109,9 @@ function CollectionsList({ user, onBack, onSelectCollection, onSelectDeck, langu
   const handleCreateCollection = async () => {
     if (!newCollectionName.trim()) return
 
-    // Check if can create more
+    // Check if can create more (token-based)
     if (subscriptionInfo && !subscriptionInfo.can_create_more) {
-      alert(
-        `${t.limitReachedDesc} ${subscriptionInfo.collection_limit} ${t.collectionsForPlan}. ${t.upgradeToCreate}`
-      )
+      alert(t.limitReachedDesc)
       return
     }
 
@@ -212,7 +200,7 @@ function CollectionsList({ user, onBack, onSelectCollection, onSelectDeck, langu
           <div className="header-actions">
             <span className="user-email">{user.email}</span>
             <button className="subscription-btn-small" onClick={onShowSubscriptions}>
-              💎
+              🪙
             </button>
           </div>
         </div>
@@ -229,20 +217,11 @@ function CollectionsList({ user, onBack, onSelectCollection, onSelectDeck, langu
       </header>
 
       <main className="collections-main">
-        {subscriptionInfo && subscriptionInfo.remaining !== null && subscriptionInfo.remaining <= 2 && subscriptionInfo.remaining > 0 && (
-          <div className="collections-warning">
-            ⚠️ {t.collectionsRemaining}: {subscriptionInfo.remaining}
-            <button className="upgrade-btn-inline" onClick={onShowSubscriptions}>
-              {language === 'it' ? 'Aggiorna Piano' : 'Upgrade Plan'}
-            </button>
-          </div>
-        )}
-
         {subscriptionInfo && !subscriptionInfo.can_create_more && (
           <div className="collections-limit-reached">
-            {t.limitReached}: {subscriptionInfo.collection_limit} {t.collectionsForPlan}
+            {t.limitReachedDesc}
             <button className="upgrade-btn-inline" onClick={onShowSubscriptions}>
-              {language === 'it' ? 'Aggiorna Piano' : 'Upgrade Plan'}
+              🪙 {t.buyTokens}
             </button>
           </div>
         )}
@@ -262,19 +241,8 @@ function CollectionsList({ user, onBack, onSelectCollection, onSelectDeck, langu
           </div>
         ) : (
           <div className="collections-grid">
-            {collections.map((collection, index) => {
-              const isLocked = subscriptionInfo && subscriptionInfo.collection_limit !== null && index >= subscriptionInfo.collection_limit
-              return (
-                <div key={collection.id} className={`collection-card ${isLocked ? 'collection-locked' : ''}`}>
-                  {isLocked && (
-                    <div className="locked-overlay">
-                      <div className="locked-icon">🔒</div>
-                      <p className="locked-text">{t.upgradeToAccess}</p>
-                      <button className="locked-upgrade-btn" onClick={onShowSubscriptions}>
-                        💎 {t.upgradePlan}
-                      </button>
-                    </div>
-                  )}
+            {collections.map((collection) => (
+                <div key={collection.id} className="collection-card">
                   <div className="collection-header">
                     <h3>{collection.name}</h3>
                     {collection.description && (
@@ -317,23 +285,19 @@ function CollectionsList({ user, onBack, onSelectCollection, onSelectDeck, langu
                   <div className="collection-actions">
                     <button 
                       className="view-btn"
-                      onClick={() => !isLocked && onSelectCollection(collection)}
-                      disabled={isLocked}
+                      onClick={() => onSelectCollection(collection)}
                     >
-                      {isLocked ? `🔒 ${t.lockedCollection}` : t.viewCollection}
+                      {t.viewCollection}
                     </button>
-                    {!isLocked && (
-                      <button 
-                        className="delete-btn"
-                        onClick={() => openDeleteModal(collection)}
-                      >
-                        🗑️
-                      </button>
-                    )}
+                    <button 
+                      className="delete-btn"
+                      onClick={() => openDeleteModal(collection)}
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </div>
-              )
-            })}
+            ))}
           </div>
         )}
       </main>

@@ -574,6 +574,83 @@ def send_subscription_cancelled_email(to_email: str, plan_name: str, expires_at=
         return False
 
 
+def send_token_purchase_email(to_email: str, package_name: str, tokens_added: int, total_tokens: int) -> bool:
+    """Invia email di conferma acquisto token"""
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+    
+    payload = {
+        "sender": {
+            "name": FROM_NAME,
+            "email": FROM_EMAIL
+        },
+        "to": [
+            {
+                "email": to_email,
+                "name": to_email.split('@')[0]
+            }
+        ],
+        "subject": f"Token Acquistati: {package_name} - Magic Deck Builder",
+        "htmlContent": f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+                .token-box {{ background: #ecfdf5; border: 2px solid #10b981; border-radius: 10px; padding: 20px; margin: 20px 0; text-align: center; }}
+                .token-amount {{ font-size: 36px; font-weight: bold; color: #059669; }}
+                .token-label {{ font-size: 14px; color: #64748b; margin-top: 4px; }}
+                .balance {{ font-size: 18px; color: #333; margin-top: 10px; }}
+                .button {{ display: inline-block; padding: 15px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }}
+                .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>✅ Token Acquistati!</h1>
+                </div>
+                <div class="content">
+                    <h2>Grazie per il tuo acquisto!</h2>
+                    <p>I tuoi token sono stati accreditati con successo.</p>
+                    
+                    <div class="token-box">
+                        <div class="token-amount">+{tokens_added} token</div>
+                        <div class="token-label">Pacchetto {package_name}</div>
+                        <div class="balance">Saldo attuale: <strong>{total_tokens} token</strong></div>
+                    </div>
+                    
+                    <p>Ora puoi utilizzare i token per caricare carte, cercare mazzi e molto altro!</p>
+                    
+                    <div style="text-align: center;">
+                        <a href="{FRONTEND_URL}" class="button">Vai a Magic Deck Builder</a>
+                    </div>
+                </div>
+                <div class="footer">
+                    <p>&copy; 2026 Magic Deck Builder. Tutti i diritti riservati.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+    }
+    
+    try:
+        response = requests.post(BREVO_API_URL, json=payload, headers=headers)
+        response.raise_for_status()
+        print(f"✅ Email acquisto token inviata a {to_email}")
+        return True
+    except Exception as e:
+        print(f"❌ Errore invio email a {to_email}: {e}")
+        return False
+
+
 def send_inactive_warning_email(to_email: str, last_login) -> bool:
     """Invia email di avviso per account inattivo da 3 anni"""
     

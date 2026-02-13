@@ -23,13 +23,16 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Subscription
-    subscription_type = Column(String, default='free')  # free, monthly_10, monthly_30, yearly, lifetime
+    # Subscription (legacy - kept for migration compatibility)
+    subscription_type = Column(String, default='free')
     subscription_expires_at = Column(DateTime, nullable=True)
-    uploads_count = Column(Integer, default=0)  # Upload counter
-    uploads_limit = Column(Integer, default=3)  # Upload limit (3 for free)
-    searches_count = Column(Integer, default=0)  # Deck search counter
-    searches_limit = Column(Integer, default=10)  # Deck search limit (10 for free)
+    uploads_count = Column(Integer, default=0)
+    uploads_limit = Column(Integer, default=3)
+    searches_count = Column(Integer, default=0)
+    searches_limit = Column(Integer, default=10)
+    
+    # Token system
+    tokens = Column(Integer, default=0)  # Current token balance
     
     # Stripe
     stripe_customer_id = Column(String, nullable=True, unique=True)
@@ -242,3 +245,15 @@ class PolicyAcceptance(Base):
     __table_args__ = (
         Index('idx_user_policy', 'user_id', 'policy_type', 'policy_version'),
     )
+
+class TokenTransaction(Base):
+    """Token purchase and consumption history"""
+    __tablename__ = "token_transactions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    amount = Column(Integer, nullable=False)  # +N for purchase, -1 for consumption
+    action = Column(String, nullable=False)  # purchase, upload, search, collection, save_deck, public_search
+    description = Column(String, nullable=True)  # Human-readable description
+    stripe_session_id = Column(String, nullable=True)  # Stripe checkout session ID for purchases
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

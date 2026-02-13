@@ -12,7 +12,7 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
   const [deckToDelete, setDeckToDelete] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [subscriptionStatus, setSubscriptionStatus] = useState(null)
+  const [tokenBalance, setTokenBalance] = useState(null)
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [deckSubscription, setDeckSubscription] = useState(null)
   const [newDeck, setNewDeck] = useState({
@@ -24,25 +24,6 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
     cardsText: ''
   })
 
-  // Limiti mazzi per tipo abbonamento - CORRETTI
-  const DECK_LIMITS = {
-    'free': 3,
-    'premium': 3,
-    'premium_monthly': 3,
-    'premium_10': 3,
-    '10_uploads': 3,
-    'monthly_10': 3,
-    'premium_30': 5,
-    '30_uploads': 5,
-    'premium_30_monthly': 5,
-    'monthly_30': 5,
-    'premium_annual': 50,
-    'yearly': 50,
-    'annual': 50,
-    'yearly_unlimited': 50,
-    'lifetime': -1, // illimitato
-    'lifetime_unlimited': -1
-  }
 
   const translations = {
     it: {
@@ -82,19 +63,12 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
       deckFormatRequired: 'Il formato è obbligatorio',
       deckColorsRequired: 'I colori sono obbligatori',
       deckCardsRequired: 'Devi inserire almeno una carta',
-      limitReached: 'Limite Mazzi Raggiunto',
-      limitReachedMessage: 'Hai raggiunto il limite di {limit} mazzi per il tuo piano {plan}.',
-      limitReachedUpgrade: 'Aggiorna il tuo abbonamento per salvare più mazzi:',
-      limitPremium: '• Premium (10 caricamenti/mese): fino a 3 mazzi',
-      limitPremium30: '• Premium (30 caricamenti/mese): fino a 5 mazzi',
-      limitAnnual: '• Premium Annuale: fino a 50 mazzi',
-      limitLifetime: '• Lifetime: mazzi illimitati',
-      upgradeNow: 'Aggiorna Ora',
+      limitReached: 'Token Insufficienti',
+      limitReachedMessage: 'Non hai abbastanza token per creare un nuovo mazzo.',
+      limitReachedUpgrade: 'Acquista token per continuare:',
+      buyTokens: 'Acquista Token',
       deckCount: '{current} mazzi salvati',
-      deckCountUnlimited: '{current} mazzi salvati',
-      lockedDeck: 'Mazzo bloccato',
-      upgradeToAccess: 'Aggiorna il piano per accedere a questo mazzo',
-      upgradePlan: 'Aggiorna Piano'
+      deckCountUnlimited: '{current} mazzi salvati'
     },
     en: {
       title: 'My Decks',
@@ -133,19 +107,12 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
       deckFormatRequired: 'Format is required',
       deckColorsRequired: 'Colors are required',
       deckCardsRequired: 'You must enter at least one card',
-      limitReached: 'Deck Limit Reached',
-      limitReachedMessage: 'You have reached the limit of {limit} decks for your {plan} plan.',
-      limitReachedUpgrade: 'Upgrade your subscription to save more decks:',
-      limitPremium: '• Premium (10 uploads/month): up to 3 decks',
-      limitPremium30: '• Premium (30 uploads/month): up to 5 decks',
-      limitAnnual: '• Premium Annual: up to 50 decks',
-      limitLifetime: '• Lifetime: unlimited decks',
-      upgradeNow: 'Upgrade Now',
+      limitReached: 'Insufficient Tokens',
+      limitReachedMessage: 'You don\'t have enough tokens to create a new deck.',
+      limitReachedUpgrade: 'Purchase tokens to continue:',
+      buyTokens: 'Buy Tokens',
       deckCount: '{current} decks saved',
-      deckCountUnlimited: '{current} decks saved',
-      lockedDeck: 'Locked deck',
-      upgradeToAccess: 'Upgrade your plan to access this deck',
-      upgradePlan: 'Upgrade Plan'
+      deckCountUnlimited: '{current} decks saved'
     }
   }
 
@@ -153,16 +120,16 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
 
   useEffect(() => {
     loadDecks()
-    loadSubscriptionStatus()
+    loadTokenBalance()
   }, [])
 
-  const loadSubscriptionStatus = async () => {
+  const loadTokenBalance = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/subscriptions/status?token=${user.token}`)
+      const res = await fetch(`${API_URL}/api/tokens/balance?token=${user.token}`)
       const data = await res.json()
-      setSubscriptionStatus(data)
+      setTokenBalance(data.tokens)
     } catch (err) {
-      console.error('Error loading subscription status:', err)
+      console.error('Error loading token balance:', err)
     }
   }
 
@@ -205,13 +172,10 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
   }
 
   const handleCreateDeck = async () => {
-    // Controlla limiti prima di creare
-    if (subscriptionStatus) {
-      const limit = DECK_LIMITS[subscriptionStatus.subscription_type] || 3
-      if (limit !== -1 && decks.length >= limit) {
-        setShowLimitModal(true)
-        return
-      }
+    // Check token balance before creating
+    if (tokenBalance !== null && tokenBalance <= 0) {
+      setShowLimitModal(true)
+      return
     }
 
     // Validazione
@@ -368,33 +332,12 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
     return '#f5576c' // red
   }
 
-  const getDeckLimit = () => {
-    if (!subscriptionStatus) return 3
-    const type = subscriptionStatus.subscription_type.toLowerCase()
-    return DECK_LIMITS[type] || 3 // default fallback
-  }
-
   const canCreateDeck = () => {
-    const limit = getDeckLimit()
-    return limit === -1 || decks.length < limit
+    return tokenBalance === null || tokenBalance > 0
   }
 
   const getDeckCountText = () => {
-    const limit = getDeckLimit()
-    if (limit === -1) {
-      return t.deckCountUnlimited.replace('{current}', decks.length)
-    }
-    return t.deckCount.replace('{current}', decks.length).replace('{limit}', limit)
-  }
-
-  const getPlanName = () => {
-    if (!subscriptionStatus) return 'Free'
-    const type = subscriptionStatus.subscription_type
-    if (type === 'premium' || type === 'premium_monthly') return 'Premium (10/mese)'
-    if (type === 'premium_30') return 'Premium (30/mese)'
-    if (type === 'premium_annual') return 'Premium Annuale'
-    if (type === 'lifetime') return 'Lifetime'
-    return 'Free'
+    return t.deckCount.replace('{current}', decks.length)
   }
 
   return (
@@ -411,11 +354,12 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
         <div className="header-title-row">
           <h1>{t.title}</h1>
           <div className="header-right">
-            {subscriptionStatus && (
-              <div className="deck-counter">
-                {getDeckCountText()}
-              </div>
-            )}
+            <div className="deck-counter">
+              {getDeckCountText()}
+              {tokenBalance !== null && (
+                <span className="token-badge"> | 🪙 {tokenBalance} token</span>
+              )}
+            </div>
             <button 
               className="create-deck-btn" 
               onClick={() => {
@@ -447,20 +391,8 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
           </div>
         ) : (
           <div className="decks-grid">
-            {decks.map((deck, index) => {
-              const deckLimit = deckSubscription ? deckSubscription.deck_limit : null
-              const isLocked = deckLimit !== null && index >= deckLimit
-              return (
-              <div key={deck.id} className={`deck-card ${isLocked ? 'deck-locked' : ''}`}>
-                {isLocked && (
-                  <div className="locked-overlay">
-                    <div className="locked-icon">🔒</div>
-                    <p className="locked-text">{t.upgradeToAccess}</p>
-                    <button className="locked-upgrade-btn" onClick={onShowSubscriptions}>
-                      💎 {t.upgradePlan}
-                    </button>
-                  </div>
-                )}
+            {decks.map((deck) => (
+              <div key={deck.id} className="deck-card">
                 <div className="deck-header">
                   <h3>{deck.name}</h3>
                   <div className="deck-colors">
@@ -531,23 +463,19 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
                 <div className="deck-actions">
                   <button 
                     className="view-btn"
-                    onClick={() => !isLocked && onSelectDeck(deck)}
-                    disabled={isLocked}
+                    onClick={() => onSelectDeck(deck)}
                   >
-                    {isLocked ? `🔒 ${t.lockedDeck}` : t.viewDeck}
+                    {t.viewDeck}
                   </button>
-                  {!isLocked && (
-                    <button 
-                      className="delete-btn"
-                      onClick={() => openDeleteModal(deck)}
-                    >
-                      🗑️
-                    </button>
-                  )}
+                  <button 
+                    className="delete-btn"
+                    onClick={() => openDeleteModal(deck)}
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
-              )
-            })}
+            ))}
           </div>
         )}
       </main>
@@ -689,25 +617,15 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
         </div>
       )}
 
-      {showLimitModal && subscriptionStatus && (
+      {showLimitModal && (
         <div className="modal-overlay" onClick={() => setShowLimitModal(false)}>
           <div className="modal-content limit-modal" onClick={(e) => e.stopPropagation()}>
             <h2>⚠️ {t.limitReached}</h2>
             <div className="limit-modal-content">
               <p className="limit-message">
-                {t.limitReachedMessage
-                  .replace('{limit}', getDeckLimit())
-                  .replace('{plan}', getPlanName())}
+                {t.limitReachedMessage}
               </p>
-              <div className="upgrade-info">
-                <p className="upgrade-title">{t.limitReachedUpgrade}</p>
-                <ul className="upgrade-list">
-                  <li>{t.limitPremium}</li>
-                  <li>{t.limitPremium30}</li>
-                  <li>{t.limitAnnual}</li>
-                  <li>{t.limitLifetime}</li>
-                </ul>
-              </div>
+              <p className="upgrade-title">{t.limitReachedUpgrade}</p>
             </div>
             <div className="modal-actions">
               <button 
@@ -723,7 +641,7 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
                   if (onShowSubscriptions) onShowSubscriptions()
                 }}
               >
-                💎 {t.upgradeNow}
+                🪙 {t.buyTokens}
               </button>
             </div>
           </div>

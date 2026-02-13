@@ -9,9 +9,9 @@
 }
 
 .subscriptions-header {
-  background: rgba(15, 12, 41, 0.75);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  background: rgba(15, 12, 41, 0.4);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
   padding: 2rem 3rem;
 }
 
@@ -62,10 +62,10 @@
   padding: 3rem;
   max-width: 1400px;
   margin: 1rem auto;
-  background: rgba(15, 12, 41, 0.75);
-  backdrop-filter: blur(20px);
+  background: rgba(15, 12, 41, 0.4);
+  backdrop-filter: blur(24px);
   border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
 }
 
 .loading-container {
@@ -644,4 +644,205 @@
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Token Balance Display */
+.token-balance-display {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.token-balance-amount {
+  font-size: 4rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.token-balance-label {
+  font-size: 1.5rem;
+  color: #a0aec0;
+  font-weight: 600;
+}
+
+.no-tokens-warning {
+  color: #f5576c;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+/* Token Info Section */
+.token-info-section {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.token-info-section h4 {
+  color: #cbd5e0;
+  font-size: 1rem;
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+}
+
+.token-actions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.token-actions-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+.token-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* Token Count in Package Card */
+.token-count {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-top: 0.5rem;
+}
+
+.price-per-token {
+  font-size: 0.85rem;
+  color: #a0aec0;
+  margin-top: 0.25rem;
+}
+
+/* Recent Activity / Transactions */
+.recent-activity {
+  margin-top: 3rem;
+}
+
+.recent-activity h3 {
+  color: #fff;
+  font-size: 1.3rem;
+  margin: 0 0 1.5rem 0;
+  font-weight: 700;
+}
+
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.transaction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.transaction-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.transaction-item.credit {
+  border-left: 3px solid #68d391;
+}
+
+.transaction-item.debit {
+  border-left: 3px solid #f5576c;
+}
+
+.transaction-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.transaction-action {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.transaction-desc {
+  color: #a0aec0;
+  font-size: 0.8rem;
+}
+
+.transaction-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.amount-positive {
+  color: #68d391;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.amount-negative {
+  color: #f5576c;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.transaction-date {
+  color: #718096;
+  font-size: 0.75rem;
+}
+
+/* Responsive for token elements */
+@media (max-width: 768px) {
+  .token-balance-amount {
+    font-size: 3rem;
+  }
+  
+  .token-balance-label {
+    font-size: 1.2rem;
+  }
+  
+  .token-actions-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .transaction-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .transaction-amount {
+    align-items: flex-start;
+    flex-direction: row;
+    gap: 0.75rem;
+  }
 }

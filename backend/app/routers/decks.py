@@ -213,22 +213,15 @@ def match_decks(
     if not user:
         return {"decks": [], "message": "User not found"}
     
-    # Check if user can search (has searches remaining)
-    if user.searches_count >= user.searches_limit:
+    # Check if user has tokens
+    if user.tokens <= 0:
         raise HTTPException(
             status_code=403,
-            detail=f"Search limit reached ({user.searches_limit}). Please upgrade your subscription to continue."
+            detail="Insufficient tokens. Please purchase more tokens to continue."
         )
     
-    # Determine result limit based on subscription
-    result_limits = {
-        'free': 10,
-        'monthly_10': 20,
-        'monthly_30': 30,
-        'yearly': None,  # unlimited
-        'lifetime': None  # unlimited
-    }
-    result_limit = result_limits.get(user.subscription_type, 10)
+    # No result limit with token system
+    result_limit = None
     
     # Terre base da normalizzare
     BASIC_LANDS = {
@@ -394,28 +387,26 @@ def match_decks(
     # Ordina per match percentage
     matched_decks.sort(key=lambda d: d["match_percentage"], reverse=True)
     
-    # Apply subscription limit
-    limited_decks = matched_decks[:result_limit] if result_limit else matched_decks
+    # No result limit with token system
+    limited_decks = matched_decks
     
-    # Increment search counter
-    user.searches_count += 1
-    db.commit()
+    # Consume 1 token for search
+    from app.routers.tokens import consume_token
+    consume_token(user, 'search', f'Deck search: format={format}, colors={colors}', db)
     
     print(f"✅ Trovati {len(matched_decks)} mazzi con match >= {min_match}%")
-    print(f"📊 Restituiti {len(limited_decks)} mazzi (limite: {result_limit if result_limit else 'illimitato'})")
-    print(f"🔍 Ricerche: {user.searches_count}/{user.searches_limit}")
+    print(f"📊 Restituiti {len(limited_decks)} mazzi")
+    print(f"🪙 Token rimanenti: {user.tokens}")
     
     return {
         "decks": limited_decks,
         "total_templates": len(templates),
         "total_matches": len(matched_decks),
         "user_cards_count": len(owned_cards),
-        "subscription_type": user.subscription_type,
-        "result_limit": result_limit,
-        "limited": result_limit is not None and len(matched_decks) > result_limit,
-        "searches_count": user.searches_count,
-        "searches_limit": user.searches_limit,
-        "searches_remaining": max(0, user.searches_limit - user.searches_count)
+        "subscription_type": "token",
+        "result_limit": None,
+        "limited": False,
+        "tokens_remaining": user.tokens
     }
 
 

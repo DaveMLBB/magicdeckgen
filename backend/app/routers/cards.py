@@ -224,20 +224,11 @@ async def upload_cards(
         if not collection:
             raise HTTPException(status_code=404, detail="Collection not found")
     
-    # Check subscription expiration
-    if user.subscription_expires_at and datetime.utcnow() > user.subscription_expires_at:
-        if user.subscription_type != 'lifetime':
-            user.subscription_type = 'free'
-            user.uploads_limit = 3
-            user.uploads_count = 0
-            user.subscription_expires_at = None
-            db.commit()
-    
-    # Check if can upload
-    if user.uploads_count >= user.uploads_limit:
+    # Check if user has tokens
+    if user.tokens <= 0:
         raise HTTPException(
             status_code=403,
-            detail=f"Upload limit reached ({user.uploads_limit}). Please upgrade your subscription to continue."
+            detail="Insufficient tokens. Please purchase more tokens to continue."
         )
     
     if not file.filename.endswith(('.xlsx', '.csv')):
@@ -308,26 +299,7 @@ async def upload_cards(
             'rarity': 'rarity'
         }
     
-    # Check unique cards per collection limit
-    unique_card_limits = {
-        'free': 20,
-        'monthly_10': None,
-        'monthly_30': None,
-        'yearly': None,
-        'lifetime': None
-    }
-    card_limit = unique_card_limits.get(user.subscription_type, 20)
-    
-    if card_limit is not None:
-        # Count unique card names in the uploaded file
-        name_col = column_mapping.get('name')
-        if name_col and name_col in df.columns:
-            unique_names = df[name_col].dropna().nunique()
-            if unique_names > card_limit:
-                raise HTTPException(
-                    status_code=403,
-                    detail=f"File contains {unique_names} unique cards, but your plan allows max {card_limit} per collection. Upgrade your subscription for unlimited cards."
-                )
+    # No card limit per collection with token system
     
     # Rimuovi carte esistenti dell'utente (solo per la collezione specifica se fornita)
     if collection_id:
@@ -449,13 +421,13 @@ async def upload_cards(
     
     db.commit()
     
-    # Incrementa contatore caricamenti
-    user.uploads_count += 1
-    db.commit()
+    # Consume 1 token for upload
+    from app.routers.tokens import consume_token
+    consume_token(user, 'upload', f'Upload file: {file.filename}', db)
     
     print(f"✅ Caricate {cards_added} carte su {len(df)} righe")
     print(f"🔍 Arricchite {cards_enriched} carte dal database MTG")
-    print(f"📊 Caricamenti: {user.uploads_count}/{user.uploads_limit}")
+    print(f"🪙 Token rimanenti: {user.tokens}")
     
     enriched_msg = f" ({cards_enriched} enriched from MTG database)" if cards_enriched > 0 else ""
     
@@ -464,7 +436,7 @@ async def upload_cards(
         "count": cards_added,
         "cards_enriched": cards_enriched,
         "errors": errors[:10] if errors else [],
-        "uploads_remaining": user.uploads_limit - user.uploads_count
+        "tokens_remaining": user.tokens
     }
 
 @router.get("/{user_id}")
@@ -485,38 +457,7 @@ def add_card(user_id: str, card_data: dict, db: Session = Depends(get_db)):
     """Aggiungi una singola carta"""
     from app.models import MTGCard, User, CardCollection
     
-    # Check subscription limits for unique cards per collection
     collection_id = card_data.get('collection_id')
-    if collection_id:
-        user = db.query(User).filter(User.id == int(user_id)).first()
-        if user:
-            unique_card_limits = {
-                'free': 20,
-                'monthly_10': None,  # unlimited
-                'monthly_30': None,
-                'yearly': None,
-                'lifetime': None
-            }
-            card_limit = unique_card_limits.get(user.subscription_type, 20)
-            
-            if card_limit is not None:
-                # Check if card already exists (update quantity doesn't count as new)
-                existing = db.query(Card).filter(
-                    Card.user_id == user_id,
-                    Card.name == card_data.get('name'),
-                    Card.collection_id == collection_id
-                ).first()
-                
-                if not existing:
-                    unique_count = db.query(func.count(Card.id)).filter(
-                        Card.collection_id == collection_id
-                    ).scalar()
-                    
-                    if unique_count >= card_limit:
-                        raise HTTPException(
-                            status_code=403,
-                            detail=f"Unique card limit per collection reached ({card_limit}). Upgrade your subscription for unlimited cards."
-                        )
     
     # Cerca la carta nel database MTG per arricchire i dati
     card_name = card_data.get('name')
@@ -599,8 +540,8 @@ def get_user_collection(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Determine display limit based on subscription (20 unique cards for free)
-    unique_card_limit = 20 if user.subscription_type == 'free' else None
+    # No card limit per collection with token system
+    unique_card_limit = None
     
     # Base query - join with MTG cards for enrichment
     query = db.query(Card).filter(Card.user_id == user_id)
@@ -743,12 +684,12 @@ def get_user_collection(
             "has_prev": page > 1
         },
         "subscription": {
-            "type": user.subscription_type,
-            "limited": limited,
-            "unique_card_limit": unique_card_limit,
+            "type": "token",
+            "limited": False,
+            "unique_card_limit": None,
             "total_unique_cards": total_unique_cards,
-            "locked_cards": locked_cards,
-            "cards_remaining": max(0, unique_card_limit - total_unique_cards) if unique_card_limit else None
+            "locked_cards": 0,
+            "cards_remaining": None
         }
     }
 
@@ -786,21 +727,19 @@ def get_collection_stats(
         card_type = card.card_type or "Unknown"
         types_count[card_type] = types_count.get(card_type, 0) + 1
     
-    # Check if limited (20 unique cards for free)
-    unique_card_limit = 20 if user.subscription_type == 'free' else None
-    limited = unique_card_limit and total_unique > unique_card_limit
-    locked_cards = max(0, total_unique - unique_card_limit) if unique_card_limit else 0
-    cards_remaining = max(0, unique_card_limit - total_unique) if unique_card_limit else None
-    
-    # Show warning when 5 or fewer cards remaining
-    show_upgrade_warning = unique_card_limit and cards_remaining is not None and cards_remaining <= 5 and cards_remaining > 0
+    # No card limit per collection with token system
+    unique_card_limit = None
+    limited = False
+    locked_cards = 0
+    cards_remaining = None
+    show_upgrade_warning = False
     
     return {
         "total_unique_cards": total_unique,
         "total_cards": total_quantity,
         "colors_distribution": colors_count,
         "types_distribution": types_count,
-        "subscription_type": user.subscription_type,
+        "subscription_type": "token",
         "limited": limited,
         "unique_card_limit": unique_card_limit,
         "locked_cards": locked_cards,

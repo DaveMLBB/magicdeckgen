@@ -24,31 +24,11 @@ def get_user_collections(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check if subscription is expired -> check Stripe first, then reset to free
-    if user.subscription_expires_at and datetime.utcnow() > user.subscription_expires_at:
-        if user.subscription_type != 'lifetime':
-            from app.routers.subscriptions import check_stripe_subscription_active
-            if not check_stripe_subscription_active(user, db):
-                user.subscription_type = 'free'
-                user.uploads_limit = 3
-                user.uploads_count = 0
-                user.subscription_expires_at = None
-                db.commit()
-    
     collections = db.query(CardCollection).filter(CardCollection.user_id == user_id).all()
     
-    # Collection limits based on subscription
-    collection_limits = {
-        'free': 5,
-        'monthly_10': 10,
-        'monthly_30': 50,
-        'yearly': None,  # Unlimited
-        'lifetime': None  # Unlimited
-    }
-    
-    limit = collection_limits.get(user.subscription_type, 5)
+    # No collection limit with token system
     current_count = len(collections)
-    can_create_more = limit is None or current_count < limit
+    can_create_more = user.tokens > 0
     
     # Get card count for each collection
     result = []
@@ -84,11 +64,12 @@ def get_user_collections(user_id: int, db: Session = Depends(get_db)):
     return {
         "collections": result,
         "subscription": {
-            "type": user.subscription_type,
-            "collection_limit": limit,
+            "type": "token",
+            "collection_limit": None,
             "current_count": current_count,
             "can_create_more": can_create_more,
-            "remaining": (limit - current_count) if limit else None
+            "remaining": None,
+            "tokens": user.tokens
         }
     }
 
@@ -103,27 +84,12 @@ def create_collection(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check collection limits based on subscription
-    collection_limits = {
-        'free': 5,
-        'monthly_10': 10,
-        'monthly_30': 50,
-        'yearly': None,  # Unlimited
-        'lifetime': None  # Unlimited
-    }
-    
-    limit = collection_limits.get(user.subscription_type, 5)
-    
-    if limit is not None:
-        current_count = db.query(func.count(CardCollection.id)).filter(
-            CardCollection.user_id == user_id
-        ).scalar()
-        
-        if current_count >= limit:
-            raise HTTPException(
-                status_code=403,
-                detail=f"Collection limit reached ({limit}). Upgrade your subscription to create more collections."
-            )
+    # Check if user has tokens
+    if user.tokens <= 0:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient tokens. Please purchase more tokens to continue."
+        )
     
     # Check if collection name already exists for this user
     existing = db.query(CardCollection).filter(
@@ -147,11 +113,16 @@ def create_collection(
     db.commit()
     db.refresh(new_collection)
     
+    # Consume 1 token for creating collection
+    from app.routers.tokens import consume_token
+    consume_token(user, 'collection', f'Create collection: {new_collection.name}', db)
+    
     return {
         "id": new_collection.id,
         "name": new_collection.name,
         "description": new_collection.description,
-        "created_at": new_collection.created_at.isoformat()
+        "created_at": new_collection.created_at.isoformat(),
+        "tokens_remaining": user.tokens
     }
 
 @router.put("/{collection_id}")
@@ -252,27 +223,12 @@ def import_deck_as_collection(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check collection limits
-    collection_limits = {
-        'free': 5,
-        'monthly_10': 10,
-        'monthly_30': 50,
-        'yearly': None,
-        'lifetime': None
-    }
-    
-    limit = collection_limits.get(user.subscription_type, 5)
-    
-    if limit is not None:
-        current_count = db.query(func.count(CardCollection.id)).filter(
-            CardCollection.user_id == user_id
-        ).scalar()
-        
-        if current_count >= limit:
-            raise HTTPException(
-                status_code=403,
-                detail=f"Collection limit reached ({limit}). Upgrade your subscription to create more collections."
-            )
+    # Check if user has tokens
+    if user.tokens <= 0:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient tokens. Please purchase more tokens to continue."
+        )
     
     # Get deck template
     deck_template = db.query(DeckTemplate).filter(DeckTemplate.id == deck_template_id).first()
@@ -353,6 +309,10 @@ def import_deck_as_collection(
     db.commit()
     db.refresh(new_collection)
     
+    # Consume 1 token for importing deck as collection
+    from app.routers.tokens import consume_token
+    consume_token(user, 'collection', f'Import deck as collection: {new_collection.name}', db)
+    
     print(f"✅ Importate {cards_added} carte, {cards_enriched} arricchite dal database MTG")
     
     return {
@@ -361,7 +321,8 @@ def import_deck_as_collection(
         "description": new_collection.description,
         "cards_added": cards_added,
         "cards_enriched": cards_enriched,
-        "created_at": new_collection.created_at.isoformat()
+        "created_at": new_collection.created_at.isoformat(),
+        "tokens_remaining": user.tokens
     }
 
 @router.post("/{collection_id}/link-deck/{deck_id}")

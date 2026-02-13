@@ -134,9 +134,9 @@ function App() {
       errorAnalyzing: 'Errore: Impossibile analizzare il file',
       errorUploading: 'Errore nel caricamento del file',
       errorSearching: 'Errore nella ricerca dei deck',
-      limitReached: 'Limite raggiunto. Aggiorna il tuo abbonamento per continuare.',
-      upgradePlanTitle: 'Limite del piano raggiunto',
-      upgradePlanBtn: 'Vedi Piani di Abbonamento',
+      limitReached: 'Token insufficienti. Acquista token per continuare.',
+      upgradePlanTitle: 'Token Insufficienti',
+      upgradePlanBtn: 'Acquista Token',
       upgradePlanClose: 'Chiudi',
       errorImporting: 'Errore nell\'importazione del mazzo',
       mustMapColumns: '⚠️ Devi mappare almeno le colonne Nome e Quantità',
@@ -235,9 +235,9 @@ function App() {
       errorAnalyzing: 'Error: Unable to analyze file',
       errorUploading: 'Error uploading file',
       errorSearching: 'Error searching for decks',
-      limitReached: 'Limit reached. Upgrade your subscription to continue.',
-      upgradePlanTitle: 'Plan Limit Reached',
-      upgradePlanBtn: 'View Subscription Plans',
+      limitReached: 'Insufficient tokens. Purchase tokens to continue.',
+      upgradePlanTitle: 'Insufficient Tokens',
+      upgradePlanBtn: 'Buy Tokens',
       upgradePlanClose: 'Close',
       errorImporting: 'Error importing deck',
       mustMapColumns: '⚠️ You must map at least Name and Quantity columns',
@@ -282,17 +282,17 @@ function App() {
   const loadSubscriptionStatus = async () => {
     if (!user) return
     try {
-      const res = await fetch(`${API_URL}/api/subscriptions/status?token=${user.token}`)
+      const res = await fetch(`${API_URL}/api/tokens/balance?token=${user.token}`)
       const data = await res.json()
-      setSubscriptionStatus(data)
+      setSubscriptionStatus({ tokens: data.tokens })
       
-      // Se l'utente è free e non abbiamo ancora mostrato la modale, mostrala
-      if (data.subscription_type === 'free' && !hasShownSubscriptionModal) {
+      // Se l'utente ha 0 token e non abbiamo ancora mostrato la modale, mostrala
+      if (data.tokens === 0 && !hasShownSubscriptionModal) {
         setCurrentView('subscriptions')
         setHasShownSubscriptionModal(true)
       }
     } catch (err) {
-      console.error('Errore caricamento stato abbonamento:', err)
+      console.error('Errore caricamento saldo token:', err)
     }
   }
 
@@ -1078,7 +1078,7 @@ function App() {
                 className={`global-nav-btn subscription ${currentView === 'subscriptions' ? 'active' : ''}`}
                 onClick={() => setCurrentView('subscriptions')}
               >
-                💎 {subscriptionStatus.uploads_remaining} {language === 'it' ? 'caricamenti' : 'uploads'}
+                🪙 {subscriptionStatus.tokens ?? 0} token
               </button>
             )}
             <button className="global-nav-btn" onClick={() => setCurrentView('privacy-settings')}>
@@ -1780,7 +1780,7 @@ function App() {
       {showUpgradeModal && (
         <div className="upgrade-modal-overlay" onClick={() => setShowUpgradeModal(false)}>
           <div className="upgrade-modal" onClick={e => e.stopPropagation()}>
-            <div className="upgrade-modal-icon">🔒</div>
+            <div className="upgrade-modal-icon">🪙</div>
             <h2 className="upgrade-modal-title">{t.upgradePlanTitle}</h2>
             <p className="upgrade-modal-message">{upgradeMessage}</p>
             <div className="upgrade-modal-actions">
@@ -1791,7 +1791,7 @@ function App() {
                   setCurrentView('subscriptions')
                 }}
               >
-                💎 {t.upgradePlanBtn}
+                🪙 {t.upgradePlanBtn}
               </button>
               <button 
                 className="upgrade-modal-btn-secondary"

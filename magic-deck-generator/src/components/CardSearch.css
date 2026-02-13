@@ -109,11 +109,11 @@
   display: flex;
   gap: 1rem;
   margin-bottom: 1.5rem;
-  background: rgba(15, 12, 41, 0.75);
-  backdrop-filter: blur(20px);
+  background: rgba(15, 12, 41, 0.4);
+  backdrop-filter: blur(24px);
   border-radius: 16px;
   padding: 1.5rem;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
 }
 
 .search-input-wrapper {
@@ -241,11 +241,11 @@
 }
 
 .filters-panel {
-  background: rgba(15, 12, 41, 0.75);
-  backdrop-filter: blur(20px);
+  background: rgba(15, 12, 41, 0.4);
+  backdrop-filter: blur(24px);
   border-radius: 16px;
   padding: 1.5rem;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.12);
   animation: slideDown 0.3s ease-out;
 }
 
@@ -736,11 +736,11 @@
   gap: 0.75rem;
   max-width: 1400px;
   margin: 0 auto;
-  background: rgba(15, 12, 41, 0.75);
-  backdrop-filter: blur(20px);
+  background: rgba(15, 12, 41, 0.4);
+  backdrop-filter: blur(24px);
   border-radius: 20px;
   padding: 1.5rem;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
 }
 
 .card-item {

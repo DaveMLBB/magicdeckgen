@@ -10,11 +10,11 @@
 .saved-deck-page .deck-detail-header {
   max-width: 1400px;
   margin: 0 auto 2rem;
-  background: rgba(15, 12, 41, 0.75);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(15, 12, 41, 0.4);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 20px;
   padding: 2rem 2.5rem;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
   display: block;
 }
 
@@ -376,11 +376,11 @@
 .deck-cards-section {
   max-width: 1400px;
   margin: 2rem auto 0;
-  background: rgba(15, 12, 41, 0.75);
-  backdrop-filter: blur(20px);
+  background: rgba(15, 12, 41, 0.4);
+  backdrop-filter: blur(24px);
   border-radius: 20px;
   padding: 2rem 2.5rem;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
 }
 
 .cards-header {

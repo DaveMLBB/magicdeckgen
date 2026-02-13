@@ -16,11 +16,11 @@
   max-width: 1400px;
   animation: fadeIn 0.3s ease-out;
   position: relative;
-  background: rgba(15, 12, 41, 0.75);
-  backdrop-filter: blur(20px);
+  background: rgba(15, 12, 41, 0.4);
+  backdrop-filter: blur(24px);
   border-radius: 20px;
   padding: 2rem;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
 }
 
 .landing-language-selector {
