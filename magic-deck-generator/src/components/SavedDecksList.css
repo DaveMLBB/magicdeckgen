@@ -10,8 +10,8 @@
 .decks-header {
   max-width: 1400px;
   margin: 0 auto 2rem;
-  background: rgba(15, 12, 41, 0.4);
-  backdrop-filter: blur(24px);
+  background: rgba(15, 12, 41, 0.3);
+  backdrop-filter: blur(1px);
   border-radius: 20px;
   padding: 2rem 2.5rem;
   border: 1px solid rgba(255,255,255,0.12);
@@ -71,8 +71,8 @@
   max-width: 1400px;
   margin: 0 auto;
   min-height: 60vh;
-  background: rgba(15, 12, 41, 0.4);
-  backdrop-filter: blur(24px);
+  background: rgba(15, 12, 41, 0.3);
+  backdrop-filter: blur(2px);
   border-radius: 20px;
   padding: 2rem 2.5rem;
   border: 1px solid rgba(255,255,255,0.12);

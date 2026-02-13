@@ -38,7 +38,7 @@ header {
   text-align: center;
   padding: 3rem 2rem 2rem;
   background: rgba(0,0,0,0.3);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(2px);
   border-bottom: 1px solid rgba(255,255,255,0.1);
   position: relative;
   z-index: 1;
@@ -64,8 +64,8 @@ main {
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 1.5rem;
-  background: rgba(15, 12, 41, 0.4);
-  backdrop-filter: blur(24px);
+  background: rgba(15, 12, 41, 0.3);
+  backdrop-filter: blur(2px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   position: sticky;
   top: 0;
@@ -401,8 +401,8 @@ main {
 }
 
 .deck-card {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(2px);
   border: 2px solid rgba(255,255,255,0.1);
   border-radius: 16px;
   padding: 1.5rem;
@@ -520,8 +520,8 @@ main {
 
 .deck-detail {
   margin-top: 3rem;
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(2px);
   border-radius: 16px;
   padding: 2rem;
   border: 2px solid rgba(255,255,255,0.1);
@@ -1428,8 +1428,8 @@ footer {
 
 /* Filtri */
 .filters-section {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(2px);
   border-radius: 16px;
   padding: 2rem;
   margin-bottom: 2rem;
@@ -2139,7 +2139,7 @@ div.column-mapper.column-mapper {
   max-width: 900px;
   margin: 0 auto 3rem;
   background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(2px);
   border-radius: 16px;
   padding: 2rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -2385,7 +2385,7 @@ div.column-mapper.column-mapper {
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   animation: fadeIn 0.2s ease;
 }
 

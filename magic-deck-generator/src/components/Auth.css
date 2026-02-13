@@ -16,8 +16,8 @@
   max-width: 1400px;
   animation: fadeIn 0.3s ease-out;
   position: relative;
-  background: rgba(15, 12, 41, 0.4);
-  backdrop-filter: blur(24px);
+  background: rgba(15, 12, 41, 0.3);
+  backdrop-filter: blur(2px);
   border-radius: 20px;
   padding: 2rem;
   border: 1px solid rgba(255,255,255,0.12);
@@ -36,8 +36,8 @@
   padding: 0.75rem 1.25rem;
   border-radius: 12px;
   border: 2px solid rgba(255,255,255,0.2);
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(2px);
   color: #cbd5e0;
   font-size: 1rem;
   font-weight: 600;
@@ -158,10 +158,10 @@
 }
 
 .cta-secondary {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.3);
   color: #fff;
   border: 2px solid rgba(255,255,255,0.3);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(2px);
 }
 
 .cta-secondary:hover {
@@ -185,8 +185,8 @@
 }
 
 .feature-card {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(2px);
   border: 2px solid rgba(255,255,255,0.1);
   border-radius: 20px;
   padding: 2.5rem;
@@ -292,8 +292,8 @@
 /* Auth Box Styles */
 
 .auth-box {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(2px);
   border-radius: 20px;
   padding: 3rem;
   max-width: 450px;
@@ -693,7 +693,7 @@
   border: 2px solid rgba(102, 126, 234, 0.3);
   border-radius: 12px;
   animation: slideDown 0.4s ease-out;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(2px);
 }
 
 .recommendation-icon {
@@ -773,8 +773,8 @@
 }
 
 .step-card {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(2px);
   border: 2px solid rgba(255,255,255,0.1);
   border-radius: 20px;
   padding: 2.5rem;
@@ -913,8 +913,8 @@
 }
 
 .testimonial-card {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(2px);
   border: 2px solid rgba(255,255,255,0.1);
   border-radius: 20px;
   padding: 2.5rem;
@@ -1150,7 +1150,7 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;

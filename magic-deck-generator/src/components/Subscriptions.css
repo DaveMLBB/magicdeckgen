@@ -9,8 +9,8 @@
 }
 
 .subscriptions-header {
-  background: rgba(15, 12, 41, 0.4);
-  backdrop-filter: blur(24px);
+  background: rgba(15, 12, 41, 0.3);
+  backdrop-filter: blur(2px);
   border-bottom: 1px solid rgba(255,255,255,0.12);
   padding: 2rem 3rem;
 }
@@ -62,8 +62,8 @@
   padding: 3rem;
   max-width: 1400px;
   margin: 1rem auto;
-  background: rgba(15, 12, 41, 0.4);
-  backdrop-filter: blur(24px);
+  background: rgba(15, 12, 41, 0.3);
+  backdrop-filter: blur(2px);
   border-radius: 20px;
   border: 1px solid rgba(255,255,255,0.12);
 }
@@ -557,7 +557,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
 }
 
 .modal-content.cancel-modal {
