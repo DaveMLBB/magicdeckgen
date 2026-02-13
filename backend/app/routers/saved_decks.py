@@ -419,7 +419,15 @@ def delete_deck(
     if not deck:
         raise HTTPException(status_code=404, detail="Deck not found")
     
-    # Delete all cards first
+    # Delete collection links first (many-to-many)
+    from app.models import saved_deck_collections
+    db.execute(
+        saved_deck_collections.delete().where(
+            saved_deck_collections.c.deck_id == deck_id
+        )
+    )
+    
+    # Delete all cards
     db.query(SavedDeckCard).filter(SavedDeckCard.deck_id == deck_id).delete()
     
     # Delete deck

@@ -146,8 +146,23 @@
 }
 
 .deck-colors {
-  font-size: 1.5rem;
+  display: flex;
+  gap: 4px;
   flex-shrink: 0;
+}
+
+.deck-color-pip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .deck-desc {

@@ -329,10 +329,36 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
     setCreating(false)
   }
 
-  const getColorEmoji = (colors) => {
-    if (!colors) return '⚪'
-    const colorMap = { W: '⚪', U: '🔵', B: '⚫', R: '🔴', G: '🟢' }
-    return colors.split(',').map(c => colorMap[c.trim()] || '⚪').join('')
+  const colorStyleMap = {
+    W: { background: '#F9FAF4', border: '#E0D6B8', label: 'W' },
+    U: { background: '#0E68AB', border: '#0A4F82', label: 'U' },
+    B: { background: '#2B2B2B', border: '#555', label: 'B' },
+    R: { background: '#D32029', border: '#A01820', label: 'R' },
+    G: { background: '#00733E', border: '#005A2E', label: 'G' }
+  }
+
+  const renderDeckColors = (colors) => {
+    if (!colors) return null
+    const parts = colors.split(/[,\/]/).map(c => c.trim()).filter(Boolean)
+    if (parts.length === 0) return null
+    return parts.map((c, i) => {
+      const style = colorStyleMap[c]
+      if (!style) return null
+      return (
+        <span
+          key={i}
+          className="deck-color-pip"
+          style={{
+            background: style.background,
+            borderColor: style.border,
+            color: c === 'W' ? '#333' : '#fff'
+          }}
+          title={c}
+        >
+          {style.label}
+        </span>
+      )
+    })
   }
 
   const getCompletionColor = (percentage) => {
@@ -437,9 +463,11 @@ function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscripti
                 )}
                 <div className="deck-header">
                   <h3>{deck.name}</h3>
-                  {deck.colors && (
-                    <div className="deck-colors">{getColorEmoji(deck.colors)}</div>
-                  )}
+                  <div className="deck-colors">
+                    {deck.colors ? renderDeckColors(deck.colors) : (
+                      <span className="deck-color-pip" style={{ background: '#888', borderColor: '#666', color: '#fff' }} title="Colorless">C</span>
+                    )}
+                  </div>
                 </div>
                 
                 {deck.description && (
