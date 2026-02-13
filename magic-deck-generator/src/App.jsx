@@ -14,6 +14,7 @@ import LegalPages from './components/LegalPages'
 import CookieSettings from './components/CookieSettings'
 import EmailPreferences from './components/EmailPreferences'
 import { cardImageCache } from './utils/cardImageCache'
+import RandomArtBackground from './components/RandomArtBackground'
 import './components/ColumnMapper.css' // IMPORTATO PER ULTIMO - VINCE SU TUTTO
 
 const API_URL = import.meta.env.PROD 
@@ -1027,6 +1028,7 @@ function App() {
 
   return (
     <div className="app">
+      <RandomArtBackground />
       {showGlobalNav && (
         <nav className="global-nav">
           <div className="global-nav-left">

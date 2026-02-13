@@ -2,12 +2,15 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: transparent;
+  position: relative;
+  z-index: 1;
 }
 
 .collection-header {
   padding: 1.5rem 2rem;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(15, 12, 41, 0.75);
+  backdrop-filter: blur(20px);
   border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -248,7 +251,11 @@
   padding: 2rem;
   max-width: 1400px;
   width: 100%;
-  margin: 0 auto;
+  margin: 1rem auto;
+  background: rgba(15, 12, 41, 0.75);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .collection-footer {
@@ -577,11 +584,11 @@
   white-space: nowrap;
 }
 
-.cards-table th:nth-child(1) { width: 30%; }
-.cards-table th:nth-child(2) { width: 15%; }
-.cards-table th:nth-child(3) { width: 22%; }
-.cards-table th:nth-child(4) { width: 20%; }
-.cards-table th:nth-child(5) { width: 13%; }
+.cards-table th:nth-child(1) { width: 50px; min-width: 50px; max-width: 50px; }
+.cards-table th:nth-child(2) { width: 30%; }
+.cards-table th:nth-child(3) { width: 12%; }
+.cards-table th:nth-child(4) { width: 25%; }
+.cards-table th:nth-child(5) { width: 20%; }
 
 .cards-table th.sortable {
   cursor: pointer;
@@ -1131,11 +1138,6 @@
   background: rgba(245, 87, 108, 0.4);
 }
 
-.card-actions {
-  text-align: center;
-  padding: 0.9rem 0.5rem;
-}
-
 .edit-qty-btn {
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
@@ -1156,7 +1158,13 @@
 
 .actions-header {
   text-align: center;
-  width: 100px;
+  width: 50px;
+}
+
+.card-actions {
+  text-align: center;
+  padding: 0.5rem 0.25rem;
+  width: 50px;
 }
 
 /* Rename modal */

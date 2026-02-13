@@ -1,13 +1,20 @@
 .saved-decks-list-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: transparent;
   color: #fff;
   padding: 2rem;
+  position: relative;
+  z-index: 1;
 }
 
 .decks-header {
   max-width: 1400px;
   margin: 0 auto 2rem;
+  background: rgba(15, 12, 41, 0.75);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 2rem 2.5rem;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .header-top {
@@ -64,6 +71,11 @@
   max-width: 1400px;
   margin: 0 auto;
   min-height: 60vh;
+  background: rgba(15, 12, 41, 0.75);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 2rem 2.5rem;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .loading-spinner {

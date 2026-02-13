@@ -859,6 +859,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
               <table>
                 <thead>
                   <tr>
+                    <th className="actions-header">{language === 'it' ? 'Azioni' : 'Actions'}</th>
                     <th onClick={() => handleSort('name')} className="sortable">
                       {t.name} {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </th>
@@ -871,7 +872,6 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                     <th onClick={() => handleSort('mana_cost')} className="sortable">
                       {t.manaCostCol} {sortBy === 'mana_cost' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th className="actions-header">{language === 'it' ? 'Azioni' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -882,6 +882,17 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                       onMouseEnter={() => !card.locked && handleCardHover(card.name)}
                       onMouseLeave={handleCardLeave}
                     >
+                      <td className="card-actions">
+                        {!card.locked && editingCardId !== card.id && (
+                          <button 
+                            className="edit-qty-btn"
+                            onClick={() => startEditQuantity(card)}
+                            title={t.editQuantity}
+                          >
+                            ✏️
+                          </button>
+                        )}
+                      </td>
                       <td className="card-name">
                         {card.locked ? (
                           <span className="locked-overlay">
@@ -932,17 +943,6 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                       </td>
                       <td className="card-mana">
                         {card.locked ? <span className="blur-text">{renderManaCost(card.mana_cost)}</span> : renderManaCost(card.mana_cost)}
-                      </td>
-                      <td className="card-actions">
-                        {!card.locked && editingCardId !== card.id && (
-                          <button 
-                            className="edit-qty-btn"
-                            onClick={() => startEditQuantity(card)}
-                            title={t.editQuantity}
-                          >
-                            ✏️
-                          </button>
-                        )}
                       </td>
                     </tr>
                   ))}

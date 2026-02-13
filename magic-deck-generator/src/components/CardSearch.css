@@ -1,8 +1,10 @@
 .card-search {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: transparent;
   color: #fff;
   padding: 2rem;
+  position: relative;
+  z-index: 1;
 }
 
 .search-header {
@@ -107,6 +109,11 @@
   display: flex;
   gap: 1rem;
   margin-bottom: 1.5rem;
+  background: rgba(15, 12, 41, 0.75);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .search-input-wrapper {
@@ -234,7 +241,8 @@
 }
 
 .filters-panel {
-  background: rgba(255,255,255,0.05);
+  background: rgba(15, 12, 41, 0.75);
+  backdrop-filter: blur(20px);
   border-radius: 16px;
   padding: 1.5rem;
   border: 1px solid rgba(255,255,255,0.1);
@@ -728,7 +736,11 @@
   gap: 0.75rem;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 1rem;
+  background: rgba(15, 12, 41, 0.75);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .card-item {

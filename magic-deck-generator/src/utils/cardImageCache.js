@@ -154,14 +154,70 @@ class CardImageCache {
   /**
    * Estrae l'URL dell'immagine dai dati Scryfall
    */
-  _extractImageUrl(data) {
-    if (data.image_uris) {
-      return data.image_uris.normal || data.image_uris.large || data.image_uris.small
+  _extractImageUrl(data, variant = 'normal') {
+    const uris = data.image_uris || (data.card_faces && data.card_faces[0]?.image_uris)
+    if (!uris) return null
+    if (variant === 'art_crop') return uris.art_crop || uris.normal || uris.large || uris.small
+    if (variant === 'large') return uris.large || uris.png || uris.normal || uris.small
+    return uris.normal || uris.large || uris.small
+  }
+
+  async getCardArt(cardName, lang = 'en') {
+    const cacheKey = `art:${lang}:${cardName.toLowerCase().trim()}`
+    if (this.cache.has(cacheKey)) {
+      this.cacheHits++
+      return this.cache.get(cacheKey)
     }
-    if (data.card_faces && data.card_faces[0]?.image_uris) {
-      return data.card_faces[0].image_uris.normal || data.card_faces[0].image_uris.large || data.card_faces[0].image_uris.small
+    if (this.pendingRequests.has(cacheKey)) {
+      return this.pendingRequests.get(cacheKey)
     }
-    return null
+    this.cacheMisses++
+    const requestPromise = this._fetchArt(cardName, lang)
+    this.pendingRequests.set(cacheKey, requestPromise)
+    try {
+      const url = await requestPromise
+      this.addToCache(cacheKey, url)
+      return url
+    } finally {
+      this.pendingRequests.delete(cacheKey)
+    }
+  }
+
+  async _fetchArt(cardName, lang, variant = 'art_crop') {
+    try {
+      const normalizedName = cardName.replace(/Æ/g, 'Ae').replace(/æ/g, 'ae').trim()
+      const response = await fetch(
+        `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(normalizedName)}`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        return this._extractImageUrl(data, variant)
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  async getCardArtLarge(cardName, lang = 'en') {
+    const cacheKey = `art_large:${lang}:${cardName.toLowerCase().trim()}`
+    if (this.cache.has(cacheKey)) {
+      this.cacheHits++
+      return this.cache.get(cacheKey)
+    }
+    if (this.pendingRequests.has(cacheKey)) {
+      return this.pendingRequests.get(cacheKey)
+    }
+    this.cacheMisses++
+    const requestPromise = this._fetchArt(cardName, lang, 'large')
+    this.pendingRequests.set(cacheKey, requestPromise)
+    try {
+      const url = await requestPromise
+      this.addToCache(cacheKey, url)
+      return url
+    } finally {
+      this.pendingRequests.delete(cacheKey)
+    }
   }
 
   /**
