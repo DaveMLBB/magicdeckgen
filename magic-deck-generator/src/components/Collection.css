@@ -234,34 +234,32 @@
   filter: none;
 }
 
-.collection-stats {
+.collection-stats-inline {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.25);
+  border-radius: 10px;
+  padding: 0.5rem 1rem;
+  flex-shrink: 0;
 }
 
-.stat-card {
-  background: rgba(255,255,255,0.05);
-  border: 2px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  padding: 1rem 1.5rem;
-  text-align: center;
-  min-width: 120px;
+.stat-badge {
+  font-size: 0.9rem;
+  color: #cbd5e0;
+  white-space: nowrap;
 }
 
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 0.25rem;
+.stat-badge strong {
+  color: #667eea;
+  font-size: 1.1rem;
+  margin-right: 0.25rem;
 }
 
-.stat-label {
-  font-size: 0.85rem;
-  color: #a0aec0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.stat-separator {
+  color: rgba(255,255,255,0.2);
+  font-size: 1.1rem;
 }
 
 .collection-controls {
@@ -407,7 +405,7 @@
 }
 
 .cards-table {
-  overflow-x: auto;
+  overflow-x: hidden;
   margin-bottom: 1.5rem;
   border-radius: 12px;
   border: 2px solid rgba(255,255,255,0.1);
@@ -416,6 +414,7 @@
 .cards-table table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .cards-table thead {
@@ -423,15 +422,24 @@
 }
 
 .cards-table th {
-  padding: 1rem;
+  padding: 0.75rem 0.75rem;
   text-align: left;
   color: #cbd5e0;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-bottom: 2px solid rgba(255,255,255,0.1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+.cards-table th:nth-child(1) { width: 35%; }
+.cards-table th:nth-child(2) { width: 12%; }
+.cards-table th:nth-child(3) { width: 25%; }
+.cards-table th:nth-child(4) { width: 15%; }
+.cards-table th:nth-child(5) { width: 13%; }
 
 .cards-table th.sortable {
   cursor: pointer;
@@ -454,13 +462,20 @@
 }
 
 .cards-table td {
-  padding: 0.9rem 1rem;
+  padding: 0.7rem 0.75rem;
   color: #fff;
   font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-name {
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
 }
 
 .card-quantity {
@@ -533,12 +548,9 @@
     gap: 0.5rem;
   }
 
-  .collection-stats {
-    flex-direction: column;
-  }
-
-  .stat-card {
+  .collection-stats-inline {
     width: 100%;
+    justify-content: center;
   }
 
   .collection-controls {
@@ -555,7 +567,12 @@
   }
 
   .cards-table {
+    overflow-x: auto;
     font-size: 0.85rem;
+  }
+
+  .cards-table table {
+    min-width: 500px;
   }
 
   .cards-table th,

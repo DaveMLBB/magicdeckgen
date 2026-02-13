@@ -86,7 +86,6 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       upgradePlan: 'Aggiorna Piano',
       lockedCard: '🔒 Aggiorna piano',
       cards: 'carte',
-      viewable: 'Visualizzabili',
       asc: 'Crescente',
       desc: 'Decrescente',
       uploadTitle: 'Carica Carte nella Collezione',
@@ -162,7 +161,6 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       upgradePlan: 'Upgrade Plan',
       lockedCard: '🔒 Upgrade plan',
       cards: 'cards',
-      viewable: 'Viewable',
       asc: 'Ascending',
       desc: 'Descending',
       uploadTitle: 'Upload Cards to Collection',
@@ -611,24 +609,18 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
           </div>
         )}
 
-        {stats && (
-          <div className="collection-stats">
-            <div className="stat-card">
-              <div className="stat-value">{stats.viewable_cards}</div>
-              <div className="stat-label">{t.viewable}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{stats.total_unique_cards}</div>
-              <div className="stat-label">{t.totalUnique}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{stats.total_cards}</div>
-              <div className="stat-label">{t.totalCards}</div>
-            </div>
-          </div>
-        )}
-
         <div className="collection-controls">
+          {stats && (
+            <div className="collection-stats-inline">
+              <span className="stat-badge">
+                <strong>{stats.total_unique_cards}</strong> {t.totalUnique}
+              </span>
+              <span className="stat-separator">·</span>
+              <span className="stat-badge">
+                <strong>{stats.total_cards}</strong> {t.totalCards}
+              </span>
+            </div>
+          )}
           <input
             type="text"
             className="search-input"
