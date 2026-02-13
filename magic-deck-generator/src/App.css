@@ -41,6 +41,12 @@ header {
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255,255,255,0.1);
   position: relative;
+  z-index: 1;
+}
+
+main {
+  position: relative;
+  z-index: 1;
 }
 
 .header-top {
@@ -280,8 +286,8 @@ main {
   margin-bottom: 2rem;
   flex-wrap: wrap;
   padding: 2rem;
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(2px);
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.1);
   max-width: 1200px;
@@ -2132,10 +2138,11 @@ div.column-mapper.column-mapper {
 .instructions-section {
   max-width: 900px;
   margin: 0 auto 3rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 2rem;
-  border: 2px solid rgba(102, 126, 234, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 

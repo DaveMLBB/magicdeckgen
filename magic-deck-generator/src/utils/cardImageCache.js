@@ -10,6 +10,35 @@ class CardImageCache {
     this.maxCacheSize = 500 // Massimo 500 carte in cache
     this.cacheHits = 0
     this.cacheMisses = 0
+    this._queue = []
+    this._processing = false
+    this._lastRequestTime = 0
+    this._minInterval = 130 // ~8 requests/sec to stay under Scryfall's 10/sec limit
+  }
+
+  async _enqueue(fn) {
+    return new Promise((resolve, reject) => {
+      this._queue.push({ fn, resolve, reject })
+      this._processQueue()
+    })
+  }
+
+  async _processQueue() {
+    if (this._processing || this._queue.length === 0) return
+    this._processing = true
+    while (this._queue.length > 0) {
+      const { fn, resolve, reject } = this._queue.shift()
+      const now = Date.now()
+      const wait = this._minInterval - (now - this._lastRequestTime)
+      if (wait > 0) await new Promise(r => setTimeout(r, wait))
+      this._lastRequestTime = Date.now()
+      try {
+        resolve(await fn())
+      } catch (e) {
+        reject(e)
+      }
+    }
+    this._processing = false
   }
 
   /**
@@ -184,19 +213,31 @@ class CardImageCache {
   }
 
   async _fetchArt(cardName, lang, variant = 'art_crop') {
-    try {
-      const normalizedName = cardName.replace(/Æ/g, 'Ae').replace(/æ/g, 'ae').trim()
-      const response = await fetch(
-        `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(normalizedName)}`
-      )
-      if (response.ok) {
-        const data = await response.json()
-        return this._extractImageUrl(data, variant)
+    return this._enqueue(async () => {
+      try {
+        const normalizedName = cardName.replace(/Æ/g, 'Ae').replace(/æ/g, 'ae').trim()
+        const response = await fetch(
+          `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(normalizedName)}`
+        )
+        if (response.ok) {
+          const data = await response.json()
+          return this._extractImageUrl(data, variant)
+        }
+        if (response.status === 429) {
+          await new Promise(r => setTimeout(r, 500))
+          const retry = await fetch(
+            `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(normalizedName)}`
+          )
+          if (retry.ok) {
+            const data = await retry.json()
+            return this._extractImageUrl(data, variant)
+          }
+        }
+        return null
+      } catch {
+        return null
       }
-      return null
-    } catch {
-      return null
-    }
+    })
   }
 
   async getCardArtLarge(cardName, lang = 'en') {
