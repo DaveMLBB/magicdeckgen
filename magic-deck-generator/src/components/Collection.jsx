@@ -20,7 +20,6 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
   // Filters
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
-    colors: [],
     types: [],
     rarity: '',
     cmcMin: '',
@@ -64,7 +63,7 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       name: 'Nome',
       quantity: 'Quantità',
       type: 'Tipo',
-      colors: 'Colori',
+      manaCostCol: 'Costo Mana',
       loading: 'Caricamento...',
       noCards: 'Nessuna carta nella collezione',
       noCardsYet: 'Non hai ancora caricato nessuna carta',
@@ -139,7 +138,7 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       name: 'Name',
       quantity: 'Quantity',
       type: 'Type',
-      colors: 'Colors',
+      manaCostCol: 'Mana Cost',
       loading: 'Loading...',
       noCards: 'No cards in collection',
       noCardsYet: 'You haven\'t uploaded any cards yet',
@@ -209,13 +208,13 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
 
   const t = translations[language]
 
-  const colorOptions = [
-    { value: 'W', label: '⚪', name: 'White' },
-    { value: 'U', label: '🔵', name: 'Blue' },
-    { value: 'B', label: '⚫', name: 'Black' },
-    { value: 'R', label: '🔴', name: 'Red' },
-    { value: 'G', label: '🟢', name: 'Green' }
-  ]
+  const manaSymbolMap = {
+    'W': { bg: '#f9faf4', border: '#ccc', text: '#333' },
+    'U': { bg: '#0e68ab', border: '#0e68ab', text: '#fff' },
+    'B': { bg: '#150b00', border: '#555', text: '#fff' },
+    'R': { bg: '#d3202a', border: '#d3202a', text: '#fff' },
+    'G': { bg: '#00733e', border: '#00733e', text: '#fff' }
+  }
 
   const typeOptions = ['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land']
   const rarityOptions = ['common', 'uncommon', 'rare', 'mythic']
@@ -244,9 +243,6 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
       }
 
       // Add filters
-      if (filters.colors.length > 0) {
-        params.append('colors', filters.colors.join(','))
-      }
       if (filters.types.length > 0) {
         params.append('types', filters.types.join(','))
       }
@@ -301,16 +297,6 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
     setPage(1)
   }
 
-  const toggleColor = (color) => {
-    setFilters(prev => ({
-      ...prev,
-      colors: prev.colors.includes(color)
-        ? prev.colors.filter(c => c !== color)
-        : [...prev.colors, color]
-    }))
-    setPage(1)
-  }
-
   const toggleType = (type) => {
     setFilters(prev => ({
       ...prev,
@@ -323,7 +309,6 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
 
   const resetFilters = () => {
     setFilters({
-      colors: [],
       types: [],
       rarity: '',
       cmcMin: '',
@@ -332,10 +317,19 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
     setPage(1)
   }
 
-  const getColorEmoji = (colors) => {
-    if (!colors) return '⚪'
-    const colorMap = { W: '⚪', U: '🔵', B: '⚫', R: '🔴', G: '🟢' }
-    return colors.split('/').map(c => colorMap[c] || '⚪').join('')
+  const renderManaCost = (manaCost) => {
+    if (!manaCost || manaCost.trim() === '') return <span className="mana-empty">—</span>
+    const symbols = manaCost.match(/\{([^}]+)\}/g)
+    if (!symbols) return <span className="mana-text">{manaCost}</span>
+    return symbols.map((sym, i) => {
+      const val = sym.replace(/[{}]/g, '')
+      const colorInfo = manaSymbolMap[val]
+      if (colorInfo) {
+        return <span key={i} className="mana-symbol" style={{ background: colorInfo.bg, borderColor: colorInfo.border, color: colorInfo.text }}>{val}</span>
+      }
+      // Generic/colorless mana (numbers, X, etc.)
+      return <span key={i} className="mana-symbol mana-generic">{val}</span>
+    })
   }
 
   const handleFileSelect = async (e) => {
@@ -635,7 +629,7 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
               <option value="name">{t.name}</option>
               <option value="quantity">{t.quantity}</option>
               <option value="type">{t.type}</option>
-              <option value="colors">{t.colors}</option>
+              <option value="mana_cost">{t.manaCostCol}</option>
             </select>
             <button 
               className="sort-order-btn"
@@ -655,22 +649,6 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
 
         {showFilters && (
           <div className="filters-panel">
-            <div className="filter-group">
-              <label>{t.colors}</label>
-              <div className="color-filters">
-                {colorOptions.map(color => (
-                  <button
-                    key={color.value}
-                    className={`color-btn ${filters.colors.includes(color.value) ? 'active' : ''}`}
-                    onClick={() => toggleColor(color.value)}
-                    title={color.name}
-                  >
-                    {color.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div className="filter-group">
               <label>{t.type}</label>
               <div className="type-filters">
@@ -762,8 +740,8 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
                     <th onClick={() => handleSort('type')} className="sortable">
                       {t.type} {sortBy === 'type' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th onClick={() => handleSort('colors')} className="sortable">
-                      {t.colors} {sortBy === 'colors' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    <th onClick={() => handleSort('mana_cost')} className="sortable">
+                      {t.manaCostCol} {sortBy === 'mana_cost' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </th>
                     <th className="actions-header">{language === 'it' ? 'Azioni' : 'Actions'}</th>
                   </tr>
@@ -819,8 +797,8 @@ function Collection({ user, collection, onBack, language, onShowSubscriptions, o
                       <td className="card-type">
                         {card.locked ? <span className="blur-text">{card.type}</span> : card.type}
                       </td>
-                      <td className="card-colors">
-                        {card.locked ? <span className="blur-text">{getColorEmoji(card.colors)}</span> : getColorEmoji(card.colors)}
+                      <td className="card-mana">
+                        {card.locked ? <span className="blur-text">{renderManaCost(card.mana_cost)}</span> : renderManaCost(card.mana_cost)}
                       </td>
                       <td className="card-actions">
                         {!card.locked && editingCardId !== card.id && (

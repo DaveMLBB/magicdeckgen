@@ -562,7 +562,7 @@ def get_user_collection(
     rarity: Optional[str] = None,
     cmc_min: Optional[int] = None,
     cmc_max: Optional[int] = None,
-    sort_by: str = Query("name", regex="^(name|quantity|type|colors)$"),
+    sort_by: str = Query("name", regex="^(name|quantity|type|mana_cost)$"),
     sort_order: str = Query("asc", regex="^(asc|desc)$"),
     db: Session = Depends(get_db)
 ):
@@ -630,8 +630,8 @@ def get_user_collection(
         query = query.order_by(Card.quantity_owned.asc() if sort_order == "asc" else Card.quantity_owned.desc())
     elif sort_by == "type":
         query = query.order_by(Card.card_type.asc() if sort_order == "asc" else Card.card_type.desc())
-    elif sort_by == "colors":
-        query = query.order_by(Card.colors.asc() if sort_order == "asc" else Card.colors.desc())
+    elif sort_by == "mana_cost":
+        query = query.order_by(Card.mana_cost.asc() if sort_order == "asc" else Card.mana_cost.desc())
     
     # Get all cards
     all_cards = query.all()
