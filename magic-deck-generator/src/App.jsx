@@ -54,6 +54,8 @@ function App() {
   const [hasShownSubscriptionModal, setHasShownSubscriptionModal] = useState(false)
   const [loadingDeckCards, setLoadingDeckCards] = useState(false)
   const [loadedDeckIds, setLoadedDeckIds] = useState(new Set()) // Track which decks have been loaded
+  const [searchCache, setSearchCache] = useState({}) // Cache for search results by filter combination
+  const [hasSearched, setHasSearched] = useState(false) // Track if user has performed at least one search
   const [filters, setFilters] = useState({
     colors: [],
     minMatch: 80,
@@ -725,10 +727,30 @@ function App() {
   
   const performSearch = async () => {
     setShowFormatWarning(false)
-    setDeckLoading(true)
-    setLoadedDeckIds(new Set()) // Reset loaded decks when performing new search
-    try {
-      let allDecks = []
+    
+    // Generate cache key from current filters
+    const cacheKey = JSON.stringify({
+      formats: filters.formats.sort(),
+      colors: filters.colors.sort(),
+      minMatch: filters.minMatch,
+      buildableOnly: filters.buildableOnly,
+      deckSource: filters.deckSource,
+      collectionId: filters.collectionId
+    })
+    
+    // Mark that user has performed a search
+    setHasSearched(true)
+    
+    // Check if we have cached results for this filter combination
+    if (searchCache[cacheKey]) {
+      console.log('📦 Using cached search results for:', cacheKey)
+      setDecks(searchCache[cacheKey])
+      setSelectedDeck(null)
+    } else {
+      setDeckLoading(true)
+      setLoadedDeckIds(new Set()) // Reset loaded decks when performing new search
+      try {
+        let allDecks = []
       
       // Cerca nei mazzi di sistema se richiesto
       if (filters.deckSource === 'system' || filters.deckSource === 'both') {
@@ -836,25 +858,37 @@ function App() {
         return 0
       })
       
-      setDecks(allDecks)
-      
-      // Mostra messaggio
-      if (allDecks.length === 0) {
-        setMessage(t.noDecksFound)
-      } else {
-        const sourceText = {
-          system: language === 'it' ? 'sistema' : 'system',
-          users: language === 'it' ? 'utenti' : 'users',
-          both: language === 'it' ? 'sistema + utenti' : 'system + users'
+        setDecks(allDecks)
+        setSelectedDeck(null)
+        
+        // Cache the results for this filter combination
+        setSearchCache(prev => ({
+          ...prev,
+          [cacheKey]: allDecks
+        }))
+        console.log('💾 Cached search results for:', cacheKey)
+        
+        // Mostra messaggio
+        if (allDecks.length === 0) {
+          setMessage(t.noDecksFound)
+        } else {
+          const sourceText = {
+            system: language === 'it' ? 'sistema' : 'system',
+            users: language === 'it' ? 'utenti' : 'users',
+            both: language === 'it' ? 'sistema + utenti' : 'system + users'
+          }
+          const msg = `✓ ${t.foundDecks} ${allDecks.length} ${t.decksCompatible} (${sourceText[filters.deckSource]})`
+          setMessage(msg)
         }
-        const msg = `✓ ${t.foundDecks} ${allDecks.length} ${t.decksCompatible} (${sourceText[filters.deckSource]})`
-        setMessage(msg)
+        
+        // Update token balance after search
+        loadSubscriptionStatus()
+      } catch (err) {
+        console.error('Errore ricerca:', err)
+        setMessage(t.errorSearching)
       }
-    } catch (err) {
-      console.error('Errore ricerca:', err)
-      setMessage(t.errorSearching)
+      setDeckLoading(false)
     }
-    setDeckLoading(false)
   }
 
   const toggleColorFilter = (color) => {
@@ -993,6 +1027,9 @@ function App() {
       
       setMessage(`✅ ${t.deckImported} "${data.name}" (${data.cards_added} ${t.cards}${enrichedMsg})`)
       
+      // Update token balance
+      loadSubscriptionStatus()
+      
       // Opzionale: reindirizza alla collezione appena creata
       setTimeout(() => {
         setCurrentView('collections')
@@ -1059,6 +1096,9 @@ function App() {
       }
 
       setMessage(`✅ ${t.deckSaved} "${data.name}" (${data.total_cards} ${t.cards})`)
+      
+      // Update token balance
+      loadSubscriptionStatus()
       
       // Opzionale: reindirizza ai mazzi salvati
       setTimeout(() => {
