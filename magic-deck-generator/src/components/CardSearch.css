@@ -47,10 +47,11 @@
 }
 
 .language-warning {
-  background: rgba(251, 191, 36, 0.15);
+  background: rgba(251, 191, 36, 0.4);
   border: 2px solid rgba(251, 191, 36, 0.4);
   border-radius: 12px;
   padding: 1rem 1.5rem;
+  backdrop-filter: blur(4px);
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
@@ -71,8 +72,9 @@
 }
 
 .info-disclaimer {
-  background: rgba(59, 130, 246, 0.15);
+  background: rgba(59, 130, 246, 0.4);
   border: 2px solid rgba(4, 0, 54, 0.613);
+  backdrop-filter: blur(4px);
   border-radius: 12px;
   padding: 1rem 1.5rem;
   margin-bottom: 1.5rem;
