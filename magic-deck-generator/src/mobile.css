@@ -559,4 +559,36 @@ body {
     backdrop-filter: blur(3px) !important;
     -webkit-backdrop-filter: blur(3px) !important;
   }
+  
+  /* Clickable row for mobile */
+  .clickable-row {
+    cursor: pointer;
+  }
+  
+  .clickable-row:active {
+    background: rgba(102, 126, 234, 0.2) !important;
+  }
+  
+  /* Card Detail Modal for mobile - vertical layout */
+  .card-detail-modal .card-detail-content {
+    flex-direction: column !important;
+  }
+  
+  .card-detail-modal .card-detail-image-wrapper {
+    max-width: 280px !important;
+  }
+  
+  .card-detail-modal .card-detail-info {
+    text-align: center !important;
+  }
+  
+  .card-detail-modal .card-image-loading {
+    width: 280px;
+    height: 390px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+  }
 }

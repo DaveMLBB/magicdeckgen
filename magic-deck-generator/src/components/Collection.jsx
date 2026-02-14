@@ -51,6 +51,10 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   const [imageLoading, setImageLoading] = useState(false)
   const hoverTimerRef = useRef(null)
   const hoveredCardRef = useRef(null)
+  
+  // Mobile card detail modal
+  const [selectedCard, setSelectedCard] = useState(null)
+  const [selectedCardImageUrl, setSelectedCardImageUrl] = useState(null)
   const [linkedDecks, setLinkedDecks] = useState([])
   const [showLinkDeckModal, setShowLinkDeckModal] = useState(false)
   const [availableDecks, setAvailableDecks] = useState([])
@@ -400,6 +404,61 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       cmcMax: ''
     })
     setPage(1)
+  }
+
+  // Handle card click for card detail modal
+  const handleCardClick = async (card) => {
+    if (card.locked) return
+    
+    // Start with basic card data
+    setSelectedCard({ ...card, quantity: card.quantity })
+    setSelectedCardImageUrl(null)
+    
+    // Try to load full card data from backend (same as CardSearch)
+    try {
+      // First, search for the card to get its UUID
+      const searchRes = await fetch(`${API_URL}/api/mtg-cards/search?query=${encodeURIComponent(card.name)}&page_size=1&language=${language}`)
+      if (searchRes.ok) {
+        const searchData = await searchRes.json()
+        if (searchData.cards && searchData.cards.length > 0) {
+          const foundCard = searchData.cards[0]
+          
+          // Now get the full card details with the UUID
+          if (foundCard.uuid) {
+            const detailRes = await fetch(`${API_URL}/api/mtg-cards/card/${foundCard.uuid}?language=${language}`)
+            if (detailRes.ok) {
+              const fullCard = await detailRes.json()
+              fullCard.quantity = card.quantity
+              setSelectedCard(fullCard)
+              
+              // Load image
+              const imageUrl = await cardImageCache.getCardImage(card.name, null, language)
+              if (imageUrl) {
+                setSelectedCardImageUrl(imageUrl)
+              }
+              return
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error loading card from backend:', err)
+    }
+    
+    // Fallback: just load image
+    try {
+      const imageUrl = await cardImageCache.getCardImage(card.name, null, language)
+      if (imageUrl) {
+        setSelectedCardImageUrl(imageUrl)
+      }
+    } catch (err) {
+      console.error('Error loading card image:', err)
+    }
+  }
+
+  const closeCardDetail = () => {
+    setSelectedCard(null)
+    setSelectedCardImageUrl(null)
   }
 
   const renderManaCost = (manaCost) => {
@@ -877,9 +936,10 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   {cards.map((card) => (
                     <tr 
                       key={card.id} 
-                      className={card.locked ? 'locked-row' : ''}
+                      className={card.locked ? 'locked-row' : 'clickable-row'}
                       onMouseEnter={() => !card.locked && handleCardHover(card.name)}
                       onMouseLeave={handleCardLeave}
+                      onClick={() => handleCardClick(card)}
                     >
                       <td className="card-actions">
                         {!card.locked && editingCardId !== card.id && (
@@ -978,6 +1038,83 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       {hoveredCard && cardImageUrl && (
         <div className="card-preview-tooltip">
           <img src={cardImageUrl} alt={hoveredCard} className="card-preview-image" />
+        </div>
+      )}
+
+      {/* Card Detail Modal */}
+      {selectedCard && (
+        <div className="modal-overlay" onClick={closeCardDetail}>
+          <div className="modal-content card-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-modal-btn" onClick={closeCardDetail}>✕</button>
+            
+            <div className="card-detail-content">
+              <div className="card-detail-image-wrapper">
+                {selectedCardImageUrl ? (
+                  <img 
+                    src={selectedCardImageUrl} 
+                    alt={selectedCard.name} 
+                    className="card-detail-image"
+                  />
+                ) : (
+                  <div className="card-image-loading">
+                    <div className="spinner"></div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="card-detail-info">
+                <h2>{selectedCard.name}</h2>
+                {language === 'it' && selectedCard.name_en && selectedCard.name !== selectedCard.name_en && (
+                  <p className="detail-name-en">{selectedCard.name_en}</p>
+                )}
+                {selectedCard.mana_cost && <p className="detail-mana">{renderManaCost(selectedCard.mana_cost)}</p>}
+                <p className="detail-type">{selectedCard.type}</p>
+                {language === 'it' && selectedCard.type_en && selectedCard.type !== selectedCard.type_en && (
+                  <p className="detail-type-en">{selectedCard.type_en}</p>
+                )}
+                
+                {selectedCard.text && (
+                  <div className="detail-text">
+                    {selectedCard.text.split('\n').map((line, i) => (
+                      <p key={i}>{line}</p>
+                    ))}
+                  </div>
+                )}
+                
+                {(selectedCard.power || selectedCard.toughness) && (
+                  <p className="detail-pt">
+                    <strong>P/T:</strong> {selectedCard.power}/{selectedCard.toughness}
+                  </p>
+                )}
+                
+                {selectedCard.loyalty && (
+                  <p className="detail-loyalty">
+                    <strong>Loyalty:</strong> {selectedCard.loyalty}
+                  </p>
+                )}
+                
+                <div className="detail-meta">
+                  {selectedCard.quantity && <p><strong>{t.quantity}:</strong> {selectedCard.quantity}</p>}
+                  {selectedCard.rarity && <p><strong>{language === 'it' ? 'Rarità' : 'Rarity'}:</strong> {selectedCard.rarity}</p>}
+                  {selectedCard.set_code && <p><strong>Set:</strong> {selectedCard.set_code}</p>}
+                  {selectedCard.artist && <p><strong>{language === 'it' ? 'Artista' : 'Artist'}:</strong> {selectedCard.artist}</p>}
+                </div>
+                
+                {selectedCard.legalities && Object.keys(selectedCard.legalities).length > 0 && (
+                  <div className="detail-legalities">
+                    <strong>{language === 'it' ? 'Legalità' : 'Legalities'}:</strong>
+                    <div className="legalities-grid">
+                      {Object.entries(selectedCard.legalities).map(([format, status]) => (
+                        <span key={format} className={`legality-badge ${status.toLowerCase()}`}>
+                          {format}: {status}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
