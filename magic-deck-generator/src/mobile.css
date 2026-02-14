@@ -592,3 +592,20 @@ body {
     border-radius: 12px;
   }
 }
+
+/* CardSearch - Pulsanti azioni lista in verticale su mobile */
+@media (max-width: 768px) {
+  .search-list-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  
+  .add-to-collection-btn-list,
+  .add-to-deck-btn-list {
+    margin-left: 0 !important;
+    width: 100%;
+    max-width: 120px;
+  }
+}

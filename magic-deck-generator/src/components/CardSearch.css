@@ -1153,7 +1153,17 @@
   }
 
   .add-to-collection-btn {
+    opacity: 1 !important;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .card-item:hover .add-to-deck-btn {
     opacity: 1;
+  }
+
+  .add-to-deck-btn {
+    opacity: 1 !important;
     padding: 0.3rem 0.5rem;
     font-size: 0.75rem;
   }
