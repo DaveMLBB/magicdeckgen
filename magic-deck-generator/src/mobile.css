@@ -472,4 +472,84 @@ body {
     padding: 0.5rem 0.75rem;
     font-size: 1rem;
   }
+  
+  /* Aumenta blur e opacità per mobile - migliore leggibilità */
+  .collection-card.collection-locked > *:not(.locked-overlay) {
+    filter: blur(6px) !important;
+    opacity: 0.25 !important;
+  }
+  
+  .deck-card.deck-locked > *:not(.locked-overlay) {
+    filter: blur(6px) !important;
+    opacity: 0.25 !important;
+  }
+  
+  .blur-text {
+    filter: blur(6px) !important;
+  }
+  
+  /* Aggiungi backdrop-blur ai componenti per mobile - sfondo sfocato dietro */
+  .filters-section,
+  .upload-section,
+  .deck-detail,
+  .deck-info,
+  .missing-section,
+  .instructions-section {
+    background: rgba(15, 12, 41, 0.5) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+  }
+  
+  .deck-card,
+  .collection-card {
+    background: rgba(15, 12, 41, 0.5) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+  }
+  
+  .global-nav {
+    background: rgba(15, 12, 41, 0.5) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+  }
+  
+  .column-mapper,
+  .modal-content,
+  .upgrade-modal,
+  .format-warning-modal {
+    background: rgba(15, 12, 41, 0.98) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+  
+  /* Cards list items */
+  .cards-list .card-item,
+  .card-item {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+  
+  /* Headers - tutti con blur per mobile */
+  header,
+  .collections-header,
+  .collection-header,
+  .subscriptions-header,
+  .decks-header,
+  .deck-header,
+  .deck-detail-header,
+  .search-header,
+  .privacy-header,
+  .legal-header,
+  .email-preferences-header,
+  .cookie-settings-header,
+  .auth-header,
+  .cards-header,
+  .plan-header,
+  .category-header,
+  .policy-modal-header {
+    background: rgba(15, 12, 41, 0.5) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+  }
 }
