@@ -22,7 +22,7 @@ SQLITE_DB_PATH = BACKEND_DIR.parent / "data magic" / "magic.db"
 
 POSTGRES_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql://magicdeckgen:magicdeckgen_dev@localhost:5432/magicdeckgen"
+    "postgresql://magicdeckgen:magicdeckgen_dev@localhost:5434/magicdeckgen"
 )
 
 def get_sqlite_engine():

@@ -10,7 +10,7 @@ BACKEND_DIR = Path(__file__).parent.parent
 # Database URL da variabile d'ambiente (default: PostgreSQL locale)
 SQLALCHEMY_DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql://magicdeckgen:magicdeckgen_dev@localhost:5432/magicdeckgen"
+    "postgresql://magicdeckgen:magicdeckgen_dev@localhost:5434/magicdeckgen"
 )
 
 # Log per debug
