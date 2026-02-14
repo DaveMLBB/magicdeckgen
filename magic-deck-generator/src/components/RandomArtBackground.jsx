@@ -2,15 +2,22 @@ import { useState, useEffect, useRef } from 'react'
 
 const ROTATE_INTERVAL = 20000
 
+function isMobile() {
+  return window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+}
+
 function RandomArtBackground() {
   const [images, setImages] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [bgFolder, setBgFolder] = useState('backgrounds')
   const mounted = useRef(true)
 
   useEffect(() => {
     mounted.current = true
+    const folder = isMobile() ? 'backgrounds_mobile' : 'backgrounds'
+    setBgFolder(folder)
 
-    fetch('/backgrounds/manifest.json')
+    fetch(`/${folder}/manifest.json`)
       .then(res => res.ok ? res.json() : [])
       .then(files => {
         if (!mounted.current || files.length === 0) return
@@ -39,11 +46,11 @@ function RandomArtBackground() {
     if (!appEl || images.length === 0) return
 
     const img = images[currentIndex]
-    appEl.style.backgroundImage = `url(/backgrounds/${img})`
+    appEl.style.backgroundImage = `url(/${bgFolder}/${img})`
     appEl.style.backgroundSize = 'cover'
     appEl.style.backgroundPosition = 'center'
     appEl.style.backgroundAttachment = 'fixed'
-  }, [currentIndex, images])
+  }, [currentIndex, images, bgFolder])
 
   // Cleanup on unmount
   useEffect(() => {
