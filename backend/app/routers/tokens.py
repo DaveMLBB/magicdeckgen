@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
 from app.database import get_db
-from app.models import User, TokenTransaction
+from app.models import User, TokenTransaction, CouponCode, CouponRedemption
 from jose import JWTError, jwt
 import stripe
 import os
@@ -370,4 +370,78 @@ def get_stripe_config():
     return {
         "publishable_key": STRIPE_PUBLISHABLE_KEY,
         "stripe_enabled": bool(STRIPE_SECRET_KEY)
+    }
+
+class CouponRedeemRequest(BaseModel):
+    code: str
+
+@router.post("/redeem-coupon")
+def redeem_coupon(
+    request: CouponRedeemRequest,
+    db: Session = Depends(get_db),
+    authorization: str = Header(None)
+):
+    """Redeem a coupon code for tokens"""
+    logger.info(f"Redeem coupon request received: code='{request.code}'")
+    token = authorization.replace("Bearer ", "") if authorization else ""
+    user = get_current_user(token, db)
+    logger.info(f"User {user.id} attempting to redeem coupon")
+    
+    # Find the coupon
+    coupon = db.query(CouponCode).filter(
+        CouponCode.code == request.code.strip(),
+        CouponCode.is_active == True
+    ).first()
+    
+    if not coupon:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Codice coupon non valido o scaduto"
+        )
+    
+    # Check if coupon is expired
+    if coupon.expires_at and coupon.expires_at < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Questo coupon è scaduto"
+        )
+    
+    # Check if user has already redeemed this coupon
+    existing_redemption = db.query(CouponRedemption).filter(
+        CouponRedemption.user_id == user.id,
+        CouponRedemption.coupon_id == coupon.id
+    ).first()
+    
+    if existing_redemption:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Hai già riscattato questo coupon"
+        )
+    
+    # Add tokens to user
+    user.tokens += coupon.token_amount
+    
+    # Create redemption record
+    redemption = CouponRedemption(
+        user_id=user.id,
+        coupon_id=coupon.id
+    )
+    db.add(redemption)
+    
+    # Create transaction record
+    transaction = TokenTransaction(
+        user_id=user.id,
+        amount=coupon.token_amount,
+        action='coupon',
+        description=f"Riscattato coupon '{coupon.code}' ({coupon.token_amount} token)"
+    )
+    db.add(transaction)
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "tokens_added": coupon.token_amount,
+        "new_balance": user.tokens,
+        "message": f"Hai ricevuto {coupon.token_amount} token!"
     }

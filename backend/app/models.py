@@ -253,7 +253,32 @@ class TokenTransaction(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
     amount = Column(Integer, nullable=False)  # +N for purchase, -1 for consumption
-    action = Column(String, nullable=False)  # purchase, upload, search, collection, save_deck, public_search
+    action = Column(String, nullable=False)  # purchase, upload, search, collection, save_deck, public_search, coupon
     description = Column(String, nullable=True)  # Human-readable description
     stripe_session_id = Column(String, nullable=True)  # Stripe checkout session ID for purchases
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+class CouponCode(Base):
+    """Coupon codes for token rewards"""
+    __tablename__ = "coupon_codes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, nullable=False, index=True)
+    token_amount = Column(Integer, nullable=False)
+    description = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at = Column(DateTime, nullable=True)
+
+class CouponRedemption(Base):
+    """Track which users have redeemed which coupons"""
+    __tablename__ = "coupon_redemptions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    coupon_id = Column(Integer, ForeignKey('coupon_codes.id'), nullable=False, index=True)
+    redeemed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    __table_args__ = (
+        Index('idx_user_coupon', 'user_id', 'coupon_id', unique=True),
+    )

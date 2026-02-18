@@ -12,6 +12,9 @@ function Subscriptions({ user, onBack, language }) {
   const [loading, setLoading] = useState(true)
   const [purchasing, setPurchasing] = useState(null)
   const [stripeEnabled, setStripeEnabled] = useState(false)
+  const [couponCode, setCouponCode] = useState('')
+  const [redeeming, setRedeeming] = useState(false)
+  const [couponMessage, setCouponMessage] = useState(null)
 
   const translations = {
     it: {
@@ -45,12 +48,24 @@ function Subscriptions({ user, onBack, language }) {
         'search': 'Ricerca mazzi',
         'collection': 'Collezione',
         'save_deck': 'Salva mazzo',
-        'public_search': 'Ricerca pubblica'
+        'public_search': 'Ricerca pubblica',
+        'coupon': 'Coupon'
       },
       perToken: '/token',
       noTokens: 'Nessun token disponibile. Acquista un pacchetto per continuare!',
       testModeTitle: '🚧 Software in Fase di Test',
-      testModeMessage: 'Il software è attualmente in fase di test. I pagamenti saranno disponibili quando le funzionalità non saranno più soltanto a scopo di test.'
+      testModeMessage: 'Il software è attualmente in fase di test. I pagamenti saranno disponibili quando le funzionalità non saranno più soltanto a scopo di test.',
+      purchasesDisabled: '⚠️ Acquisti Token Temporaneamente Disattivati',
+      purchasesDisabledMessage: 'Gli acquisti di token sono attualmente disattivati. Usa un codice coupon per ottenere token gratuiti!',
+      couponSection: 'Riscatta Coupon',
+      couponPlaceholder: 'Inserisci codice coupon',
+      redeemButton: 'Riscatta',
+      redeeming: 'Riscatto in corso...',
+      couponSuccess: '✅ Coupon riscattato con successo!',
+      couponError: '❌ Errore: ',
+      couponInvalid: 'Codice coupon non valido',
+      couponAlreadyUsed: 'Hai già riscattato questo coupon',
+      couponExpired: 'Questo coupon è scaduto'
     },
     en: {
       title: 'Token Shop',
@@ -83,12 +98,24 @@ function Subscriptions({ user, onBack, language }) {
         'search': 'Deck search',
         'collection': 'Collection',
         'save_deck': 'Save deck',
-        'public_search': 'Public search'
+        'public_search': 'Public search',
+        'coupon': 'Coupon'
       },
       perToken: '/token',
       noTokens: 'No tokens available. Purchase a package to continue!',
       testModeTitle: '🚧 Software in Testing Phase',
-      testModeMessage: 'The software is currently in a testing phase. Payments will be available once the features are no longer for testing purposes only.'
+      testModeMessage: 'The software is currently in a testing phase. Payments will be available once the features are no longer for testing purposes only.',
+      purchasesDisabled: '⚠️ Token Purchases Temporarily Disabled',
+      purchasesDisabledMessage: 'Token purchases are currently disabled. Use a coupon code to get free tokens!',
+      couponSection: 'Redeem Coupon',
+      couponPlaceholder: 'Enter coupon code',
+      redeemButton: 'Redeem',
+      redeeming: 'Redeeming...',
+      couponSuccess: '✅ Coupon redeemed successfully!',
+      couponError: '❌ Error: ',
+      couponInvalid: 'Invalid coupon code',
+      couponAlreadyUsed: 'You have already redeemed this coupon',
+      couponExpired: 'This coupon has expired'
     }
   }
 
@@ -183,6 +210,63 @@ function Subscriptions({ user, onBack, language }) {
     return (pkg.price / pkg.tokens).toFixed(2)
   }
 
+  const redeemCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponMessage({ type: 'error', text: t.couponInvalid })
+      return
+    }
+
+    setRedeeming(true)
+    setCouponMessage(null)
+
+    try {
+      const payload = { code: couponCode.trim() }
+      console.log('Sending coupon payload:', payload)
+      
+      const res = await fetch(`${API_URL}/api/tokens/redeem-coupon`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        },
+        body: JSON.stringify(payload)
+      })
+
+      const data = await res.json()
+      console.log('Response:', res.status, data)
+
+      if (res.ok) {
+        setCouponMessage({ type: 'success', text: data.message || t.couponSuccess })
+        setCouponCode('')
+        setBalance(data.new_balance)
+        // Reload transactions to show coupon redemption
+        loadData()
+      } else {
+        let errorMsg = t.couponInvalid
+        
+        // Handle Pydantic validation errors (422)
+        if (res.status === 422 && Array.isArray(data.detail)) {
+          errorMsg = data.detail[0]?.msg || t.couponInvalid
+        } else if (typeof data.detail === 'string') {
+          if (data.detail.includes('già riscattato') || data.detail.includes('already redeemed')) {
+            errorMsg = t.couponAlreadyUsed
+          } else if (data.detail.includes('scaduto') || data.detail.includes('expired')) {
+            errorMsg = t.couponExpired
+          } else {
+            errorMsg = data.detail
+          }
+        }
+        
+        setCouponMessage({ type: 'error', text: errorMsg })
+      }
+    } catch (err) {
+      console.error('Coupon redemption error:', err)
+      setCouponMessage({ type: 'error', text: t.couponError + (err.message || 'Unknown error') })
+    }
+
+    setRedeeming(false)
+  }
+
   if (loading) {
     return (
       <div className="subscriptions-page">
@@ -230,13 +314,47 @@ function Subscriptions({ user, onBack, language }) {
           </ul>
         </div>
 
+        {/* Coupon Section */}
+        <div className="coupon-section">
+          <h3>{t.couponSection}</h3>
+          <div className="coupon-input-group">
+            <input
+              type="text"
+              className="coupon-input"
+              placeholder={t.couponPlaceholder}
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && redeemCoupon()}
+              disabled={redeeming}
+            />
+            <button
+              className="coupon-redeem-btn"
+              onClick={redeemCoupon}
+              disabled={redeeming || !couponCode.trim()}
+            >
+              {redeeming ? t.redeeming : t.redeemButton}
+            </button>
+          </div>
+          {couponMessage && (
+            <div className={`coupon-message ${couponMessage.type}`}>
+              {couponMessage.text}
+            </div>
+          )}
+        </div>
+
+        {/* Purchases Disabled Banner */}
+        <div className="purchases-disabled-banner">
+          <h3>{t.purchasesDisabled}</h3>
+          <p>{t.purchasesDisabledMessage}</p>
+        </div>
+
         {/* Packages Grid */}
         <h2 className="plans-title">{t.buyTokens}</h2>
-        <div className="plans-grid">
+        <div className="plans-grid disabled-purchases">
           {packages.map((pkg) => (
             <div 
               key={pkg.id} 
-              className={`plan-card ${pkg.featured ? 'featured' : ''} ${pkg.best_value ? 'featured' : ''}`}
+              className={`plan-card disabled ${pkg.featured ? 'featured' : ''} ${pkg.best_value ? 'featured' : ''}`}
             >
               {pkg.featured && <span className="featured-badge">{t.popular}</span>}
               {pkg.best_value && <span className="featured-badge">{t.bestValue}</span>}
@@ -268,10 +386,9 @@ function Subscriptions({ user, onBack, language }) {
 
               <button
                 className="purchase-btn"
-                onClick={() => handlePurchase(pkg.id)}
-                disabled={purchasing !== null}
+                disabled={true}
               >
-                {purchasing === pkg.id ? t.purchasing : `${t.purchase} - €${pkg.price}`}
+                {language === 'it' ? 'Non Disponibile' : 'Not Available'}
               </button>
             </div>
           ))}
