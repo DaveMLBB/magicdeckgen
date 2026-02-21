@@ -518,7 +518,7 @@
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
-    margin-bottom: 2rem;
+    margin-bottom: 5rem;
   }
 
   .cta-primary, .cta-secondary {
