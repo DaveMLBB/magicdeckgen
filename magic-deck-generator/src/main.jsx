@@ -1,7 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 import './index.css'
-import App from './App.jsx'
+import AppRouter from './AppRouter.jsx'
 
 // Firefox detection: add class to body for Firefox-specific CSS fixes
 if (navigator.userAgent.includes('Firefox')) {
@@ -10,6 +12,10 @@ if (navigator.userAgent.includes('Firefox')) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <HelmetProvider>
+      <BrowserRouter>
+        <AppRouter />
+      </BrowserRouter>
+    </HelmetProvider>
   </StrictMode>,
 )

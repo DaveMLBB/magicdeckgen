@@ -6,7 +6,7 @@ Disallow: /api/
 Disallow: /admin/
 
 # Sitemap
-Sitemap: https://magicdeckbuilder.app.cloudsw.site/sitemap.xml
+Sitemap: https://magicdeckbuilder.app.cloudsw.site/sitemap-index.xml
 
 # Crawl-delay for polite crawlers
 Crawl-delay: 1
