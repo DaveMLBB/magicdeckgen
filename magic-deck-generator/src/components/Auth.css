@@ -22,6 +22,12 @@
   border: 1px solid rgba(255,255,255,0.12);
 }
 
+@media (max-width: 768px) {
+  .landing-page {
+    padding: 1.5rem 1rem;
+  }
+}
+
 .landing-language-selector {
   position: absolute;
   top: 2rem;
@@ -29,6 +35,16 @@
   display: flex;
   gap: 0.5rem;
   z-index: 10;
+}
+
+@media (max-width: 768px) {
+  .landing-language-selector {
+    position: relative;
+    top: 0;
+    right: 0;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
 }
 
 .landing-language-selector .lang-btn {
@@ -471,12 +487,8 @@
 
 @media (max-width: 768px) {
   .auth-container {
-    padding: 1rem;
-  }
-
-  .landing-language-selector {
-    top: 1rem;
-    right: 1rem;
+    padding: 0.5rem;
+    align-items: flex-start;
   }
 
   .landing-language-selector .lang-btn {
@@ -485,8 +497,8 @@
   }
 
   .hero-section {
-    padding: 2rem 1rem;
-    margin-bottom: 2rem;
+    padding: 1.5rem 1rem;
+    margin-bottom: 1.5rem;
   }
 
   .hero-title {
@@ -516,13 +528,13 @@
   }
 
   .features-section {
-    padding: 2rem 1rem;
-    margin-bottom: 2rem;
+    padding: 1.5rem 1rem;
+    margin-bottom: 1.5rem;
   }
 
   .features-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
   }
 
   .features-title {
@@ -531,7 +543,7 @@
   }
 
   .feature-card {
-    padding: 2rem 1.5rem;
+    padding: 1.5rem 1rem;
   }
 
   .feature-icon {
@@ -548,8 +560,8 @@
   }
 
   .cta-section {
-    margin: 0 1rem 2rem;
-    padding: 3rem 1.5rem;
+    margin: 0 0 1.5rem;
+    padding: 2rem 1rem;
   }
 
   .cta-section h2 {

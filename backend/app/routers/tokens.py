@@ -32,36 +32,42 @@ if STRIPE_SECRET_KEY:
 
 # Token packages
 TOKEN_PACKAGES = {
+    'mini': {
+        'name': 'Mini',
+        'price': 1.00,
+        'tokens': 15,
+        'description': '15 token'
+    },
     'starter': {
         'name': 'Starter',
         'price': 5.00,
-        'tokens': 10,
-        'description': '10 token'
+        'tokens': 100,
+        'description': '100 token'
     },
     'base': {
         'name': 'Base',
         'price': 10.00,
-        'tokens': 50,
-        'description': '50 token'
+        'tokens': 250,
+        'description': '250 token'
     },
     'pro': {
         'name': 'Pro',
         'price': 25.00,
-        'tokens': 200,
-        'description': '200 token',
+        'tokens': 750,
+        'description': '750 token',
         'featured': True
     },
     'mega': {
         'name': 'Mega',
         'price': 50.00,
-        'tokens': 600,
-        'description': '600 token'
+        'tokens': 2000,
+        'description': '2000 token'
     },
     'ultra': {
         'name': 'Ultra',
         'price': 100.00,
-        'tokens': 3000,
-        'description': '3000 token',
+        'tokens': 5000,
+        'description': '5000 token',
         'best_value': True
     }
 }

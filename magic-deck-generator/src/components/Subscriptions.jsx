@@ -342,19 +342,13 @@ function Subscriptions({ user, onBack, language }) {
           )}
         </div>
 
-        {/* Purchases Disabled Banner */}
-        <div className="purchases-disabled-banner">
-          <h3>{t.purchasesDisabled}</h3>
-          <p>{t.purchasesDisabledMessage}</p>
-        </div>
-
         {/* Packages Grid */}
         <h2 className="plans-title">{t.buyTokens}</h2>
-        <div className="plans-grid disabled-purchases">
+        <div className="plans-grid">
           {packages.map((pkg) => (
             <div 
               key={pkg.id} 
-              className={`plan-card disabled ${pkg.featured ? 'featured' : ''} ${pkg.best_value ? 'featured' : ''}`}
+              className={`plan-card ${pkg.featured ? 'featured' : ''} ${pkg.best_value ? 'featured' : ''}`}
             >
               {pkg.featured && <span className="featured-badge">{t.popular}</span>}
               {pkg.best_value && <span className="featured-badge">{t.bestValue}</span>}
@@ -386,9 +380,10 @@ function Subscriptions({ user, onBack, language }) {
 
               <button
                 className="purchase-btn"
-                disabled={true}
+                onClick={() => handlePurchase(pkg.id)}
+                disabled={purchasing}
               >
-                {language === 'it' ? 'Non Disponibile' : 'Not Available'}
+                {purchasing ? (language === 'it' ? 'Elaborazione...' : 'Processing...') : (language === 'it' ? 'Acquista' : 'Buy Now')}
               </button>
             </div>
           ))}

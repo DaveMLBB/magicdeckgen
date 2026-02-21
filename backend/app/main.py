@@ -2,20 +2,29 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routers import cards, decks, auth, subscriptions, collections, mtg_cards, saved_decks, gdpr, tokens
+import os
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Magic Deck Generator API")
 
+# CORS Configuration - supports both development and production
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8000",
+    "https://magicdeckbuilder.app.cloudsw.site"
+]
+
+# Add production frontend URL from environment if set
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url and frontend_url not in allowed_origins:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:8000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:8000",
-        "https://magicdeckbuilder.app.cloudsw.site"
-    ],
+    allow_origins=allowed_origins,
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
     allow_methods=["*"],
