@@ -56,37 +56,4 @@
     <changefreq>weekly</changefreq>
   </url>
   
-  <!-- Feature Pages -->
-  <url>
-    <loc>https://magicdeckbuilder.app.cloudsw.site/en/what-mtg-decks-can-i-build</loc>
-    <xhtml:link rel="alternate" hreflang="it" 
-                href="https://magicdeckbuilder.app.cloudsw.site/it/quali-mazzi-mtg-posso-costruire"/>
-    <priority>0.8</priority>
-    <changefreq>biweekly</changefreq>
-  </url>
-  
-  <url>
-    <loc>https://magicdeckbuilder.app.cloudsw.site/en/mtg-deck-completion-checker</loc>
-    <xhtml:link rel="alternate" hreflang="it" 
-                href="https://magicdeckbuilder.app.cloudsw.site/it/verifica-completamento-mazzo-mtg"/>
-    <priority>0.8</priority>
-    <changefreq>biweekly</changefreq>
-  </url>
-  
-  <url>
-    <loc>https://magicdeckbuilder.app.cloudsw.site/en/match-mtg-collection-to-decklist</loc>
-    <xhtml:link rel="alternate" hreflang="it" 
-                href="https://magicdeckbuilder.app.cloudsw.site/it/abbina-collezione-mtg-a-decklist"/>
-    <priority>0.8</priority>
-    <changefreq>biweekly</changefreq>
-  </url>
-  
-  <url>
-    <loc>https://magicdeckbuilder.app.cloudsw.site/en/upload-mtg-collection-csv-excel</loc>
-    <xhtml:link rel="alternate" hreflang="it" 
-                href="https://magicdeckbuilder.app.cloudsw.site/it/caricare-collezione-mtg-csv-excel"/>
-    <priority>0.8</priority>
-    <changefreq>biweekly</changefreq>
-  </url>
-  
 </urlset>
