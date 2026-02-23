@@ -115,8 +115,11 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.add(welcome_transaction)
     db.commit()
     
-    # Invia email di verifica tramite Brevo
-    send_verification_email(user_data.email, verification_token)
+    # Invia email di verifica tramite Brevo (non blocca la registrazione se fallisce)
+    try:
+        send_verification_email(user_data.email, verification_token)
+    except Exception:
+        pass
     
     return {
         "message": "Registration completed. Check your email to verify your account. You received 100 free tokens!",
