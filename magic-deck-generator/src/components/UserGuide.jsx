@@ -150,7 +150,23 @@ const sections = {
         '↔️ Laterale — livello simile, contesti o compromessi diversi.',
         'Ogni carta mostra una barra di somiglianza (%), le differenze chiave e il prezzo stimato.',
         'Puoi filtrare per tipo di relazione e copiare tutta la lista con un click.',
-        '⚠️ Consuma 1 token per ricerca.',
+        '⚠️ Consuma 10 token per ricerca.',
+      ]
+    },
+    {
+      id: 'ai-deck-builder',
+      icon: '🏗️',
+      title: 'AI Deck Builder',
+      content: [
+        'AI Deck Builder costruisce un mazzo completo partendo da una tua descrizione testuale.',
+        'Scrivi liberamente cosa vuoi: archetipo, formato, colori, strategia, budget...',
+        'Esempi: "Mazzo aggro rosso in Modern" oppure "Commander con Atraxa e counter +1/+1".',
+        'Puoi specificare formato (Standard, Modern, Commander...), colori e budget.',
+        'L\'AI genera il mazzo completo con: lista carte, sideboard, strategia, carte chiave e suggerimenti di upgrade.',
+        'Le carte nel risultato sono cliccabili per cercarle nel database interno.',
+        'Clicca "Salva Mazzo" per salvare il mazzo generato nella tua sezione Mazzi.',
+        'Puoi copiare la lista completa con un click per usarla su altri siti.',
+        '⚠️ Consuma 10 token per generazione.',
       ]
     },
   ],
@@ -300,7 +316,23 @@ const sections = {
         '↔️ Lateral — similar power level, different contexts or minor tradeoffs.',
         'Each card shows a similarity bar (%), key differences, and estimated price.',
         'Filter by relationship type and copy the full list with one click.',
-        '⚠️ Costs 1 token per search.',
+        '⚠️ Costs 10 tokens per search.',
+      ]
+    },
+    {
+      id: 'ai-deck-builder',
+      icon: '🏗️',
+      title: 'AI Deck Builder',
+      content: [
+        'AI Deck Builder builds a complete deck from your free-text description.',
+        'Write freely what you want: archetype, format, colors, strategy, budget...',
+        'Examples: "Red aggro deck in Modern" or "Atraxa Commander with +1/+1 counters".',
+        'You can specify format (Standard, Modern, Commander...), colors and budget.',
+        'The AI generates a full deck with: card list, sideboard, strategy, key cards and upgrade suggestions.',
+        'Cards in the result are clickable to search them in the internal database.',
+        'Click "Save Deck" to save the generated deck to your Decks section.',
+        'Copy the full list with one click to use it on other sites.',
+        '⚠️ Costs 10 tokens per generation.',
       ]
     },
   ]

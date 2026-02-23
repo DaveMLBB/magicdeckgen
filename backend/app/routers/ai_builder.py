@@ -26,6 +26,124 @@ class FindTwinsInput(BaseModel):
     format: Optional[str] = None  # restrict to a specific format
     budget: Optional[str] = None  # any, budget, expensive
 
+class BuildDeckInput(BaseModel):
+    user_id: int
+    description: str  # free-text description of the desired deck
+    format: Optional[str] = None
+    colors: Optional[str] = None  # e.g. "WU", "BRG"
+    budget: Optional[str] = None  # budget, affordable, any, expensive
+    deck_size: Optional[int] = 60  # 60 or 100 (commander)
+
+@router.post("/build-deck")
+async def build_deck(
+    input_data: BuildDeckInput,
+    language: str = "it",
+    db: Session = Depends(get_db)
+):
+    """
+    Genera un mazzo completo da una descrizione testuale usando AI.
+    Consuma 10 token.
+    """
+    user = db.query(User).filter(User.id == input_data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not input_data.description or len(input_data.description.strip()) < 10:
+        raise HTTPException(status_code=400, detail="Description too short (min 10 characters)")
+
+    from app.routers.tokens import consume_token
+    consume_token(user, 'ai_build_deck', f'AI build deck: {input_data.description[:60]}', db, tokens_to_consume=10)
+
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        raise HTTPException(status_code=503, detail="AI service not configured")
+
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=groq_api_key, base_url="https://api.groq.com/openai/v1")
+    except ImportError:
+        raise HTTPException(status_code=503, detail="OpenAI library not installed")
+
+    lang_label = "Italian (italiano)" if language == "it" else "English"
+    deck_size = input_data.deck_size or 60
+    format_line = f"Format: {input_data.format}" if input_data.format else "Format: not specified (use Modern as default)"
+    colors_line = f"Color restriction: {input_data.colors}" if input_data.colors else "Colors: not restricted (choose what fits best)"
+    budget_line = f"Budget preference: {input_data.budget}" if input_data.budget else "Budget: no restriction"
+
+    prompt = f"""You are an expert Magic: The Gathering deck builder. Build a complete, competitive and well-structured deck based on the user's description.
+
+USER DESCRIPTION: {input_data.description}
+
+CONSTRAINTS:
+- {format_line}
+- {colors_line}
+- {budget_line}
+- Deck size: exactly {deck_size} cards (not counting basic lands unless specified)
+- All card names must be REAL Magic: The Gathering cards
+- Include a proper mana base (lands)
+- The deck must be playable and coherent
+
+LANGUAGE: Respond in {lang_label}.
+
+Respond ONLY with valid JSON in this exact structure:
+{{
+  "deck_name": "A creative and fitting name for the deck",
+  "deck_description": "A 2-3 sentence description of the deck's strategy and win conditions",
+  "format": "the format this deck is built for",
+  "colors": "color identity abbreviation (e.g. WU, BRG, WUBRG)",
+  "archetype": "the archetype (e.g. Aggro, Control, Combo, Midrange, Tempo, Ramp, Tribal, Burn, etc.)",
+  "estimated_budget": "Budget (<$50)|Affordable ($50-150)|Moderate ($150-400)|Expensive ($400-800)|Premium (>$800)",
+  "strategy_notes": "Detailed explanation of how to play the deck, key synergies, and win conditions",
+  "cards": [
+    {{
+      "card_name": "Exact MTG card name",
+      "quantity": 4,
+      "category": "Creature|Spell|Enchantment|Artifact|Planeswalker|Land|Other",
+      "role": "short role description (e.g. Win Condition, Removal, Ramp, Draw, Protection, Mana Fixer)"
+    }}
+  ],
+  "sideboard": [
+    {{
+      "card_name": "Exact MTG card name",
+      "quantity": 2,
+      "role": "short role description"
+    }}
+  ],
+  "key_cards": ["Card Name 1", "Card Name 2", "Card Name 3"],
+  "upgrade_path": "Suggestions for how to improve the deck with a higher budget or future additions"
+}}
+
+IMPORTANT:
+- The total quantity of all cards in "cards" must sum to exactly {deck_size}
+- Include 15 sideboard cards (if format supports sideboard, otherwise empty array)
+- Distribute cards logically: creatures, spells, lands in appropriate ratios
+- For Commander/EDH: 1 commander + 99 cards, no duplicates except basic lands
+"""
+
+    try:
+        response = await client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"You are an expert Magic: The Gathering deck builder. You build complete, tournament-ready decks. Respond in {lang_label}. Always respond with valid JSON only."
+                },
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=4000,
+            response_format={"type": "json_object"}
+        )
+        deck_data = json.loads(response.choices[0].message.content)
+        print(f"✅ AI built deck: {deck_data.get('deck_name', 'unnamed')}")
+        return {
+            "deck": deck_data,
+            "tokens_remaining": user.tokens
+        }
+    except Exception as e:
+        print(f"❌ AI build-deck failed: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"AI processing error: {str(e)}")
+
 @router.post("/find-twins")
 async def find_twins(
     input_data: FindTwinsInput,
