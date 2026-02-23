@@ -42,7 +42,7 @@ const t = {
     colors: 'Colori (opzionale)',
     budget: 'Budget',
     deckSize: 'Dimensione mazzo',
-    buildBtn: 'Costruisci Mazzo',
+    buildBtn: 'Costruisci Mazzo (30 🪙)',
     building: 'L\'AI sta costruendo il mazzo...',
     buildingSub: 'Questo può richiedere 15-30 secondi',
     back: 'Indietro',
@@ -83,7 +83,7 @@ const t = {
     colors: 'Colors (optional)',
     budget: 'Budget',
     deckSize: 'Deck size',
-    buildBtn: 'Build Deck',
+    buildBtn: 'Build Deck (30 🪙)',
     building: 'AI is building your deck...',
     buildingSub: 'This may take 15-30 seconds',
     back: 'Back',
@@ -393,7 +393,7 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
                       </span>
                     </span>
                   ) : (
-                    <span className="adb-cost-badge adb-cost-variable">🪙 15</span>
+                    <span className="adb-cost-badge adb-cost-variable">🪙 30</span>
                   )}
                 </span>
               </label>
