@@ -131,7 +131,7 @@ const sections = {
         'I risultati sono raggruppati per ruolo: Enabler, Payoff, Support, Removal, Ramp...',
         'Vengono mostrate anche catene di sinergia e combo potenti.',
         'Puoi filtrare per priorità e copiare la lista con un click.',
-        'I nomi delle carte sono cliccabili e aprono Scryfall per maggiori dettagli.',
+        'I nomi delle carte sono cliccabili per maggiori dettagli.',
         '⚠️ Consuma 1 token per ricerca.',
       ]
     },
@@ -297,7 +297,7 @@ const sections = {
         'Results are grouped by role: Enabler, Payoff, Support, Removal, Ramp...',
         'Powerful synergy chains and combos are also shown.',
         'Filter by priority and copy the list with one click.',
-        'Card names are clickable and open Scryfall for more details.',
+        'Card names are clickable for more details.',
         '⚠️ Costs 1 token per search.',
       ]
     },
