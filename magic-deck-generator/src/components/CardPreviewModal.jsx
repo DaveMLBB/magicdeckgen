@@ -85,7 +85,7 @@ function CardPreviewModal({ cardName, language, onClose }) {
 
     const fetchCard = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/mtg-cards/search?query=${encodeURIComponent(cardName)}&page_size=1&language=${language}`)
+        const res = await fetch(`${API_URL}/api/mtg-cards/search?query=${encodeURIComponent(cardName)}&page_size=1&language=en`)
         const data = await res.json()
         const found = data.cards?.[0]
         if (!found) { setError('Card not found'); setLoading(false); return }
