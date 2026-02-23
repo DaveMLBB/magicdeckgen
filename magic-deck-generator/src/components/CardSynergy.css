@@ -1,0 +1,784 @@
+.card-synergy {
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  color: #e2e8f0;
+}
+
+/* ── Header ── */
+.cs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  gap: 16px;
+}
+
+.cs-header-content {
+  flex: 1;
+  text-align: center;
+}
+
+.cs-header h1 {
+  margin: 0;
+  font-size: 2.4rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 50%, #34d399 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.cs-subtitle {
+  color: #94a3b8;
+  margin: 4px 0 0;
+  font-size: 1rem;
+}
+
+.cs-back-btn {
+  padding: 10px 18px;
+  background: rgba(255,255,255,0.08);
+  color: #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.cs-back-btn:hover {
+  background: rgba(255,255,255,0.15);
+  transform: translateX(-2px);
+}
+
+.cs-token-badge {
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-radius: 20px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+  white-space: nowrap;
+}
+
+/* ── Error ── */
+.cs-error {
+  background: rgba(239,68,68,0.15);
+  color: #fca5a5;
+  padding: 14px 18px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border-left: 4px solid #ef4444;
+}
+
+/* ── Layout ── */
+.cs-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ── Input Panel ── */
+.cs-input-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: 20px;
+}
+
+.cs-section {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.cs-section-title {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #c4b5fd;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Seed Cards ── */
+.cs-seed-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cs-card-input-wrapper {
+  position: relative;
+}
+
+.cs-card-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cs-card-num {
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.cs-card-input {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.cs-card-input:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  background: rgba(139,92,246,0.1);
+}
+
+.cs-card-input::placeholder {
+  color: #64748b;
+}
+
+.cs-remove-btn {
+  width: 28px;
+  height: 28px;
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 6px;
+  color: #fca5a5;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.cs-remove-btn:hover {
+  background: rgba(239,68,68,0.3);
+}
+
+.cs-suggestions-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 32px;
+  right: 36px;
+  background: #1e1b4b;
+  border: 1px solid rgba(139,92,246,0.4);
+  border-radius: 8px;
+  z-index: 100;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.cs-suggestion-item {
+  display: block;
+  width: 100%;
+  padding: 9px 14px;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cs-suggestion-item:hover {
+  background: rgba(139,92,246,0.2);
+}
+
+.cs-add-btn {
+  padding: 10px;
+  background: rgba(99,102,241,0.15);
+  border: 1px dashed rgba(99,102,241,0.4);
+  border-radius: 8px;
+  color: #a5b4fc;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.cs-add-btn:hover {
+  background: rgba(99,102,241,0.25);
+  border-color: rgba(99,102,241,0.7);
+}
+
+.cs-max-note {
+  font-size: 0.8rem;
+  color: #f59e0b;
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Options ── */
+.cs-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cs-option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cs-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cs-select {
+  padding: 9px 12px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.cs-select:focus {
+  outline: none;
+  border-color: #8b5cf6;
+}
+
+.cs-select option {
+  background: #1e1b4b;
+  color: #e2e8f0;
+}
+
+/* ── Search Button ── */
+.cs-search-btn {
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+  letter-spacing: 0.3px;
+}
+
+.cs-search-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99,102,241,0.5);
+}
+
+.cs-search-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cs-btn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.cs-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: cs-spin 0.8s linear infinite;
+}
+
+@keyframes cs-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Seed Recap ── */
+.cs-seed-recap {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.cs-seed-recap h3 {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cs-seed-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.cs-seed-tag {
+  padding: 4px 10px;
+  background: rgba(139,92,246,0.2);
+  border: 1px solid rgba(139,92,246,0.4);
+  border-radius: 20px;
+  font-size: 0.82rem;
+  color: #c4b5fd;
+}
+
+.cs-meta-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  background: rgba(99,102,241,0.15);
+  border-radius: 20px;
+  font-size: 0.78rem;
+  color: #a5b4fc;
+  margin-right: 6px;
+}
+
+/* ── Results Panel ── */
+.cs-results-panel {
+  min-height: 400px;
+}
+
+/* ── Loading State ── */
+.cs-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.cs-loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(139,92,246,0.2);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: cs-spin 1s linear infinite;
+}
+
+.cs-loading-state p {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #c4b5fd;
+}
+
+.cs-loading-sub {
+  font-size: 0.85rem !important;
+  color: #64748b !important;
+}
+
+/* ── Empty State ── */
+.cs-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+.cs-empty-icon {
+  font-size: 4rem;
+  opacity: 0.5;
+}
+
+.cs-example-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.cs-example-title {
+  width: 100%;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.cs-example-btn {
+  padding: 6px 14px;
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 20px;
+  color: #a5b4fc;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cs-example-btn:hover {
+  background: rgba(99,102,241,0.25);
+  border-color: rgba(99,102,241,0.6);
+  color: #c4b5fd;
+}
+
+/* ── Result Content ── */
+.cs-result-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cs-result-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.cs-result-card h3 {
+  margin: 0 0 14px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.cs-result-card p {
+  margin: 0;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+/* ── Overview ── */
+.cs-overview {
+  border-left: 4px solid #8b5cf6;
+  background: rgba(139,92,246,0.06);
+}
+
+.cs-themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.cs-themes-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cs-theme-tag {
+  padding: 3px 10px;
+  background: rgba(139,92,246,0.2);
+  border: 1px solid rgba(139,92,246,0.35);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: #c4b5fd;
+}
+
+/* ── Cards Header ── */
+.cs-cards-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cs-cards-header h3 {
+  margin: 0;
+}
+
+.cs-cards-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cs-mini-select {
+  padding: 5px 10px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.cs-mini-select option {
+  background: #1e1b4b;
+}
+
+.cs-copy-btn {
+  padding: 5px 12px;
+  background: rgba(16,185,129,0.15);
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 6px;
+  color: #6ee7b7;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.cs-copy-btn:hover {
+  background: rgba(16,185,129,0.25);
+}
+
+/* ── Cards Grid ── */
+.cs-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.cs-card-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 14px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.cs-card-item:hover {
+  border-color: rgba(139,92,246,0.4);
+  background: rgba(139,92,246,0.06);
+}
+
+.cs-card-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.cs-role-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.cs-card-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #e2e8f0;
+}
+
+.cs-card-link {
+  color: #a5b4fc;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.cs-card-link:hover {
+  color: #c4b5fd;
+  text-decoration: underline;
+}
+
+.cs-priority-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cs-synergy-reason {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+.cs-price-tag {
+  font-size: 0.75rem;
+  color: #6ee7b7;
+  background: rgba(16,185,129,0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* ── Synergy Chains ── */
+.cs-chains {
+  border-left: 4px solid #f59e0b;
+  background: rgba(245,158,11,0.04);
+}
+
+.cs-chains-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cs-chain-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.cs-chain-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.cs-chain-cards {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.cs-chain-card {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #fde68a;
+}
+
+.cs-chain-sep {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.cs-power-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.cs-chain-desc {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Cards to Avoid ── */
+.cs-avoid {
+  border-left: 4px solid #ef4444;
+  background: rgba(239,68,68,0.04);
+}
+
+.cs-avoid-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cs-avoid-tag {
+  padding: 4px 12px;
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #fca5a5;
+}
+
+.cs-avoid-reason {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin: 0;
+  padding: 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1150px) {
+  .cs-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cs-input-panel {
+    position: static;
+  }
+
+  .cs-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .cs-subtitle {
+    display: none;
+  }
+
+  .cs-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cs-cards-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .card-synergy {
+    padding: 12px;
+  }
+
+  .cs-header {
+    flex-wrap: wrap;
+  }
+
+  .cs-header h1 {
+    font-size: 1.4rem;
+  }
+
+  .cs-token-badge {
+    font-size: 1rem;
+    padding: 6px 12px;
+  }
+}

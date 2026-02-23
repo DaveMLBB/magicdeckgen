@@ -14,6 +14,158 @@ class OptimizeDeckInput(BaseModel):
     user_id: int
     optimization_goal: Optional[str] = "balanced"  # balanced, aggressive, defensive, budget
 
+class FindSynergiesInput(BaseModel):
+    user_id: int
+    card_names: List[str]  # 1-5 seed cards
+    format: Optional[str] = None
+    strategy: Optional[str] = None  # aggro, control, combo, midrange, etc.
+
+@router.post("/find-synergies")
+async def find_synergies(
+    input_data: FindSynergiesInput,
+    language: str = "it",
+    db: Session = Depends(get_db)
+):
+    """
+    Dato un set di carte seme, trova carte compatibili/sinergiche usando AI.
+    Consuma 1 token.
+    """
+    user = db.query(User).filter(User.id == input_data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not input_data.card_names or len(input_data.card_names) == 0:
+        raise HTTPException(status_code=400, detail="Provide at least one card name")
+
+    if len(input_data.card_names) > 5:
+        raise HTTPException(status_code=400, detail="Maximum 5 seed cards allowed")
+
+    from app.routers.tokens import consume_token
+    consume_token(user, 'ai_synergy', f'AI synergy search: {", ".join(input_data.card_names)}', db, tokens_to_consume=1)
+
+    # Fetch card data from DB to enrich the prompt
+    seed_cards_data = []
+    for card_name in input_data.card_names:
+        card = db.query(MTGCard).filter(
+            MTGCard.name.ilike(card_name)
+        ).first()
+        if card:
+            seed_cards_data.append({
+                "name": card.name,
+                "mana_cost": card.mana_cost or "",
+                "cmc": card.mana_value or 0,
+                "types": card.types or "",
+                "subtypes": card.subtypes or "",
+                "text": card.text or "",
+                "keywords": card.keywords or "",
+                "colors": card.colors or "",
+                "power": card.power,
+                "toughness": card.toughness,
+            })
+        else:
+            seed_cards_data.append({"name": card_name, "text": "", "types": "", "colors": ""})
+
+    try:
+        result = await find_synergies_with_ai(seed_cards_data, input_data.format, input_data.strategy, language)
+    except Exception as e:
+        print(f"❌ AI synergy failed: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"AI service unavailable: {str(e)}")
+
+    return {
+        "seed_cards": [c["name"] for c in seed_cards_data],
+        "format": input_data.format,
+        "strategy": input_data.strategy,
+        "result": result,
+        "tokens_remaining": user.tokens
+    }
+
+
+async def find_synergies_with_ai(seed_cards: list, format: Optional[str], strategy: Optional[str], language: str) -> dict:
+    """
+    Usa Groq (Llama 3.3 70B) per trovare carte sinergiche con le carte seme.
+    """
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        raise Exception("Groq API key not configured")
+
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(
+            api_key=groq_api_key,
+            base_url="https://api.groq.com/openai/v1"
+        )
+    except ImportError:
+        raise Exception("OpenAI library not installed")
+
+    lang_label = "Italian (italiano)" if language == "it" else "English"
+    format_line = f"Format: {format}" if format else "Format: any/casual"
+    strategy_line = f"Preferred strategy/archetype: {strategy}" if strategy else "Strategy: not specified, suggest what fits best"
+
+    cards_block = "\n".join(
+        f"- {c['name']} | Types: {c.get('types','')} {c.get('subtypes','')} | Colors: {c.get('colors','')} | CMC: {c.get('cmc','')} | Text: {c.get('text','')[:200]}"
+        for c in seed_cards
+    )
+
+    prompt = f"""You are an expert Magic: The Gathering deck builder.
+The user provides a set of "seed" cards and wants to find compatible, synergistic cards that work well with them.
+
+SEED CARDS:
+{cards_block}
+
+{format_line}
+{strategy_line}
+
+TASK:
+1. Analyze the seed cards: identify their mechanics, synergies, themes, and strategies.
+2. Suggest 15-25 specific Magic: The Gathering cards that synergize well with the seed cards.
+3. Group suggestions by role (e.g., "Enablers", "Payoffs", "Support/Utility", "Lands", "Removal").
+4. For each card explain WHY it synergizes with the seed cards.
+5. Identify 2-5 powerful combos or synergy chains involving the seed cards + suggested cards.
+6. Give a brief strategic overview of what kind of deck these cards could form.
+
+LANGUAGE: Respond in {lang_label}.
+
+Respond ONLY with valid JSON in this exact structure:
+{{
+  "strategic_overview": "string - brief description of the deck strategy these cards suggest",
+  "themes_identified": ["theme1", "theme2", ...],
+  "suggested_cards": [
+    {{
+      "card_name": "Exact MTG card name",
+      "role": "Enabler|Payoff|Support|Removal|Land|Ramp|Protection|Draw",
+      "synergy_reason": "string - why this card works with the seed cards",
+      "priority": "high|medium|low",
+      "estimated_price": "Budget (<$2)|Affordable ($2-10)|Moderate ($10-30)|Expensive (>$30)"
+    }}
+  ],
+  "synergy_chains": [
+    {{
+      "cards": ["card1", "card2", "card3"],
+      "description": "string - how these cards interact",
+      "power_level": "value|strong|game-winning"
+    }}
+  ],
+  "cards_to_avoid": ["card1", "card2"],
+  "avoid_reason": "string - brief explanation of what to avoid"
+}}
+"""
+
+    response = await client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "system",
+                "content": f"You are an expert Magic: The Gathering card synergy analyst. Respond in {lang_label}. Always respond with valid JSON only."
+            },
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=3000,
+        response_format={"type": "json_object"}
+    )
+
+    return json.loads(response.choices[0].message.content)
+
 @router.post("/optimize-deck")
 async def optimize_deck(
     input_data: OptimizeDeckInput,

@@ -9,6 +9,7 @@ import CardSearch from './components/CardSearch'
 import SavedDecksList from './components/SavedDecksList'
 import SavedDeck from './components/SavedDeck'
 import AIBuilder from './components/AIBuilder'
+import CardSynergy from './components/CardSynergy'
 import CookieConsentBanner from './components/CookieConsentBanner'
 import PrivacySettings from './components/PrivacySettings'
 import LegalPages from './components/LegalPages'
@@ -48,7 +49,7 @@ function App() {
   const [deckLoading, setDeckLoading] = useState(false)
   const [selectedDeck, setSelectedDeck] = useState(null)
   const [message, setMessage] = useState('')
-  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search', 'saved-decks', 'saved-deck-detail', 'ai-builder', 'subscriptions', 'privacy-settings', 'privacy-policy', 'terms-of-service', 'cookie-settings', 'email-preferences'
+  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search', 'saved-decks', 'saved-deck-detail', 'ai-builder', 'card-synergy', 'subscriptions', 'privacy-settings', 'privacy-policy', 'terms-of-service', 'cookie-settings', 'email-preferences'
   const [selectedCollection, setSelectedCollection] = useState(null)
   const [selectedSavedDeck, setSelectedSavedDeck] = useState(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState(null)
@@ -89,7 +90,7 @@ function App() {
   const [hoveredCard, setHoveredCard] = useState(null)
   const [cardImageUrl, setCardImageUrl] = useState(null)
   const [imageLoading, setImageLoading] = useState(false)
-  const [animatedBg, setAnimatedBg] = useState(() => localStorage.getItem('animatedBg') !== 'false')
+  const [animatedBg, setAnimatedBg] = useState(() => localStorage.getItem('animatedBg') === 'true')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Traduzioni
@@ -1183,6 +1184,12 @@ function App() {
             >
               🤖 {language === 'it' ? 'AI Analyzer' : 'AI Analyzer'}
             </button>
+            <button 
+              className={`global-nav-btn ${currentView === 'card-synergy' ? 'active' : ''}`}
+              onClick={() => setCurrentView('card-synergy')}
+            >
+              ✨ {language === 'it' ? 'AI Synergy' : 'AI Synergy'}
+            </button>
           </div>
           <div className="global-nav-right desktop-only">
             <span className="nav-user-email">{user.email}</span>
@@ -1264,6 +1271,12 @@ function App() {
                     onClick={() => { setCurrentView('ai-builder'); setMobileMenuOpen(false); }}
                   >
                     🤖 AI Analyzer
+                  </button>
+                  <button 
+                    className={`mobile-menu-item ${currentView === 'card-synergy' ? 'active' : ''}`}
+                    onClick={() => { setCurrentView('card-synergy'); setMobileMenuOpen(false); }}
+                  >
+                    ✨ AI Synergy
                   </button>
                   <button 
                     className={`mobile-menu-item ${currentView === 'subscriptions' ? 'active' : ''}`}
@@ -1389,6 +1402,12 @@ function App() {
         />
       ) : currentView === 'ai-builder' ? (
         <AIBuilder
+          user={user}
+          onBack={() => setCurrentView('main')}
+          language={language}
+        />
+      ) : currentView === 'card-synergy' ? (
+        <CardSynergy
           user={user}
           onBack={() => setCurrentView('main')}
           language={language}
