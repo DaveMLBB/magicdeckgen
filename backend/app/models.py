@@ -283,6 +283,46 @@ class CouponRedemption(Base):
         Index('idx_user_coupon', 'user_id', 'coupon_id', unique=True),
     )
 
+class Chat(Base):
+    """Community chat rooms — public or private"""
+    __tablename__ = "chats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    is_public = Column(Boolean, default=True, nullable=False)
+    access_code = Column(String(4), nullable=True)  # 4-digit code for private chats
+    creator_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+class ChatMember(Base):
+    """Users who have joined a chat (paid 2 tokens)"""
+    __tablename__ = "chat_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(Integer, ForeignKey('chats.id'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    username = Column(String, nullable=False)  # Display name chosen on join
+    is_admin = Column(Boolean, default=False, nullable=False)  # Creator is admin
+    is_banned = Column(Boolean, default=False, nullable=False)
+    joined_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        Index('idx_chat_member_unique', 'chat_id', 'user_id', unique=True),
+    )
+
+class ChatMessage(Base):
+    """Messages in a chat room"""
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(Integer, ForeignKey('chats.id'), nullable=False, index=True)
+    member_id = Column(Integer, ForeignKey('chat_members.id'), nullable=False, index=True)
+    content = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    is_deleted = Column(Boolean, default=False, nullable=False)
+
 class Feedback(Base):
     """User feedback / testimonials — visible only via DB, owner decides if to publish"""
     __tablename__ = "feedback"

@@ -21,6 +21,7 @@ import EmailPreferences from './components/EmailPreferences'
 import { cardImageCache } from './utils/cardImageCache'
 import RandomArtBackground from './components/RandomArtBackground'
 import FeedbackForm from './components/FeedbackForm'
+import Chat from './components/Chat'
 import './components/SavedDeck.css'
 import './components/ColumnMapper.css' // IMPORTATO PER ULTIMO - VINCE SU TUTTO
 
@@ -1211,6 +1212,12 @@ function App() {
             >
               🏗️ {language === 'it' ? 'AI Deck Builder' : 'AI Deck Builder'}
             </button>
+            <button 
+              className={`global-nav-btn ${currentView === 'community' ? 'active' : ''}`}
+              onClick={() => setCurrentView('community')}
+            >
+              💬 {language === 'it' ? 'Community' : 'Community'}
+            </button>
           </div>
           <div className="global-nav-right desktop-only">
             <span className="nav-user-email">{user.email}</span>
@@ -1277,6 +1284,12 @@ function App() {
                     onClick={() => { setCurrentView('saved-decks'); setMobileMenuOpen(false); }}
                   >
                     🗂️ {language === 'it' ? 'Mazzi' : 'Decks'}
+                  </button>
+                  <button 
+                    className={`mobile-menu-item ${currentView === 'community' ? 'active' : ''}`}
+                    onClick={() => { setCurrentView('community'); setMobileMenuOpen(false); }}
+                  >
+                    💬 {language === 'it' ? 'Community' : 'Community'}
                   </button>
                   <button 
                     className={`mobile-menu-item ${currentView === 'ai-builder' ? 'active' : ''}`}
@@ -1456,6 +1469,11 @@ function App() {
           onBack={() => setCurrentView('main')}
           language={language}
           onSaved={() => setCurrentView('saved-decks')}
+        />
+      ) : currentView === 'community' ? (
+        <Chat
+          user={user}
+          language={language}
         />
       ) : currentView === 'privacy-settings' ? (
         <PrivacySettings
