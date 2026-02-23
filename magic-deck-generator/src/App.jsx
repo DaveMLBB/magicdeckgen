@@ -10,6 +10,7 @@ import SavedDecksList from './components/SavedDecksList'
 import SavedDeck from './components/SavedDeck'
 import AIBuilder from './components/AIBuilder'
 import CardSynergy from './components/CardSynergy'
+import UserGuide, { GUIDE_VERSION } from './components/UserGuide'
 import CookieConsentBanner from './components/CookieConsentBanner'
 import PrivacySettings from './components/PrivacySettings'
 import LegalPages from './components/LegalPages'
@@ -92,6 +93,7 @@ function App() {
   const [imageLoading, setImageLoading] = useState(false)
   const [animatedBg, setAnimatedBg] = useState(() => localStorage.getItem('animatedBg') === 'true')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
 
   // Traduzioni
   const translations = {
@@ -458,6 +460,10 @@ function App() {
 
   const handleLogin = (userData) => {
     setUser(userData)
+    const dismissed = localStorage.getItem(`userGuide_dismissed_v${GUIDE_VERSION}`)
+    if (!dismissed) {
+      setShowGuide(true)
+    }
   }
 
   const handleLogout = () => {
@@ -2026,6 +2032,14 @@ function App() {
             </div>
           </footer>
         </>
+      )}
+
+      {/* User Guide - shown on first login */}
+      {showGuide && (
+        <UserGuide
+          language={language}
+          onClose={() => setShowGuide(false)}
+        />
       )}
 
       {/* Cookie Consent Banner - always visible until consent given */}
