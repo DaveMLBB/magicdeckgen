@@ -172,6 +172,190 @@ IMPORTANT:
         print(f"❌ AI build-deck failed: {str(e)}")
         raise HTTPException(status_code=503, detail=f"AI processing error: {str(e)}")
 
+class BuildDeckFullCollectionInput(BaseModel):
+    user_id: int
+    description: str
+    format: Optional[str] = None
+    colors: Optional[str] = None
+    budget: Optional[str] = None
+    deck_size: Optional[int] = 60
+    collection_id: int
+
+@router.get("/build-deck-full-collection/cost")
+def get_full_collection_cost(collection_id: int, user_id: int, db: Session = Depends(get_db)):
+    """Returns the token cost for building a deck from the full collection."""
+    import math
+    from app.models import Card, CardCollection
+    collection = db.query(CardCollection).filter(
+        CardCollection.id == collection_id,
+        CardCollection.user_id == user_id
+    ).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    total = db.query(Card).filter(Card.collection_id == collection_id).count()
+    chunks = math.ceil(total / 200) if total > 0 else 1
+    token_cost = 10 + chunks
+    return {"total_cards": total, "chunks": chunks, "token_cost": token_cost}
+
+@router.post("/build-deck-full-collection")
+async def build_deck_full_collection(
+    input_data: BuildDeckFullCollectionInput,
+    language: str = "it",
+    db: Session = Depends(get_db)
+):
+    """
+    Genera un mazzo usando TUTTA la collezione, elaborata in chunk da 200 carte.
+    Costo: 10 + ceil(total_cards / 200) token.
+    """
+    import math
+    from app.models import Card, CardCollection
+
+    user = db.query(User).filter(User.id == input_data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not input_data.description or len(input_data.description.strip()) < 10:
+        raise HTTPException(status_code=400, detail="Description too short (min 10 characters)")
+
+    collection = db.query(CardCollection).filter(
+        CardCollection.id == input_data.collection_id,
+        CardCollection.user_id == input_data.user_id
+    ).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    all_cards = db.query(Card).filter(Card.collection_id == input_data.collection_id)\
+        .order_by(Card.quantity_owned.desc()).all()
+    total = len(all_cards)
+    if total == 0:
+        raise HTTPException(status_code=400, detail="Collection is empty")
+
+    chunk_size = 200
+    chunks = math.ceil(total / chunk_size)
+    token_cost = 10 + chunks
+
+    from app.routers.tokens import consume_token
+    consume_token(user, 'ai_build_deck_full', f'AI full collection deck: {input_data.description[:50]}', db, tokens_to_consume=token_cost)
+
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        raise HTTPException(status_code=503, detail="AI service not configured")
+
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=groq_api_key, base_url="https://api.groq.com/openai/v1")
+    except ImportError:
+        raise HTTPException(status_code=503, detail="OpenAI library not installed")
+
+    lang_label = "Italian (italiano)" if language == "it" else "English"
+    deck_size = input_data.deck_size or 60
+    format_line = f"Format: {input_data.format}" if input_data.format else "Format: Modern"
+    colors_line = f"Color restriction: {input_data.colors}" if input_data.colors else "Colors: not restricted"
+    budget_line = f"Budget: {input_data.budget}" if input_data.budget else "Budget: no restriction"
+
+    # Phase 1: for each chunk, ask AI to select the most useful cards for the description
+    selected_cards = []
+    for i in range(chunks):
+        chunk = all_cards[i * chunk_size:(i + 1) * chunk_size]
+        card_list = ", ".join(f"{c.name} (x{c.quantity_owned})" for c in chunk)
+        selection_prompt = f"""You are a Magic: The Gathering expert. Given this deck description and a list of available cards, select the most useful cards for building the deck.
+
+DECK DESCRIPTION: {input_data.description}
+CONSTRAINTS: {format_line}, {colors_line}, {budget_line}, deck size {deck_size}
+
+AVAILABLE CARDS (chunk {i+1}/{chunks}): {card_list}
+
+Return ONLY a JSON array of the most useful card names from this list (max 30 cards), like:
+["Card Name 1", "Card Name 2", ...]
+Only include cards that would genuinely fit this deck. Respond with JSON only."""
+
+        try:
+            resp = await client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": selection_prompt}],
+                temperature=0.3,
+                max_tokens=800,
+                response_format={"type": "json_object"}
+            )
+            raw = resp.choices[0].message.content
+            parsed = json.loads(raw)
+            # handle both {"cards": [...]} and direct array wrapped in object
+            if isinstance(parsed, list):
+                names = parsed
+            elif isinstance(parsed, dict):
+                names = next((v for v in parsed.values() if isinstance(v, list)), [])
+            else:
+                names = []
+            # match back to card objects to get quantity
+            name_set = {n.lower() for n in names}
+            for c in chunk:
+                if c.name.lower() in name_set:
+                    selected_cards.append(f"{c.name} (x{c.quantity_owned})")
+        except Exception as e:
+            print(f"⚠️ Chunk {i+1} selection failed: {e}")
+            continue
+
+    if not selected_cards:
+        raise HTTPException(status_code=503, detail="AI could not select cards from collection")
+
+    # Phase 2: build the final deck from selected cards
+    final_card_list = ", ".join(selected_cards)
+    final_prompt = f"""You are an expert Magic: The Gathering deck builder. Build a complete deck using ONLY the cards listed below.
+
+USER DESCRIPTION: {input_data.description}
+
+CONSTRAINTS:
+- {format_line}
+- {colors_line}
+- {budget_line}
+- Deck size: exactly {deck_size} cards
+- You MUST use only cards from the list below (basic lands are always allowed)
+- Respect quantity limits shown as (xN)
+
+AVAILABLE CARDS FROM COLLECTION "{collection.name}": {final_card_list}
+
+LANGUAGE: Respond in {lang_label}.
+
+Respond ONLY with valid JSON:
+{{
+  "deck_name": "name",
+  "deck_description": "2-3 sentence strategy description",
+  "format": "format",
+  "colors": "color identity",
+  "archetype": "archetype",
+  "estimated_budget": "budget range",
+  "strategy_notes": "detailed strategy explanation",
+  "cards": [{{"card_name": "name", "quantity": 4, "category": "Creature|Spell|Enchantment|Artifact|Planeswalker|Land|Other", "role": "role"}}],
+  "sideboard": [{{"card_name": "name", "quantity": 2, "role": "role"}}],
+  "key_cards": ["Card 1", "Card 2", "Card 3"],
+  "upgrade_path": "upgrade suggestions"
+}}
+
+IMPORTANT: total cards must sum to exactly {deck_size}. Include 15 sideboard cards if format supports it."""
+
+    try:
+        response = await client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": f"You are an expert MTG deck builder. Respond in {lang_label}. Always respond with valid JSON only."},
+                {"role": "user", "content": final_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=4000,
+            response_format={"type": "json_object"}
+        )
+        deck_data = json.loads(response.choices[0].message.content)
+        print(f"✅ AI full-collection deck: {deck_data.get('deck_name', 'unnamed')} ({chunks} chunks, {token_cost} tokens)")
+        return {
+            "deck": deck_data,
+            "tokens_remaining": user.tokens,
+            "collection_stats": {"total_cards": total, "chunks_processed": chunks, "cards_selected": len(selected_cards)}
+        }
+    except Exception as e:
+        print(f"❌ AI build-deck-full-collection failed: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"AI processing error: {str(e)}")
+
+
 @router.post("/find-twins")
 async def find_twins(
     input_data: FindTwinsInput,

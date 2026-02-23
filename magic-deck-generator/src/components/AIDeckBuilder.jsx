@@ -167,8 +167,10 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
   const [filterCat, setFilterCat] = useState('all')
   const [sortMode, setSortMode] = useState('category')
   const [useCollection, setUseCollection] = useState(false)
+  const [useFullCollection, setUseFullCollection] = useState(false)
   const [collections, setCollections] = useState([])
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
+  const [fullCollectionCost, setFullCollectionCost] = useState(null)
 
   useEffect(() => {
     if (!user?.userId) return
@@ -182,6 +184,14 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
       .catch(() => {})
   }, [user])
 
+  useEffect(() => {
+    if (!selectedCollectionId || !user?.userId) { setFullCollectionCost(null); return }
+    fetch(`${API_URL}/api/ai/build-deck-full-collection/cost?collection_id=${selectedCollectionId}&user_id=${user.userId}`)
+      .then(r => r.json())
+      .then(data => setFullCollectionCost(data))
+      .catch(() => setFullCollectionCost(null))
+  }, [selectedCollectionId, user])
+
   const toggleColor = (code) => {
     setSelectedColors(prev =>
       prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
@@ -192,18 +202,16 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
     if (description.trim().length < 10) { setError(tr.errorShort); return }
     setLoading(true); setError(null); setResult(null); setSaveStatus(null)
     try {
-      const res = await fetch(`${API_URL}/api/ai/build-deck?language=${language}`, {
+      const endpoint = useFullCollection && selectedCollectionId
+        ? `${API_URL}/api/ai/build-deck-full-collection?language=${language}`
+        : `${API_URL}/api/ai/build-deck?language=${language}`
+      const body = useFullCollection && selectedCollectionId
+        ? { user_id: user.userId, description: description.trim(), format: format || null, colors: selectedColors.length > 0 ? selectedColors.join('') : null, budget: budget || null, deck_size: deckSize, collection_id: selectedCollectionId }
+        : { user_id: user.userId, description: description.trim(), format: format || null, colors: selectedColors.length > 0 ? selectedColors.join('') : null, budget: budget || null, deck_size: deckSize, collection_id: useCollection && selectedCollectionId ? selectedCollectionId : null }
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user.userId,
-          description: description.trim(),
-          format: format || null,
-          colors: selectedColors.length > 0 ? selectedColors.join('') : null,
-          budget: budget || null,
-          deck_size: deckSize,
-          collection_id: useCollection && selectedCollectionId ? selectedCollectionId : null,
-        })
+        body: JSON.stringify(body)
       })
       const data = await res.json()
       if (!res.ok) {
@@ -366,15 +374,9 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
           {/* Collection filter */}
           {collections.length > 0 && (
             <div className="adb-collection-filter">
-              <label className="adb-collection-check">
-                <input
-                  type="checkbox"
-                  checked={useCollection}
-                  onChange={e => setUseCollection(e.target.checked)}
-                />
-                <span>📚 {language === 'it' ? 'Usa solo carte dalla collezione' : 'Use only cards from collection'}</span>
-              </label>
-              {useCollection && (
+
+              {/* Selector — shared between both modes */}
+              {(useCollection || useFullCollection) && (
                 <select
                   className="adb-select adb-collection-select"
                   value={selectedCollectionId || ''}
@@ -387,6 +389,42 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
                   ))}
                 </select>
               )}
+
+              {/* Option 1: top 200 cards, fixed cost */}
+              <label className="adb-collection-check">
+                <input
+                  type="checkbox"
+                  checked={useCollection}
+                  onChange={e => { setUseCollection(e.target.checked); if (e.target.checked) setUseFullCollection(false) }}
+                />
+                <span>
+                  📚 {language === 'it' ? 'Usa top 200 carte dalla collezione' : 'Use top 200 cards from collection'}
+                  <span className="adb-cost-badge">🪙 10</span>
+                </span>
+              </label>
+
+              {/* Option 2: full collection, variable cost */}
+              <label className="adb-collection-check">
+                <input
+                  type="checkbox"
+                  checked={useFullCollection}
+                  onChange={e => { setUseFullCollection(e.target.checked); if (e.target.checked) setUseCollection(false) }}
+                />
+                <span>
+                  🔍 {language === 'it' ? 'Analizza collezione completa' : 'Analyze full collection'}
+                  {fullCollectionCost ? (
+                    <span className="adb-cost-badge adb-cost-variable">
+                      🪙 {fullCollectionCost.token_cost}
+                      <span className="adb-cost-detail">
+                        ({fullCollectionCost.total_cards} {language === 'it' ? 'carte' : 'cards'}, {fullCollectionCost.chunks} {language === 'it' ? 'blocchi' : 'chunks'})
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="adb-cost-badge adb-cost-variable">🪙 10+</span>
+                  )}
+                </span>
+              </label>
+
             </div>
           )}
 
