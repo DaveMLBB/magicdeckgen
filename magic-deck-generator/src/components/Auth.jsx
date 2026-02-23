@@ -272,6 +272,76 @@ function Auth({ onLogin, language, setLanguage }) {
             </div>
           </div>
 
+          {/* AI Tools Section */}
+          <div className="ai-tools-section">
+            <h2 className="section-title">
+              {language === 'it' ? '🤖 4 Strumenti AI per il Tuo Gioco' : '🤖 4 AI-Powered Tools for Your Game'}
+            </h2>
+            <p className="section-subtitle">
+              {language === 'it'
+                ? 'Funzionalità AI all\'avanguardia che nessun altro strumento MTG offre'
+                : 'State-of-the-art AI features that no other MTG tool offers'}
+            </p>
+            <div className="ai-tools-grid">
+              <div className="ai-tool-card">
+                <div className="ai-tool-header">
+                  <span className="ai-tool-icon">🏗️</span>
+                  <div>
+                    <h3>{language === 'it' ? 'AI Deck Builder' : 'AI Deck Builder'}</h3>
+                    <span className="ai-token-badge">10 token</span>
+                  </div>
+                </div>
+                <p>
+                  {language === 'it'
+                    ? 'Descrivi il mazzo che vuoi in testo libero — "aggro rosso Modern" o "Commander Atraxa" — e l\'AI costruisce un mazzo completo da 60 o 100 carte con sideboard, strategia e upgrade path. Può usare solo le carte della tua collezione.'
+                    : 'Describe the deck you want in plain text — "red aggro Modern" or "Atraxa Commander" — and AI builds a complete 60 or 100-card deck with sideboard, strategy notes and upgrade path. Can use only cards from your collection.'}
+                </p>
+              </div>
+              <div className="ai-tool-card">
+                <div className="ai-tool-header">
+                  <span className="ai-tool-icon">✨</span>
+                  <div>
+                    <h3>{language === 'it' ? 'AI Synergy Finder' : 'AI Synergy Finder'}</h3>
+                    <span className="ai-token-badge">10 token</span>
+                  </div>
+                </div>
+                <p>
+                  {language === 'it'
+                    ? 'Inserisci 1–5 carte di partenza e l\'AI trova le carte più sinergiche per costruire attorno ad esse. Risultati raggruppati per ruolo: Enabler, Payoff, Removal, Ramp. Perfetto per creare nuovi archetipi.'
+                    : 'Enter 1–5 seed cards and AI finds the most synergistic cards to build around them. Results grouped by role: Enabler, Payoff, Removal, Ramp. Perfect for brewing new archetypes.'}
+                </p>
+              </div>
+              <div className="ai-tool-card">
+                <div className="ai-tool-header">
+                  <span className="ai-tool-icon">🪞</span>
+                  <div>
+                    <h3>{language === 'it' ? 'AI Gemelli' : 'AI Card Twins'}</h3>
+                    <span className="ai-token-badge">10 token</span>
+                  </div>
+                </div>
+                <p>
+                  {language === 'it'
+                    ? 'Trova equivalenti funzionali per qualsiasi carta. Scopri sostituti economici, upgrade o carte che fanno la stessa cosa con un nome diverso. Ogni gemello classificato: Copia Funzionale, Superiore, Inferiore o Laterale.'
+                    : 'Find functional equivalents for any card. Discover budget replacements, upgrades or cards that do the same thing with a different name. Each twin rated: Functional Copy, Superior, Inferior or Lateral.'}
+                </p>
+              </div>
+              <div className="ai-tool-card">
+                <div className="ai-tool-header">
+                  <span className="ai-tool-icon">🤖</span>
+                  <div>
+                    <h3>{language === 'it' ? 'AI Deck Analyzer' : 'AI Deck Analyzer'}</h3>
+                    <span className="ai-token-badge">10 token</span>
+                  </div>
+                </div>
+                <p>
+                  {language === 'it'
+                    ? 'Seleziona un mazzo salvato e scegli un obiettivo (Aggro, Control, Combo, Tribal…). L\'AI analizza la curva di mana, identifica sinergie e combo, e suggerisce carte specifiche da aggiungere o rimuovere.'
+                    : 'Select a saved deck and choose an optimization goal (Aggro, Control, Combo, Tribal…). AI analyzes mana curve, identifies synergies and combos, and suggests specific cards to add or remove.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* How It Works Section */}
           <div className="how-it-works-section">
             <h2 className="section-title">
