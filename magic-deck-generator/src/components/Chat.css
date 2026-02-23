@@ -206,6 +206,17 @@
   font-size: 0.9rem;
 }
 
+/* ── Search bar ── */
+.chat-search-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chat-search-input {
+  flex: 1;
+}
+
 /* ── Loading / Empty ── */
 .chat-loading, .chat-empty {
   color: #64748b;

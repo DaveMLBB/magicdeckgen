@@ -53,6 +53,13 @@ const T = {
     loadingChats: 'Caricamento chat...',
     enterUsername: 'Scegli il tuo username',
     usernameHint: 'Sarà visibile a tutti nella chat',
+    myChats: 'Le mie chat',
+    noMyChats: 'Non sei ancora membro di nessuna chat.',
+    searchPrivate: '🔍 Cerca chat privata',
+    searchPlaceholder: 'Cerca per nome...',
+    searchBtn: 'Cerca',
+    searchResults: 'Risultati ricerca',
+    noResults: 'Nessuna chat trovata.',
   },
   en: {
     title: '💬 Community Chat',
@@ -97,6 +104,13 @@ const T = {
     loadingChats: 'Loading chats...',
     enterUsername: 'Choose your username',
     usernameHint: 'Will be visible to everyone in the chat',
+    myChats: 'My chats',
+    noMyChats: 'You are not a member of any chat yet.',
+    searchPrivate: '🔍 Search private chat',
+    searchPlaceholder: 'Search by name...',
+    searchBtn: 'Search',
+    searchResults: 'Search results',
+    noResults: 'No chats found.',
   }
 }
 
@@ -104,7 +118,11 @@ export default function Chat({ user, language = 'it' }) {
   const t = T[language] || T.it
   const [view, setView] = useState('list') // list | room | create | join
   const [chats, setChats] = useState([])
+  const [myChats, setMyChats] = useState([])
   const [loadingChats, setLoadingChats] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState(null) // null = not searched yet
+  const [searching, setSearching] = useState(false)
   const [activeChat, setActiveChat] = useState(null) // full chat info
   const [messages, setMessages] = useState([])
   const [members, setMembers] = useState([])
@@ -135,17 +153,36 @@ export default function Chat({ user, language = 'it' }) {
   const loadChats = useCallback(async () => {
     setLoadingChats(true)
     try {
-      const res = await fetch(`${API_URL}/api/chat/list`)
-      if (res.ok) setChats(await res.json())
+      const [pubRes, myRes] = await Promise.all([
+        fetch(`${API_URL}/api/chat/list`),
+        fetch(`${API_URL}/api/chat/my-chats?user_id=${user.userId}`),
+      ])
+      if (pubRes.ok) setChats(await pubRes.json())
+      if (myRes.ok) setMyChats(await myRes.json())
     } catch {}
     setLoadingChats(false)
-  }, [])
+  }, [user.userId])
 
   useEffect(() => {
     loadChats()
     const interval = setInterval(loadChats, 30000)
     return () => clearInterval(interval)
   }, [loadChats])
+
+  // ── Search chats ──
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return
+    setSearching(true)
+    try {
+      const res = await fetch(`${API_URL}/api/chat/search?name=${encodeURIComponent(searchQuery.trim())}`)
+      if (res.ok) setSearchResults(await res.json())
+    } catch {}
+    setSearching(false)
+  }
+
+  const handleSearchKey = (e) => {
+    if (e.key === 'Enter') handleSearch()
+  }
 
   // ── Scroll to bottom ──
   useEffect(() => {
@@ -488,6 +525,20 @@ export default function Chat({ user, language = 'it' }) {
   )
 
   // ── List view ──
+  const renderChatCard = (chat) => (
+    <div key={chat.id} className="chat-card" onClick={() => handleChatClick(chat)}>
+      <div className="chat-card-header">
+        <span className="chat-card-name">{chat.name}</span>
+        <span className="chat-card-badge">{chat.is_public ? t.publicLabel : t.privateLabel}</span>
+      </div>
+      {chat.description && <p className="chat-card-desc">{chat.description}</p>}
+      <div className="chat-card-meta">
+        <span>👥 {chat.member_count} {t.members}</span>
+        <span className="chat-online-dot">🟢 {chat.online_count} {t.online}</span>
+      </div>
+    </div>
+  )
+
   return (
     <div className="chat-container">
       <div className="chat-header">
@@ -502,27 +553,55 @@ export default function Chat({ user, language = 'it' }) {
 
       {error && <div className="chat-error">{error}</div>}
 
-      <h3 className="chat-section-title">{t.publicChats}</h3>
+      {/* ── Le mie chat ── */}
+      <h3 className="chat-section-title">{t.myChats}</h3>
+      {loadingChats ? (
+        <div className="chat-loading">{t.loadingChats}</div>
+      ) : myChats.length === 0 ? (
+        <div className="chat-empty">{t.noMyChats}</div>
+      ) : (
+        <div className="chat-list">
+          {myChats.map(chat => renderChatCard(chat))}
+        </div>
+      )}
 
+      {/* ── Cerca chat privata ── */}
+      <h3 className="chat-section-title" style={{ marginTop: '24px' }}>{t.searchPrivate}</h3>
+      <div className="chat-search-bar">
+        <input
+          className="chat-input chat-search-input"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          onKeyDown={handleSearchKey}
+          placeholder={t.searchPlaceholder}
+          maxLength={60}
+        />
+        <button className="chat-btn-primary" onClick={handleSearch} disabled={searching || !searchQuery.trim()}>
+          {searching ? '...' : t.searchBtn}
+        </button>
+      </div>
+      {searchResults !== null && (
+        <>
+          <h4 className="chat-section-title">{t.searchResults}</h4>
+          {searchResults.length === 0 ? (
+            <div className="chat-empty">{t.noResults}</div>
+          ) : (
+            <div className="chat-list">
+              {searchResults.map(chat => renderChatCard(chat))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Chat pubbliche ── */}
+      <h3 className="chat-section-title" style={{ marginTop: '24px' }}>{t.publicChats}</h3>
       {loadingChats ? (
         <div className="chat-loading">{t.loadingChats}</div>
       ) : chats.length === 0 ? (
         <div className="chat-empty">{t.noChats}</div>
       ) : (
         <div className="chat-list">
-          {chats.map(chat => (
-            <div key={chat.id} className="chat-card" onClick={() => handleChatClick(chat)}>
-              <div className="chat-card-header">
-                <span className="chat-card-name">{chat.name}</span>
-                <span className="chat-card-badge">{chat.is_public ? t.publicLabel : t.privateLabel}</span>
-              </div>
-              {chat.description && <p className="chat-card-desc">{chat.description}</p>}
-              <div className="chat-card-meta">
-                <span>👥 {chat.member_count} {t.members}</span>
-                <span className="chat-online-dot">🟢 {chat.online_count} {t.online}</span>
-              </div>
-            </div>
-          ))}
+          {chats.map(chat => renderChatCard(chat))}
         </div>
       )}
     </div>

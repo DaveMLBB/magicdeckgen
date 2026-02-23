@@ -162,6 +162,62 @@ def list_chats(db: Session = Depends(get_db)):
     return result
 
 
+@router.get("/my-chats")
+def my_chats(user_id: int, db: Session = Depends(get_db)):
+    """Return all chats (public + private) where the user is an active member."""
+    memberships = db.query(ChatMember).filter(
+        ChatMember.user_id == user_id,
+        ChatMember.is_banned == False
+    ).all()
+
+    result = []
+    for m in memberships:
+        chat = db.query(Chat).filter(Chat.id == m.chat_id, Chat.is_active == True).first()
+        if not chat:
+            continue
+        member_count = db.query(ChatMember).filter(
+            ChatMember.chat_id == chat.id,
+            ChatMember.is_banned == False
+        ).count()
+        result.append({
+            "id": chat.id,
+            "name": chat.name,
+            "description": chat.description,
+            "is_public": chat.is_public,
+            "member_count": member_count,
+            "online_count": manager.online_count(chat.id),
+            "created_at": chat.created_at.isoformat(),
+            "is_admin": m.is_admin,
+            "my_username": m.username,
+        })
+    return result
+
+
+@router.get("/search")
+def search_chats(name: str, db: Session = Depends(get_db)):
+    """Search private (and public) chats by name. Returns name + is_public only (no access_code)."""
+    results = db.query(Chat).filter(
+        Chat.name.ilike(f"%{name}%"),
+        Chat.is_active == True
+    ).limit(20).all()
+
+    return [
+        {
+            "id": c.id,
+            "name": c.name,
+            "description": c.description,
+            "is_public": c.is_public,
+            "member_count": db.query(ChatMember).filter(
+                ChatMember.chat_id == c.id,
+                ChatMember.is_banned == False
+            ).count(),
+            "online_count": manager.online_count(c.id),
+            "created_at": c.created_at.isoformat(),
+        }
+        for c in results
+    ]
+
+
 @router.get("/{chat_id}")
 def get_chat(chat_id: int, user_id: int, db: Session = Depends(get_db)):
     """Get chat info + check membership."""
