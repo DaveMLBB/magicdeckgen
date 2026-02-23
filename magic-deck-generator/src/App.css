@@ -720,9 +720,15 @@ main {
   }
 }
 
+.footer-feedback-section {
+  padding: 3rem 2rem 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
 footer {
   text-align: center;
-  margin-top: 4rem;
+  margin-top: 1rem;
   padding: 2rem;
   color: #718096;
   border-top: 1px solid rgba(255,255,255,0.1);

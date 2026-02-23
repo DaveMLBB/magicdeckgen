@@ -282,3 +282,15 @@ class CouponRedemption(Base):
     __table_args__ = (
         Index('idx_user_coupon', 'user_id', 'coupon_id', unique=True),
     )
+
+class Feedback(Base):
+    """User feedback / testimonials — visible only via DB, owner decides if to publish"""
+    __tablename__ = "feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)  # null = anonymous
+    user_email = Column(String, nullable=True)  # denormalized for easy reading
+    rating = Column(Integer, nullable=True)  # 1-5 stars, optional
+    message = Column(String, nullable=False)
+    feature = Column(String, nullable=True)  # which feature the feedback is about
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

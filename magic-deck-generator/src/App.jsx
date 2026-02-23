@@ -20,6 +20,7 @@ import CookieSettings from './components/CookieSettings'
 import EmailPreferences from './components/EmailPreferences'
 import { cardImageCache } from './utils/cardImageCache'
 import RandomArtBackground from './components/RandomArtBackground'
+import FeedbackForm from './components/FeedbackForm'
 import './components/SavedDeck.css'
 import './components/ColumnMapper.css' // IMPORTATO PER ULTIMO - VINCE SU TUTTO
 
@@ -2050,6 +2051,10 @@ function App() {
           </div>
         )}
       </main>
+
+          <div className="footer-feedback-section">
+            <FeedbackForm user={user} language={language} />
+          </div>
 
           <footer>
             <div className="footer-content">
