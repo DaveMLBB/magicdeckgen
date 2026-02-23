@@ -227,7 +227,7 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
         quantity: c.quantity,
         card_type: c.category || null,
       }))
-      const res = await fetch(`${API_URL}/api/decks/create?user_id=${user.userId}`, {
+      const res = await fetch(`${API_URL}/api/saved-decks/create?user_id=${user.userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
