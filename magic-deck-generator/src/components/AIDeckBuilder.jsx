@@ -147,7 +147,7 @@ function CardRow({ card, onPreview }) {
   )
 }
 
-function AIDeckBuilder({ user, onBack, language }) {
+function AIDeckBuilder({ user, onBack, language, onSaved }) {
   const tr = t[language] || t.en
 
   const [description, setDescription] = useState('')
@@ -228,6 +228,7 @@ function AIDeckBuilder({ user, onBack, language }) {
       })
       if (res.ok) {
         setSaveStatus('saved')
+        setTimeout(() => { if (onSaved) onSaved() }, 800)
       } else {
         const err = await res.json()
         console.error('Save error:', err)

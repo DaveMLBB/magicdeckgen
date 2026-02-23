@@ -1444,6 +1444,7 @@ function App() {
           user={user}
           onBack={() => setCurrentView('main')}
           language={language}
+          onSaved={() => setCurrentView('saved-decks')}
         />
       ) : currentView === 'privacy-settings' ? (
         <PrivacySettings
