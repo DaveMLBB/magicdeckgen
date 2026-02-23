@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, List
-from app.database import get_db
+from app.database import get_db, SessionLocal
 from app.models import Chat, ChatMember, ChatMessage, User
 from app.routers.tokens import consume_token
 from datetime import datetime
@@ -349,28 +349,35 @@ def delete_chat(chat_id: int, user_id: int, db: Session = Depends(get_db)):
 
 # ── WebSocket endpoint ──
 @router.websocket("/{chat_id}/ws")
-async def chat_websocket(chat_id: int, websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
+async def chat_websocket(chat_id: int, websocket: WebSocket, user_id: int):
     """Real-time WebSocket for chat messages."""
-    member = db.query(ChatMember).filter(
-        ChatMember.chat_id == chat_id,
-        ChatMember.user_id == user_id,
-        ChatMember.is_banned == False
-    ).first()
-    if not member:
-        await websocket.close(code=4003)
-        return
+    db = SessionLocal()
+    try:
+        member = db.query(ChatMember).filter(
+            ChatMember.chat_id == chat_id,
+            ChatMember.user_id == user_id,
+            ChatMember.is_banned == False
+        ).first()
+        if not member:
+            await websocket.close(code=4003)
+            return
 
-    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.is_active == True).first()
-    if not chat:
-        await websocket.close(code=4004)
-        return
+        chat = db.query(Chat).filter(Chat.id == chat_id, Chat.is_active == True).first()
+        if not chat:
+            await websocket.close(code=4004)
+            return
 
-    await manager.connect(chat_id, websocket, member.id, member.username)
+        member_id = member.id
+        username = member.username
+    finally:
+        db.close()
+
+    await manager.connect(chat_id, websocket, member_id, username)
 
     # Notify room of new user
     await manager.broadcast(chat_id, {
         "type": "system",
-        "content": f"{member.username} è entrato nella chat",
+        "content": f"{username} è entrato nella chat",
         "username": "Sistema",
         "created_at": datetime.utcnow().isoformat(),
     })
@@ -387,31 +394,37 @@ async def chat_websocket(chat_id: int, websocket: WebSocket, user_id: int, db: S
             if not content or len(content) > 2000:
                 continue
 
-            # Re-check ban status
-            fresh_member = db.query(ChatMember).filter(
-                ChatMember.id == member.id
-            ).first()
-            if not fresh_member or fresh_member.is_banned:
-                await websocket.close(code=4003)
-                break
+            db = SessionLocal()
+            try:
+                # Re-check ban status
+                fresh_member = db.query(ChatMember).filter(
+                    ChatMember.id == member_id
+                ).first()
+                if not fresh_member or fresh_member.is_banned:
+                    await websocket.close(code=4003)
+                    break
 
-            # Persist message
-            msg = ChatMessage(
-                chat_id=chat_id,
-                member_id=member.id,
-                content=content,
-            )
-            db.add(msg)
-            db.commit()
-            db.refresh(msg)
+                # Persist message
+                msg = ChatMessage(
+                    chat_id=chat_id,
+                    member_id=member_id,
+                    content=content,
+                )
+                db.add(msg)
+                db.commit()
+                db.refresh(msg)
+                msg_id = msg.id
+                msg_created_at = msg.created_at.isoformat()
+            finally:
+                db.close()
 
             await manager.broadcast(chat_id, {
                 "type": "message",
-                "id": msg.id,
-                "content": msg.content,
-                "username": member.username,
-                "member_id": member.id,
-                "created_at": msg.created_at.isoformat(),
+                "id": msg_id,
+                "content": content,
+                "username": username,
+                "member_id": member_id,
+                "created_at": msg_created_at,
             })
 
     except WebSocketDisconnect:
@@ -420,7 +433,7 @@ async def chat_websocket(chat_id: int, websocket: WebSocket, user_id: int, db: S
         manager.disconnect(chat_id, websocket)
         await manager.broadcast(chat_id, {
             "type": "system",
-            "content": f"{member.username} ha lasciato la chat",
+            "content": f"{username} ha lasciato la chat",
             "username": "Sistema",
             "created_at": datetime.utcnow().isoformat(),
         })
