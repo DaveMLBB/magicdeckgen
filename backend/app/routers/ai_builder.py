@@ -20,6 +20,161 @@ class FindSynergiesInput(BaseModel):
     format: Optional[str] = None
     strategy: Optional[str] = None  # aggro, control, combo, midrange, etc.
 
+class FindTwinsInput(BaseModel):
+    user_id: int
+    card_names: List[str]  # 1-5 cards to find twins for
+    format: Optional[str] = None  # restrict to a specific format
+    budget: Optional[str] = None  # any, budget, expensive
+
+@router.post("/find-twins")
+async def find_twins(
+    input_data: FindTwinsInput,
+    language: str = "it",
+    db: Session = Depends(get_db)
+):
+    """
+    Dato un set di carte, trova carte che fanno la stessa cosa (twins/gemelli).
+    Consuma 1 token.
+    """
+    user = db.query(User).filter(User.id == input_data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not input_data.card_names or len(input_data.card_names) == 0:
+        raise HTTPException(status_code=400, detail="Provide at least one card name")
+
+    if len(input_data.card_names) > 5:
+        raise HTTPException(status_code=400, detail="Maximum 5 cards allowed")
+
+    from app.routers.tokens import consume_token
+    consume_token(user, 'ai_twins', f'AI twins search: {", ".join(input_data.card_names)}', db, tokens_to_consume=1)
+
+    # Fetch card data from DB
+    cards_data = []
+    for card_name in input_data.card_names:
+        card = db.query(MTGCard).filter(MTGCard.name.ilike(card_name)).first()
+        if card:
+            cards_data.append({
+                "name": card.name,
+                "mana_cost": card.mana_cost or "",
+                "cmc": card.mana_value or 0,
+                "types": card.types or "",
+                "subtypes": card.subtypes or "",
+                "text": card.text or "",
+                "keywords": card.keywords or "",
+                "colors": card.colors or "",
+                "power": card.power,
+                "toughness": card.toughness,
+                "rarity": card.rarity or "",
+            })
+        else:
+            cards_data.append({"name": card_name, "text": "", "types": "", "colors": "", "cmc": 0})
+
+    try:
+        result = await find_twins_with_ai(cards_data, input_data.format, input_data.budget, language)
+    except Exception as e:
+        print(f"❌ AI twins failed: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"AI service unavailable: {str(e)}")
+
+    return {
+        "source_cards": [c["name"] for c in cards_data],
+        "format": input_data.format,
+        "budget": input_data.budget,
+        "result": result,
+        "tokens_remaining": user.tokens
+    }
+
+
+async def find_twins_with_ai(cards: list, format: Optional[str], budget: Optional[str], language: str) -> dict:
+    """
+    Usa Groq (Llama 3.3 70B) per trovare carte funzionalmente equivalenti.
+    """
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        raise Exception("Groq API key not configured")
+
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(
+            api_key=groq_api_key,
+            base_url="https://api.groq.com/openai/v1"
+        )
+    except ImportError:
+        raise Exception("OpenAI library not installed")
+
+    lang_label = "Italian (italiano)" if language == "it" else "English"
+    format_line = f"Restrict results to cards legal in: {format}" if format else "Any format/legality is acceptable"
+    budget_line = f"Budget preference: {budget}" if budget else "No budget restriction"
+
+    cards_block = "\n".join(
+        f"- {c['name']} | Types: {c.get('types','')} {c.get('subtypes','')} | Colors: {c.get('colors','')} | CMC: {c.get('cmc','')} | Rarity: {c.get('rarity','')} | Text: {c.get('text','')[:300]}"
+        for c in cards
+    )
+
+    prompt = f"""You are an expert Magic: The Gathering card analyst specializing in finding functional equivalents and "twin" cards.
+
+SOURCE CARDS (the user wants to find cards that do the same thing):
+{cards_block}
+
+{format_line}
+{budget_line}
+
+TASK:
+For EACH source card, find 3-8 Magic: The Gathering cards that are functionally equivalent or very similar. 
+"Functionally equivalent" means:
+- They achieve the same or very similar game effect
+- They fill the same role in a deck
+- They have similar power/toughness or similar activated/triggered abilities
+- They may cost more or less mana but do essentially the same thing
+- They may be strictly better, strictly worse, or lateral upgrades/downgrades
+
+For each twin card, classify the relationship:
+- "strictly_better": the twin is objectively better in almost all situations
+- "strictly_worse": the twin is objectively worse (budget replacement)
+- "lateral": similar power level, different context or minor tradeoffs
+- "functional_copy": nearly identical effect, different name/flavor
+
+LANGUAGE: Respond in {lang_label}.
+
+Respond ONLY with valid JSON in this exact structure:
+{{
+  "cards": [
+    {{
+      "source_card": "Exact name of the source card",
+      "source_summary": "One sentence describing what this card does",
+      "twins": [
+        {{
+          "card_name": "Exact MTG card name",
+          "relationship": "strictly_better|strictly_worse|lateral|functional_copy",
+          "similarity_score": 85,
+          "key_differences": "string - what is different (mana cost, small text differences, etc.)",
+          "why_similar": "string - what makes it functionally equivalent",
+          "estimated_price": "Budget (<$2)|Affordable ($2-10)|Moderate ($10-30)|Expensive (>$30)",
+          "formats": ["modern", "legacy"]
+        }}
+      ]
+    }}
+  ],
+  "notes": "string - general observations about the functional equivalence landscape for these cards"
+}}
+"""
+
+    response = await client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "system",
+                "content": f"You are an expert Magic: The Gathering card analyst. Your specialty is finding cards that are functionally equivalent or serve the same purpose. Respond in {lang_label}. Always respond with valid JSON only."
+            },
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.5,
+        max_tokens=3500,
+        response_format={"type": "json_object"}
+    )
+
+    return json.loads(response.choices[0].message.content)
+
 @router.post("/find-synergies")
 async def find_synergies(
     input_data: FindSynergiesInput,

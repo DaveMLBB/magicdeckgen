@@ -10,6 +10,7 @@ import SavedDecksList from './components/SavedDecksList'
 import SavedDeck from './components/SavedDeck'
 import AIBuilder from './components/AIBuilder'
 import CardSynergy from './components/CardSynergy'
+import CardTwins from './components/CardTwins'
 import UserGuide, { GUIDE_VERSION } from './components/UserGuide'
 import CookieConsentBanner from './components/CookieConsentBanner'
 import PrivacySettings from './components/PrivacySettings'
@@ -50,7 +51,7 @@ function App() {
   const [deckLoading, setDeckLoading] = useState(false)
   const [selectedDeck, setSelectedDeck] = useState(null)
   const [message, setMessage] = useState('')
-  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search', 'saved-decks', 'saved-deck-detail', 'ai-builder', 'card-synergy', 'subscriptions', 'privacy-settings', 'privacy-policy', 'terms-of-service', 'cookie-settings', 'email-preferences'
+  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search', 'saved-decks', 'saved-deck-detail', 'ai-builder', 'card-synergy', 'card-twins', 'subscriptions', 'privacy-settings', 'privacy-policy', 'terms-of-service', 'cookie-settings', 'email-preferences'
   const [selectedCollection, setSelectedCollection] = useState(null)
   const [selectedSavedDeck, setSelectedSavedDeck] = useState(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState(null)
@@ -1196,6 +1197,12 @@ function App() {
             >
               ✨ {language === 'it' ? 'AI Synergy' : 'AI Synergy'}
             </button>
+            <button 
+              className={`global-nav-btn ${currentView === 'card-twins' ? 'active' : ''}`}
+              onClick={() => setCurrentView('card-twins')}
+            >
+              🪞 {language === 'it' ? 'AI Gemelli' : 'AI Twins'}
+            </button>
           </div>
           <div className="global-nav-right desktop-only">
             <span className="nav-user-email">{user.email}</span>
@@ -1283,6 +1290,12 @@ function App() {
                     onClick={() => { setCurrentView('card-synergy'); setMobileMenuOpen(false); }}
                   >
                     ✨ AI Synergy
+                  </button>
+                  <button 
+                    className={`mobile-menu-item ${currentView === 'card-twins' ? 'active' : ''}`}
+                    onClick={() => { setCurrentView('card-twins'); setMobileMenuOpen(false); }}
+                  >
+                    🪞 {language === 'it' ? 'AI Gemelli' : 'AI Twins'}
                   </button>
                   <button 
                     className={`mobile-menu-item ${currentView === 'subscriptions' ? 'active' : ''}`}
@@ -1414,6 +1427,12 @@ function App() {
         />
       ) : currentView === 'card-synergy' ? (
         <CardSynergy
+          user={user}
+          onBack={() => setCurrentView('main')}
+          language={language}
+        />
+      ) : currentView === 'card-twins' ? (
+        <CardTwins
           user={user}
           onBack={() => setCurrentView('main')}
           language={language}

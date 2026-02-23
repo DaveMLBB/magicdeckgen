@@ -135,6 +135,24 @@ const sections = {
         '⚠️ Consuma 1 token per ricerca.',
       ]
     },
+    {
+      id: 'ai-twins',
+      icon: '🪞',
+      title: 'AI Gemelli',
+      content: [
+        'AI Gemelli trova carte che fanno esattamente la stessa cosa con nomi diversi.',
+        'Utile per trovare sostituti economici, upgrade, o semplicemente scoprire carte equivalenti che non conoscevi.',
+        'Inserisci da 1 a 5 carte: l\'AI restituisce per ognuna i suoi "gemelli funzionali".',
+        'Ogni gemello è classificato in 4 categorie:',
+        '🪞 Copia Funzionale — effetto quasi identico, nome/flavor diverso.',
+        '⬆️ Superiore — il gemello è oggettivamente migliore in quasi tutte le situazioni.',
+        '⬇️ Inferiore — sostituto economico o con piccoli svantaggi.',
+        '↔️ Laterale — livello simile, contesti o compromessi diversi.',
+        'Ogni carta mostra una barra di somiglianza (%), le differenze chiave e il prezzo stimato.',
+        'Puoi filtrare per tipo di relazione e copiare tutta la lista con un click.',
+        '⚠️ Consuma 1 token per ricerca.',
+      ]
+    },
   ],
   en: [
     {
@@ -264,6 +282,24 @@ const sections = {
         'Powerful synergy chains and combos are also shown.',
         'Filter by priority and copy the list with one click.',
         'Card names are clickable and open Scryfall for more details.',
+        '⚠️ Costs 1 token per search.',
+      ]
+    },
+    {
+      id: 'ai-twins',
+      icon: '🪞',
+      title: 'AI Twins',
+      content: [
+        'AI Twins finds cards that do exactly the same thing with different names.',
+        'Useful to find budget replacements, upgrades, or discover equivalent cards you didn\'t know about.',
+        'Enter 1 to 5 cards: the AI returns "functional twins" for each one.',
+        'Each twin is classified into 4 categories:',
+        '🪞 Functional Copy — nearly identical effect, different name/flavor.',
+        '⬆️ Strictly Better — the twin is objectively better in almost all situations.',
+        '⬇️ Strictly Worse — budget replacement or with minor drawbacks.',
+        '↔️ Lateral — similar power level, different contexts or minor tradeoffs.',
+        'Each card shows a similarity bar (%), key differences, and estimated price.',
+        'Filter by relationship type and copy the full list with one click.',
         '⚠️ Costs 1 token per search.',
       ]
     },
