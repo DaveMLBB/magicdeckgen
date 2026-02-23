@@ -111,7 +111,7 @@ function SimilarityBar({ score }) {
   )
 }
 
-function CardTwins({ user, onBack, language }) {
+function CardTwins({ user, onBack, language, onCardSearch }) {
   const t = translations[language] || translations.en
 
   const [seedCards, setSeedCards] = useState([''])
@@ -362,10 +362,13 @@ function CardTwins({ user, onBack, language }) {
                 <div key={ci} className="ct-source-block">
                   <div className="ct-source-header">
                     <span className="ct-source-name">
-                      <a href={`https://scryfall.com/search?q=${encodeURIComponent(cardResult.source_card)}`}
-                        target="_blank" rel="noopener noreferrer" className="ct-card-link">
-                        {cardResult.source_card}
-                      </a>
+                      {onCardSearch ? (
+                        <button className="ct-card-link ct-card-link-btn" onClick={() => onCardSearch(cardResult.source_card)}>
+                          {cardResult.source_card}
+                        </button>
+                      ) : (
+                        <span>{cardResult.source_card}</span>
+                      )}
                     </span>
                     <span className="ct-twins-count">{getFilteredTwins(cardResult.twins).length} {t.twins}</span>
                   </div>
@@ -383,10 +386,13 @@ function CardTwins({ user, onBack, language }) {
                               {cfg.icon} {cfg.label[language] || cfg.label.en}
                             </span>
                             <span className="ct-twin-name">
-                              <a href={`https://scryfall.com/search?q=${encodeURIComponent(twin.card_name)}`}
-                                target="_blank" rel="noopener noreferrer" className="ct-card-link">
-                                {twin.card_name}
-                              </a>
+                              {onCardSearch ? (
+                                <button className="ct-card-link ct-card-link-btn" onClick={() => onCardSearch(twin.card_name)}>
+                                  {twin.card_name}
+                                </button>
+                              ) : (
+                                <span>{twin.card_name}</span>
+                              )}
                             </span>
                           </div>
 

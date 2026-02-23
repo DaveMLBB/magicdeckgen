@@ -357,6 +357,15 @@
 .ct-card-link { color: #f0abfc; text-decoration: none; transition: color 0.2s; }
 .ct-card-link:hover { color: #e879f9; text-decoration: underline; }
 
+.ct-card-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
 /* ── Similarity Bar ── */
 .ct-sim-bar-wrap { display: flex; align-items: center; gap: 8px; }
 .ct-sim-bar {

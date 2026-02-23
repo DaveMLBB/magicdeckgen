@@ -617,6 +617,15 @@
   text-decoration: underline;
 }
 
+.cs-card-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
 .cs-priority-dot {
   width: 10px;
   height: 10px;

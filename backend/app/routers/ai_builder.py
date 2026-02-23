@@ -47,7 +47,7 @@ async def find_twins(
         raise HTTPException(status_code=400, detail="Maximum 5 cards allowed")
 
     from app.routers.tokens import consume_token
-    consume_token(user, 'ai_twins', f'AI twins search: {", ".join(input_data.card_names)}', db, tokens_to_consume=1)
+    consume_token(user, 'ai_twins', f'AI twins search: {", ".join(input_data.card_names)}', db, tokens_to_consume=10)
 
     # Fetch card data from DB
     cards_data = []
@@ -196,7 +196,7 @@ async def find_synergies(
         raise HTTPException(status_code=400, detail="Maximum 5 seed cards allowed")
 
     from app.routers.tokens import consume_token
-    consume_token(user, 'ai_synergy', f'AI synergy search: {", ".join(input_data.card_names)}', db, tokens_to_consume=1)
+    consume_token(user, 'ai_synergy', f'AI synergy search: {", ".join(input_data.card_names)}', db, tokens_to_consume=10)
 
     # Fetch card data from DB to enrich the prompt
     seed_cards_data = []
@@ -338,7 +338,7 @@ async def optimize_deck(
     
     # Consume 2 tokens for AI optimization (premium feature)
     from app.routers.tokens import consume_token
-    consume_token(user, 'ai_optimization', f'AI deck optimization: deck {input_data.deck_id}', db, tokens_to_consume=2)
+    consume_token(user, 'ai_optimization', f'AI deck optimization: deck {input_data.deck_id}', db, tokens_to_consume=10)
     
     # Get deck
     deck = db.query(SavedDeck).filter(SavedDeck.id == input_data.deck_id).first()

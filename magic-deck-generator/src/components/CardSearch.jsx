@@ -131,8 +131,8 @@ const CardImage = React.memo(function CardImage({ card, language }) {
   )
 })
 
-function CardSearch({ user, onBack, language, onLimitError }) {
-  const [searchQuery, setSearchQuery] = useState('')
+function CardSearch({ user, onBack, language, onLimitError, initialQuery }) {
+  const [searchQuery, setSearchQuery] = useState(initialQuery || '')
   const [cards, setCards] = useState([])
   const [loading, setLoading] = useState(false)
   const [selectedCard, setSelectedCard] = useState(null)
@@ -377,6 +377,12 @@ function CardSearch({ user, onBack, language, onLimitError }) {
   useEffect(() => {
     searchCards()
   }, [page])
+
+  useEffect(() => {
+    if (initialQuery) {
+      searchCards()
+    }
+  }, [])
 
   useEffect(() => {
     if (user) {

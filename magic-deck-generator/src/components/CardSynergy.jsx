@@ -114,7 +114,7 @@ const translations = {
   }
 }
 
-function CardSynergy({ user, onBack, language }) {
+function CardSynergy({ user, onBack, language, onCardSearch }) {
   const t = translations[language] || translations.en
 
   const [seedCards, setSeedCards] = useState([''])
@@ -457,14 +457,13 @@ function CardSynergy({ user, onBack, language }) {
                             {card.role}
                           </span>
                           <span className="cs-card-name">
-                            <a
-                              href={`https://scryfall.com/search?q=${encodeURIComponent(card.card_name)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="cs-card-link"
-                            >
-                              {card.card_name}
-                            </a>
+                            {onCardSearch ? (
+                              <button className="cs-card-link cs-card-link-btn" onClick={() => onCardSearch(card.card_name)}>
+                                {card.card_name}
+                              </button>
+                            ) : (
+                              <span>{card.card_name}</span>
+                            )}
                           </span>
                           <span
                             className="cs-priority-dot"

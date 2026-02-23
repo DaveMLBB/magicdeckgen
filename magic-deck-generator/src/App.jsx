@@ -95,6 +95,7 @@ function App() {
   const [animatedBg, setAnimatedBg] = useState(() => localStorage.getItem('animatedBg') === 'true')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
+  const [cardSearchInitialQuery, setCardSearchInitialQuery] = useState('')
 
   // Traduzioni
   const translations = {
@@ -1396,6 +1397,7 @@ function App() {
           onBack={() => setCurrentView('main')}
           language={language}
           onLimitError={showLimitError}
+          initialQuery={cardSearchInitialQuery}
         />
       ) : currentView === 'saved-decks' ? (
         <SavedDecksList
@@ -1430,12 +1432,14 @@ function App() {
           user={user}
           onBack={() => setCurrentView('main')}
           language={language}
+          onCardSearch={(name) => { setCardSearchInitialQuery(name); setCurrentView('card-search') }}
         />
       ) : currentView === 'card-twins' ? (
         <CardTwins
           user={user}
           onBack={() => setCurrentView('main')}
           language={language}
+          onCardSearch={(name) => { setCardSearchInitialQuery(name); setCurrentView('card-search') }}
         />
       ) : currentView === 'privacy-settings' ? (
         <PrivacySettings
