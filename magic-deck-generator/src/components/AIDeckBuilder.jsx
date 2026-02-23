@@ -61,6 +61,7 @@ const t = {
     errorTokens: 'Token insufficienti. Acquista token per continuare.',
     errorShort: 'Descrizione troppo corta (minimo 10 caratteri)',
     errorGeneric: 'Errore durante la generazione. Riprova.',
+    errorDemoLimit: "⚠️ L'AI è ancora in fase di demo e ha raggiunto il limite di richieste. Torna domani per riprovare!",
     noResult: 'Inserisci una descrizione e clicca "Costruisci Mazzo"',
     exampleTitle: 'Esempi di descrizione:',
     budget_label: 'Budget stimato',
@@ -100,6 +101,7 @@ const t = {
     errorTokens: 'Insufficient tokens. Purchase tokens to continue.',
     errorShort: 'Description too short (minimum 10 characters)',
     errorGeneric: 'Error during generation. Please try again.',
+    errorDemoLimit: '⚠️ The AI is still in demo phase and has reached its request limit. Come back tomorrow to try again!',
     noResult: 'Enter a description and click "Build Deck"',
     exampleTitle: 'Description examples:',
     budget_label: 'Estimated budget',
@@ -214,7 +216,7 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(res.status === 403 ? tr.errorTokens : (data.detail || tr.errorGeneric))
+        setError(res.status === 403 ? tr.errorTokens : data.detail === 'DEMO_RATE_LIMIT' ? tr.errorDemoLimit : (data.detail || tr.errorGeneric))
         setLoading(false); return
       }
       setResult(data)

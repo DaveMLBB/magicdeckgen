@@ -201,8 +201,11 @@ Return the improved deck as the same JSON structure. If no changes needed, retur
             "tokens_remaining": user.tokens
         }
     except Exception as e:
-        print(f"❌ AI build-deck failed: {str(e)}")
-        raise HTTPException(status_code=503, detail=f"AI processing error: {str(e)}")
+        err_str = str(e)
+        print(f"❌ AI build-deck failed: {err_str}")
+        if '413' in err_str or 'rate_limit_exceeded' in err_str or 'Request too large' in err_str:
+            raise HTTPException(status_code=503, detail="DEMO_RATE_LIMIT")
+        raise HTTPException(status_code=503, detail=f"AI processing error: {err_str}")
 
 class BuildDeckFullCollectionInput(BaseModel):
     user_id: int
@@ -417,8 +420,11 @@ Return the improved deck as the same JSON structure. Respond with valid JSON onl
             "collection_stats": {"total_cards": total, "chunks_processed": chunks, "cards_selected": len(selected_cards)}
         }
     except Exception as e:
-        print(f"❌ AI build-deck-full-collection failed: {str(e)}")
-        raise HTTPException(status_code=503, detail=f"AI processing error: {str(e)}")
+        err_str = str(e)
+        print(f"❌ AI build-deck-full-collection failed: {err_str}")
+        if '413' in err_str or 'rate_limit_exceeded' in err_str or 'Request too large' in err_str:
+            raise HTTPException(status_code=503, detail="DEMO_RATE_LIMIT")
+        raise HTTPException(status_code=503, detail=f"AI processing error: {err_str}")
 
 
 @router.post("/find-twins")
