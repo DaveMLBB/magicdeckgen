@@ -62,6 +62,7 @@ const t = {
     errorShort: 'Descrizione troppo corta (minimo 10 caratteri)',
     errorGeneric: 'Errore durante la generazione. Riprova.',
     errorDemoLimit: "⚠️ L'AI è ancora in fase di demo e ha raggiunto il limite di richieste. Torna domani per riprovare!",
+    errorRateLimit: '⏱️ Limite raggiunto: max 3 richieste AI al minuto. Attendi qualche secondo e riprova.',
     noResult: 'Inserisci una descrizione e clicca "Costruisci Mazzo"',
     exampleTitle: 'Esempi di descrizione:',
     budget_label: 'Budget stimato',
@@ -102,6 +103,7 @@ const t = {
     errorShort: 'Description too short (minimum 10 characters)',
     errorGeneric: 'Error during generation. Please try again.',
     errorDemoLimit: '⚠️ The AI is still in demo phase and has reached its request limit. Come back tomorrow to try again!',
+    errorRateLimit: '⏱️ Rate limit: max 3 AI requests per minute. Wait a few seconds and try again.',
     noResult: 'Enter a description and click "Build Deck"',
     exampleTitle: 'Description examples:',
     budget_label: 'Estimated budget',
@@ -216,7 +218,7 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(res.status === 403 ? tr.errorTokens : data.detail === 'DEMO_RATE_LIMIT' ? tr.errorDemoLimit : (data.detail || tr.errorGeneric))
+        setError(res.status === 429 ? tr.errorRateLimit : res.status === 403 ? tr.errorTokens : data.detail === 'DEMO_RATE_LIMIT' ? tr.errorDemoLimit : (data.detail || tr.errorGeneric))
         setLoading(false); return
       }
       setResult(data)

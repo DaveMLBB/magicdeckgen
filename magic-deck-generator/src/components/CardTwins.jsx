@@ -36,6 +36,7 @@ const translations = {
     noResults: 'Inserisci almeno una carta e clicca "Trova Gemelli"',
     errorTokens: 'Token insufficienti. Acquista token per continuare.',
     errorGeneric: 'Errore durante l\'analisi AI. Riprova.',
+    errorRateLimit: '⏱️ Limite raggiunto: max 3 richieste AI al minuto. Attendi qualche secondo e riprova.',
     maxCards: 'Massimo 5 carte',
     remove: 'Rimuovi',
     back: 'Indietro',
@@ -74,6 +75,7 @@ const translations = {
     noResults: 'Enter at least one card and click "Find Twins"',
     errorTokens: 'Insufficient tokens. Purchase tokens to continue.',
     errorGeneric: 'Error during AI analysis. Please try again.',
+    errorRateLimit: '⏱️ Rate limit: max 3 AI requests per minute. Wait a few seconds and try again.',
     maxCards: 'Maximum 5 cards',
     remove: 'Remove',
     back: 'Back',
@@ -177,7 +179,7 @@ function CardTwins({ user, onBack, language }) {
         body: JSON.stringify({ user_id: user.userId, card_names: valid, format: format || null, budget: budget || null })
       })
       const data = await res.json()
-      if (!res.ok) { setError(res.status === 403 ? t.errorTokens : (data.detail || t.errorGeneric)); setLoading(false); return }
+      if (!res.ok) { setError(res.status === 429 ? t.errorRateLimit : res.status === 403 ? t.errorTokens : (data.detail || t.errorGeneric)); setLoading(false); return }
       setResult(data)
       setTokens(data.tokens_remaining)
       if (user) user.tokens = data.tokens_remaining

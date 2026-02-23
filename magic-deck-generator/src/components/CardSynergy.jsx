@@ -60,6 +60,7 @@ const translations = {
     noResults: 'Inserisci almeno una carta e clicca "Trova Sinergie"',
     errorTokens: 'Token insufficienti. Acquista token per continuare.',
     errorGeneric: 'Errore durante l\'analisi AI. Riprova.',
+    errorRateLimit: '⏱️ Limite raggiunto: max 3 richieste AI al minuto. Attendi qualche secondo e riprova.',
     cardNotFound: '⚠️ Carta non trovata nel database, ma l\'AI la analizzerà comunque',
     maxCards: 'Massimo 5 carte',
     remove: 'Rimuovi',
@@ -100,6 +101,7 @@ const translations = {
     noResults: 'Enter at least one card and click "Find Synergies"',
     errorTokens: 'Insufficient tokens. Purchase tokens to continue.',
     errorGeneric: 'Error during AI analysis. Please try again.',
+    errorRateLimit: '⏱️ Rate limit: max 3 AI requests per minute. Wait a few seconds and try again.',
     cardNotFound: '⚠️ Card not found in database, but AI will analyze it anyway',
     maxCards: 'Maximum 5 cards',
     remove: 'Remove',
@@ -208,7 +210,9 @@ function CardSynergy({ user, onBack, language }) {
       })
       const data = await res.json()
       if (!res.ok) {
-        if (res.status === 403) {
+        if (res.status === 429) {
+          setError(t.errorRateLimit)
+        } else if (res.status === 403) {
           setError(t.errorTokens)
         } else {
           setError(data.detail || t.errorGeneric)

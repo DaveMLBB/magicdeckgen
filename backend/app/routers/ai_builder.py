@@ -6,8 +6,38 @@ from app.database import get_db
 from app.models import User, SavedDeck, SavedDeckCard, MTGCard
 import os
 import json
+import time
+from collections import deque
+from threading import Lock
 
 router = APIRouter()
+
+# ── Rate limiter: max 3 AI requests per minute per user ──
+_rate_limit_store: dict[int, deque] = {}
+_rate_limit_lock = Lock()
+AI_RATE_LIMIT = 3
+AI_RATE_WINDOW = 60  # seconds
+
+def check_ai_rate_limit(user_id: int):
+    """Raises 429 if user has made >= 3 AI requests in the last 60 seconds."""
+    now = time.time()
+    with _rate_limit_lock:
+        if user_id not in _rate_limit_store:
+            _rate_limit_store[user_id] = deque()
+        timestamps = _rate_limit_store[user_id]
+        # Remove timestamps older than the window
+        while timestamps and now - timestamps[0] > AI_RATE_WINDOW:
+            timestamps.popleft()
+        if len(timestamps) >= AI_RATE_LIMIT:
+            oldest = timestamps[0]
+            retry_after = int(AI_RATE_WINDOW - (now - oldest)) + 1
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit: max {AI_RATE_LIMIT} AI requests per minute. Retry in {retry_after}s."
+            )
+        timestamps.append(now)
+
+MAX_UNIQUE_CARDS_DECK_BUILDER = 3000
 
 class OptimizeDeckInput(BaseModel):
     deck_id: int
@@ -49,6 +79,8 @@ async def build_deck(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    check_ai_rate_limit(input_data.user_id)
+
     if not input_data.description or len(input_data.description.strip()) < 10:
         raise HTTPException(status_code=400, detail="Description too short (min 10 characters)")
 
@@ -82,13 +114,13 @@ async def build_deck(
         if collection:
             coll_cards = db.query(Card).filter(Card.collection_id == input_data.collection_id)\
                 .order_by(Card.quantity_owned.desc())\
-                .limit(200).all()
+                .limit(MAX_UNIQUE_CARDS_DECK_BUILDER).all()
             if coll_cards:
                 total_in_coll = db.query(Card).filter(Card.collection_id == input_data.collection_id).count()
                 card_list = ", ".join(
                     f"{c.name} (x{c.quantity_owned})" for c in coll_cards
                 )
-                truncation_note = f" (showing top 200 by quantity out of {total_in_coll} total)" if total_in_coll > 200 else ""
+                truncation_note = f" (showing top {MAX_UNIQUE_CARDS_DECK_BUILDER} by quantity out of {total_in_coll} total)" if total_in_coll > MAX_UNIQUE_CARDS_DECK_BUILDER else ""
                 collection_constraint = f"""
 
 COLLECTION CONSTRAINT (VERY IMPORTANT):
@@ -248,6 +280,8 @@ async def build_deck_full_collection(
     user = db.query(User).filter(User.id == input_data.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    check_ai_rate_limit(input_data.user_id)
 
     if not input_data.description or len(input_data.description.strip()) < 10:
         raise HTTPException(status_code=400, detail="Description too short (min 10 characters)")
@@ -441,6 +475,8 @@ async def find_twins(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    check_ai_rate_limit(input_data.user_id)
+
     if not input_data.card_names or len(input_data.card_names) == 0:
         raise HTTPException(status_code=400, detail="Provide at least one card name")
 
@@ -590,6 +626,8 @@ async def find_synergies(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    check_ai_rate_limit(input_data.user_id)
+
     if not input_data.card_names or len(input_data.card_names) == 0:
         raise HTTPException(status_code=400, detail="Provide at least one card name")
 
@@ -736,7 +774,9 @@ async def optimize_deck(
     user = db.query(User).filter(User.id == input_data.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
+    check_ai_rate_limit(input_data.user_id)
+
     # Consume 2 tokens for AI optimization (premium feature)
     from app.routers.tokens import consume_token
     consume_token(user, 'ai_optimization', f'AI deck optimization: deck {input_data.deck_id}', db, tokens_to_consume=10)
