@@ -1445,21 +1445,18 @@ function App() {
           user={user}
           onBack={() => setCurrentView('main')}
           language={language}
-          onCardSearch={(name) => { setCardSearchInitialQuery(name); setCurrentView('card-search') }}
         />
       ) : currentView === 'card-twins' ? (
         <CardTwins
           user={user}
           onBack={() => setCurrentView('main')}
           language={language}
-          onCardSearch={(name) => { setCardSearchInitialQuery(name); setCurrentView('card-search') }}
         />
       ) : currentView === 'ai-deck-builder' ? (
         <AIDeckBuilder
           user={user}
           onBack={() => setCurrentView('main')}
           language={language}
-          onCardSearch={(name) => { setCardSearchInitialQuery(name); setCurrentView('card-search') }}
         />
       ) : currentView === 'privacy-settings' ? (
         <PrivacySettings

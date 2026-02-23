@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import './CardTwins.css'
+import CardPreviewModal from './CardPreviewModal'
 
 const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site'
@@ -111,7 +112,7 @@ function SimilarityBar({ score }) {
   )
 }
 
-function CardTwins({ user, onBack, language, onCardSearch }) {
+function CardTwins({ user, onBack, language }) {
   const t = translations[language] || translations.en
 
   const [seedCards, setSeedCards] = useState([''])
@@ -124,6 +125,7 @@ function CardTwins({ user, onBack, language, onCardSearch }) {
   const [filterRel, setFilterRel] = useState('all')
   const [sortMode, setSortMode] = useState('similarity')
   const [copied, setCopied] = useState(false)
+  const [previewCard, setPreviewCard] = useState(null)
   const [cardSuggestions, setCardSuggestions] = useState([])
   const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(null)
   const debounceRef = useRef(null)
@@ -196,6 +198,7 @@ function CardTwins({ user, onBack, language, onCardSearch }) {
   const relConfig = (rel) => RELATIONSHIP_CONFIG[rel] || { color: '#6b7280', icon: '?', label: { it: rel, en: rel } }
 
   return (
+    <>
     <div className="card-twins">
       <div className="ct-header">
         <button onClick={onBack} className="ct-back-btn">← {t.back}</button>
@@ -362,13 +365,9 @@ function CardTwins({ user, onBack, language, onCardSearch }) {
                 <div key={ci} className="ct-source-block">
                   <div className="ct-source-header">
                     <span className="ct-source-name">
-                      {onCardSearch ? (
-                        <button className="ct-card-link ct-card-link-btn" onClick={() => onCardSearch(cardResult.source_card)}>
-                          {cardResult.source_card}
-                        </button>
-                      ) : (
-                        <span>{cardResult.source_card}</span>
-                      )}
+                      <button className="ct-card-link ct-card-link-btn" onClick={() => setPreviewCard(cardResult.source_card)}>
+                        {cardResult.source_card}
+                      </button>
                     </span>
                     <span className="ct-twins-count">{getFilteredTwins(cardResult.twins).length} {t.twins}</span>
                   </div>
@@ -386,13 +385,9 @@ function CardTwins({ user, onBack, language, onCardSearch }) {
                               {cfg.icon} {cfg.label[language] || cfg.label.en}
                             </span>
                             <span className="ct-twin-name">
-                              {onCardSearch ? (
-                                <button className="ct-card-link ct-card-link-btn" onClick={() => onCardSearch(twin.card_name)}>
-                                  {twin.card_name}
-                                </button>
-                              ) : (
-                                <span>{twin.card_name}</span>
-                              )}
+                              <button className="ct-card-link ct-card-link-btn" onClick={() => setPreviewCard(twin.card_name)}>
+                                {twin.card_name}
+                              </button>
                             </span>
                           </div>
 
@@ -434,6 +429,15 @@ function CardTwins({ user, onBack, language, onCardSearch }) {
         </div>
       </div>
     </div>
+
+    {previewCard && (
+      <CardPreviewModal
+        cardName={previewCard}
+        language={language}
+        onClose={() => setPreviewCard(null)}
+      />
+    )}
+    </>
   )
 }
 

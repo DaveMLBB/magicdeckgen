@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './AIDeckBuilder.css'
+import CardPreviewModal from './CardPreviewModal'
 
 const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site'
@@ -128,14 +129,14 @@ const EXAMPLES = {
   ]
 }
 
-function CardRow({ card, onCardSearch }) {
+function CardRow({ card, onPreview }) {
   const color = CATEGORY_COLORS[card.category] || CATEGORY_COLORS.Other
   return (
     <div className="adb-card-row">
       <span className="adb-qty-badge">{card.quantity}x</span>
       <span className="adb-cat-dot" style={{ background: color }} title={card.category}></span>
-      {onCardSearch ? (
-        <button className="adb-card-name-btn" onClick={() => onCardSearch(card.card_name)}>
+      {onPreview ? (
+        <button className="adb-card-name-btn" onClick={() => onPreview(card.card_name)}>
           {card.card_name}
         </button>
       ) : (
@@ -146,7 +147,7 @@ function CardRow({ card, onCardSearch }) {
   )
 }
 
-function AIDeckBuilder({ user, onBack, language, onCardSearch }) {
+function AIDeckBuilder({ user, onBack, language }) {
   const tr = t[language] || t.en
 
   const [description, setDescription] = useState('')
@@ -161,6 +162,7 @@ function AIDeckBuilder({ user, onBack, language, onCardSearch }) {
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null) // null | 'saved' | 'error'
   const [copied, setCopied] = useState(false)
+  const [previewCard, setPreviewCard] = useState(null)
   const [activeTab, setActiveTab] = useState('main') // 'main' | 'sideboard'
   const [filterCat, setFilterCat] = useState('all')
   const [sortMode, setSortMode] = useState('category')
@@ -269,6 +271,7 @@ function AIDeckBuilder({ user, onBack, language, onCardSearch }) {
   }, {})
 
   return (
+    <>
     <div className="ai-deck-builder">
       <div className="adb-header">
         <button onClick={onBack} className="adb-back-btn">← {tr.back}</button>
@@ -438,13 +441,9 @@ function AIDeckBuilder({ user, onBack, language, onCardSearch }) {
                   <h3>⭐ {tr.keyCards}</h3>
                   <div className="adb-key-tags">
                     {deck.key_cards.map((name, i) => (
-                      onCardSearch ? (
-                        <button key={i} className="adb-key-tag adb-key-tag-btn" onClick={() => onCardSearch(name)}>
-                          {name}
-                        </button>
-                      ) : (
-                        <span key={i} className="adb-key-tag">{name}</span>
-                      )
+                      <button key={i} className="adb-key-tag adb-key-tag-btn" onClick={() => setPreviewCard(name)}>
+                        {name}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -496,10 +495,10 @@ function AIDeckBuilder({ user, onBack, language, onCardSearch }) {
               <div className="adb-card-list">
                 {activeTab === 'main'
                   ? getFilteredCards(mainCards).map((card, i) => (
-                      <CardRow key={i} card={card} onCardSearch={onCardSearch} />
+                      <CardRow key={i} card={card} onPreview={setPreviewCard} />
                     ))
                   : sideCards.map((card, i) => (
-                      <CardRow key={i} card={card} onCardSearch={onCardSearch} />
+                      <CardRow key={i} card={card} onPreview={setPreviewCard} />
                     ))
                 }
               </div>
@@ -516,6 +515,15 @@ function AIDeckBuilder({ user, onBack, language, onCardSearch }) {
         </div>
       </div>
     </div>
+
+    {previewCard && (
+      <CardPreviewModal
+        cardName={previewCard}
+        language={language}
+        onClose={() => setPreviewCard(null)}
+      />
+    )}
+    </>
   )
 }
 

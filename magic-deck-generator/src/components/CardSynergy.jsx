@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import './CardSynergy.css'
+import CardPreviewModal from './CardPreviewModal'
 
 const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site'
@@ -114,7 +115,7 @@ const translations = {
   }
 }
 
-function CardSynergy({ user, onBack, language, onCardSearch }) {
+function CardSynergy({ user, onBack, language }) {
   const t = translations[language] || translations.en
 
   const [seedCards, setSeedCards] = useState([''])
@@ -125,6 +126,7 @@ function CardSynergy({ user, onBack, language, onCardSearch }) {
   const [error, setError] = useState(null)
   const [tokens, setTokens] = useState(user?.tokens || 0)
   const [filterPriority, setFilterPriority] = useState('all')
+  const [previewCard, setPreviewCard] = useState(null)
   const [sortMode, setSortMode] = useState('priority')
   const [copied, setCopied] = useState(false)
   const [cardSuggestions, setCardSuggestions] = useState([])
@@ -244,6 +246,7 @@ function CardSynergy({ user, onBack, language, onCardSearch }) {
   }
 
   return (
+    <>
     <div className="card-synergy">
       <div className="cs-header">
         <button onClick={onBack} className="cs-back-btn">← {t.back}</button>
@@ -457,13 +460,9 @@ function CardSynergy({ user, onBack, language, onCardSearch }) {
                             {card.role}
                           </span>
                           <span className="cs-card-name">
-                            {onCardSearch ? (
-                              <button className="cs-card-link cs-card-link-btn" onClick={() => onCardSearch(card.card_name)}>
-                                {card.card_name}
-                              </button>
-                            ) : (
-                              <span>{card.card_name}</span>
-                            )}
+                            <button className="cs-card-link cs-card-link-btn" onClick={() => setPreviewCard(card.card_name)}>
+                              {card.card_name}
+                            </button>
                           </span>
                           <span
                             className="cs-priority-dot"
@@ -530,6 +529,15 @@ function CardSynergy({ user, onBack, language, onCardSearch }) {
         </div>
       </div>
     </div>
+
+    {previewCard && (
+      <CardPreviewModal
+        cardName={previewCard}
+        language={language}
+        onClose={() => setPreviewCard(null)}
+      />
+    )}
+    </>
   )
 }
 
