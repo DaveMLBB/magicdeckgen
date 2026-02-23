@@ -280,7 +280,7 @@ const sections = {
         'The AI Analyzer analyzes your saved decks and suggests optimizations.',
         'Select a deck from the list, then choose an optimization goal.',
         'Available goals: Balanced, Aggressive, Control, Combo, Tribal, Tokens, Graveyard and many more.',
-        'The AI (Groq Llama 3.3 70B) analyzes mana curve, synergies and suggests cards to add/remove.',
+        'The AI analyzes mana curve, synergies and suggests cards to add/remove.',
         'Combos and synergy chains in the deck are also identified.',
         '⚠️ Costs 2 tokens per analysis (premium operation).',
       ]
@@ -338,7 +338,7 @@ const sections = {
   ]
 }
 
-function UserGuide({ language, onClose }) {
+function UserGuide({ language, setLanguage, onClose }) {
   const t = language === 'en' ? {
     title: '👋 Welcome to Magic Deck Builder!',
     subtitle: 'Here\'s a quick guide to get you started',
@@ -375,7 +375,21 @@ function UserGuide({ language, onClose }) {
             <h2>{t.title}</h2>
             <p>{t.subtitle}</p>
           </div>
-          <button className="ug-close-x" onClick={handleClose}>✕</button>
+          <div className="ug-header-actions">
+            {setLanguage && (
+              <div className="ug-lang-switch">
+                <button
+                  className={`ug-lang-btn ${language === 'it' ? 'active' : ''}`}
+                  onClick={() => setLanguage('it')}
+                >🇮🇹</button>
+                <button
+                  className={`ug-lang-btn ${language === 'en' ? 'active' : ''}`}
+                  onClick={() => setLanguage('en')}
+                >🇬🇧</button>
+              </div>
+            )}
+            <button className="ug-close-x" onClick={handleClose}>✕</button>
+          </div>
         </div>
 
         <div className="ug-body">

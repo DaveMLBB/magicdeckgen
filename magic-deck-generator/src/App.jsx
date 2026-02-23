@@ -1232,6 +1232,9 @@ function App() {
             >
               {animatedBg ? '🖼️' : '🚫'}
             </button>
+            <button className="global-nav-btn" title={language === 'it' ? 'Guida' : 'Guide'} onClick={() => setShowGuide(true)}>
+              ❓
+            </button>
             <button className="global-nav-btn" onClick={() => setCurrentView('privacy-settings')}>
               🔒
             </button>
@@ -1331,6 +1334,13 @@ function App() {
                       }}
                     >
                       {animatedBg ? '🖼️' : '🚫'}
+                    </button>
+                    <button
+                      className="mobile-menu-icon-btn"
+                      onClick={() => { setShowGuide(true); setMobileMenuOpen(false); }}
+                      title={language === 'it' ? 'Guida' : 'Guide'}
+                    >
+                      ❓
                     </button>
                     <button 
                       className="mobile-menu-icon-btn" 
@@ -2066,6 +2076,7 @@ function App() {
       {showGuide && (
         <UserGuide
           language={language}
+          setLanguage={setLanguage}
           onClose={() => setShowGuide(false)}
         />
       )}
