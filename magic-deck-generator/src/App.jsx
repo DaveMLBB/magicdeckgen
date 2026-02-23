@@ -1251,129 +1251,130 @@ function App() {
             </button>
           </div>
 
-          {/* Mobile dropdown menu */}
-          {mobileMenuOpen && (
-            <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
-              <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
-                <div className="mobile-menu-header">
-                  <span className="mobile-user-email">{user.email}</span>
-                  <button className="mobile-menu-close" onClick={() => setMobileMenuOpen(false)}>✕</button>
-                </div>
-                
-                <div className="mobile-menu-items">
-                  <button 
-                    className={`mobile-menu-item ${currentView === 'main' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('main'); setMobileMenuOpen(false); }}
-                  >
-                    🔍 {language === 'it' ? 'Ricerca' : 'Search'}
-                  </button>
-                  <button 
-                    className={`mobile-menu-item ${currentView === 'collections' || currentView === 'collection-detail' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('collections'); setMobileMenuOpen(false); }}
-                  >
-                    📚 {language === 'it' ? 'Collezioni' : 'Collections'}
-                  </button>
-                  <button 
-                    className={`mobile-menu-item ${currentView === 'card-search' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('card-search'); setMobileMenuOpen(false); }}
-                  >
-                    🃏 {language === 'it' ? 'Carte' : 'Cards'}
-                  </button>
-                  <button 
-                    className={`mobile-menu-item ${currentView === 'saved-decks' || currentView === 'saved-deck-detail' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('saved-decks'); setMobileMenuOpen(false); }}
-                  >
-                    🗂️ {language === 'it' ? 'Mazzi' : 'Decks'}
-                  </button>
-                  <button 
-                    className={`mobile-menu-item ${currentView === 'community' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('community'); setMobileMenuOpen(false); }}
-                  >
-                    💬 {language === 'it' ? 'Community' : 'Community'}
-                  </button>
-                  <button 
-                    className={`mobile-menu-item ${currentView === 'ai-builder' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('ai-builder'); setMobileMenuOpen(false); }}
-                  >
-                    🤖 AI Analyzer
-                  </button>
-                  <button 
-                    className={`mobile-menu-item ${currentView === 'card-synergy' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('card-synergy'); setMobileMenuOpen(false); }}
-                  >
-                    ✨ AI Synergy
-                  </button>
-                  <button 
-                    className={`mobile-menu-item ${currentView === 'card-twins' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('card-twins'); setMobileMenuOpen(false); }}
-                  >
-                    🪞 {language === 'it' ? 'AI Gemelli' : 'AI Twins'}
-                  </button>
-                  <button 
-                    className={`mobile-menu-item ${currentView === 'ai-deck-builder' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('ai-deck-builder'); setMobileMenuOpen(false); }}
-                  >
-                    🏗️ AI Deck Builder
-                  </button>
-                  <button 
-                    className={`mobile-menu-item ${currentView === 'subscriptions' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('subscriptions'); setMobileMenuOpen(false); }}
-                  >
-                    🪙 {language === 'it' ? 'Token' : 'Tokens'} {subscriptionStatus ? `(${subscriptionStatus.tokens ?? 0})` : ''}
-                  </button>
-                </div>
-
-                <div className="mobile-menu-footer">
-                  <div className="mobile-menu-row">
-                    <div className="language-selector">
-                      <button 
-                        className={`lang-btn ${language === 'it' ? 'active' : ''}`}
-                        onClick={() => setLanguage('it')}
-                      >
-                        🇮🇹
-                      </button>
-                      <button 
-                        className={`lang-btn ${language === 'en' ? 'active' : ''}`}
-                        onClick={() => setLanguage('en')}
-                      >
-                        🇬🇧
-                      </button>
-                    </div>
-                    <button
-                      className={`mobile-menu-icon-btn ${!animatedBg ? 'bg-off' : ''}`}
-                      onClick={() => {
-                        const next = !animatedBg
-                        setAnimatedBg(next)
-                        localStorage.setItem('animatedBg', String(next))
-                      }}
-                    >
-                      {animatedBg ? '🖼️' : '🚫'}
-                    </button>
-                    <button
-                      className="mobile-menu-icon-btn"
-                      onClick={() => { setShowGuide(true); setMobileMenuOpen(false); }}
-                      title={language === 'it' ? 'Guida' : 'Guide'}
-                    >
-                      ❓
-                    </button>
-                    <button 
-                      className="mobile-menu-icon-btn" 
-                      onClick={() => { setCurrentView('privacy-settings'); setMobileMenuOpen(false); }}
-                    >
-                      🔒
-                    </button>
-                  </div>
-                  <button 
-                    className="mobile-menu-logout"
-                    onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
-                  >
-                    🚪 {language === 'it' ? 'Esci' : 'Logout'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </nav>
+      )}
+
+      {/* Mobile dropdown menu - outside nav so display:none on nav doesn't hide it */}
+      {showGlobalNav && mobileMenuOpen && (
+        <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
+          <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-menu-header">
+              <span className="mobile-user-email">{user.email}</span>
+              <button className="mobile-menu-close" onClick={() => setMobileMenuOpen(false)}>✕</button>
+            </div>
+            
+            <div className="mobile-menu-items">
+              <button 
+                className={`mobile-menu-item ${currentView === 'main' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('main'); setMobileMenuOpen(false); }}
+              >
+                🔍 {language === 'it' ? 'Ricerca' : 'Search'}
+              </button>
+              <button 
+                className={`mobile-menu-item ${currentView === 'collections' || currentView === 'collection-detail' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('collections'); setMobileMenuOpen(false); }}
+              >
+                📚 {language === 'it' ? 'Collezioni' : 'Collections'}
+              </button>
+              <button 
+                className={`mobile-menu-item ${currentView === 'card-search' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('card-search'); setMobileMenuOpen(false); }}
+              >
+                🃏 {language === 'it' ? 'Carte' : 'Cards'}
+              </button>
+              <button 
+                className={`mobile-menu-item ${currentView === 'saved-decks' || currentView === 'saved-deck-detail' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('saved-decks'); setMobileMenuOpen(false); }}
+              >
+                🗂️ {language === 'it' ? 'Mazzi' : 'Decks'}
+              </button>
+              <button 
+                className={`mobile-menu-item ${currentView === 'community' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('community'); setMobileMenuOpen(false); }}
+              >
+                💬 {language === 'it' ? 'Community' : 'Community'}
+              </button>
+              <button 
+                className={`mobile-menu-item ${currentView === 'ai-builder' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('ai-builder'); setMobileMenuOpen(false); }}
+              >
+                🤖 AI Analyzer
+              </button>
+              <button 
+                className={`mobile-menu-item ${currentView === 'card-synergy' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('card-synergy'); setMobileMenuOpen(false); }}
+              >
+                ✨ AI Synergy
+              </button>
+              <button 
+                className={`mobile-menu-item ${currentView === 'card-twins' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('card-twins'); setMobileMenuOpen(false); }}
+              >
+                🪞 {language === 'it' ? 'AI Gemelli' : 'AI Twins'}
+              </button>
+              <button 
+                className={`mobile-menu-item ${currentView === 'ai-deck-builder' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('ai-deck-builder'); setMobileMenuOpen(false); }}
+              >
+                🏗️ AI Deck Builder
+              </button>
+              <button 
+                className={`mobile-menu-item ${currentView === 'subscriptions' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('subscriptions'); setMobileMenuOpen(false); }}
+              >
+                🪙 {language === 'it' ? 'Token' : 'Tokens'} {subscriptionStatus ? `(${subscriptionStatus.tokens ?? 0})` : ''}
+              </button>
+            </div>
+
+            <div className="mobile-menu-footer">
+              <div className="mobile-menu-row">
+                <div className="language-selector">
+                  <button 
+                    className={`lang-btn ${language === 'it' ? 'active' : ''}`}
+                    onClick={() => setLanguage('it')}
+                  >
+                    🇮🇹
+                  </button>
+                  <button 
+                    className={`lang-btn ${language === 'en' ? 'active' : ''}`}
+                    onClick={() => setLanguage('en')}
+                  >
+                    🇬🇧
+                  </button>
+                </div>
+                <button
+                  className={`mobile-menu-icon-btn ${!animatedBg ? 'bg-off' : ''}`}
+                  onClick={() => {
+                    const next = !animatedBg
+                    setAnimatedBg(next)
+                    localStorage.setItem('animatedBg', String(next))
+                  }}
+                >
+                  {animatedBg ? '🖼️' : '🚫'}
+                </button>
+                <button
+                  className="mobile-menu-icon-btn"
+                  onClick={() => { setShowGuide(true); setMobileMenuOpen(false); }}
+                  title={language === 'it' ? 'Guida' : 'Guide'}
+                >
+                  ❓
+                </button>
+                <button 
+                  className="mobile-menu-icon-btn" 
+                  onClick={() => { setCurrentView('privacy-settings'); setMobileMenuOpen(false); }}
+                >
+                  🔒
+                </button>
+              </div>
+              <button 
+                className="mobile-menu-logout"
+                onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+              >
+                🚪 {language === 'it' ? 'Esci' : 'Logout'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {currentView === 'subscriptions' ? (
