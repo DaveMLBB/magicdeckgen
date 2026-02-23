@@ -53,7 +53,7 @@ async def build_deck(
         raise HTTPException(status_code=400, detail="Description too short (min 10 characters)")
 
     from app.routers.tokens import consume_token
-    consume_token(user, 'ai_build_deck', f'AI build deck: {input_data.description[:60]}', db, tokens_to_consume=30)
+    consume_token(user, 'ai_build_deck', f'AI build deck: {input_data.description[:60]}', db, tokens_to_consume=10)
 
     groq_api_key = os.getenv("GROQ_API_KEY")
     if not groq_api_key:
@@ -164,8 +164,40 @@ IMPORTANT:
         )
         deck_data = json.loads(response.choices[0].message.content)
         print(f"✅ AI built deck: {deck_data.get('deck_name', 'unnamed')}")
+
+        # Verification pass: ask AI to review and improve the deck
+        verify_prompt = f"""Review this Magic: The Gathering deck and improve it if needed.
+
+DECK: {json.dumps(deck_data)}
+
+ORIGINAL REQUEST: {input_data.description}
+FORMAT: {input_data.format or 'not specified'}
+COLORS: {input_data.colors or 'not restricted'}
+
+Check:
+1. Card count sums to exactly {deck_size}
+2. Mana curve is appropriate
+3. Land count is correct (usually 22-26 for 60-card, 36-38 for Commander)
+4. No illegal cards for the format
+5. Synergies are coherent
+
+Return the improved deck as the same JSON structure. If no changes needed, return the same deck. Respond with valid JSON only."""
+
+        verify_response = await client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": f"You are an expert MTG deck reviewer. Respond in {lang_label}. Always respond with valid JSON only."},
+                {"role": "user", "content": verify_prompt}
+            ],
+            temperature=0.3,
+            max_tokens=4000,
+            response_format={"type": "json_object"}
+        )
+        final_deck = json.loads(verify_response.choices[0].message.content)
+        print(f"✅ AI verified deck: {final_deck.get('deck_name', 'unnamed')}")
+
         return {
-            "deck": deck_data,
+            "deck": final_deck,
             "tokens_remaining": user.tokens
         }
     except Exception as e:
@@ -194,7 +226,7 @@ def get_full_collection_cost(collection_id: int, user_id: int, db: Session = Dep
         raise HTTPException(status_code=404, detail="Collection not found")
     total = db.query(Card).filter(Card.collection_id == collection_id).count()
     chunks = math.ceil(total / 200) if total > 0 else 1
-    token_cost = 30 + chunks * 3
+    token_cost = 15
     return {"total_cards": total, "chunks": chunks, "token_cost": token_cost}
 
 @router.post("/build-deck-full-collection")
@@ -232,7 +264,7 @@ async def build_deck_full_collection(
 
     chunk_size = 200
     chunks = math.ceil(total / chunk_size)
-    token_cost = 30 + chunks * 3
+    token_cost = 15
 
     from app.routers.tokens import consume_token
     consume_token(user, 'ai_build_deck_full', f'AI full collection deck: {input_data.description[:50]}', db, tokens_to_consume=token_cost)
@@ -346,8 +378,41 @@ IMPORTANT: total cards must sum to exactly {deck_size}. Include 15 sideboard car
         )
         deck_data = json.loads(response.choices[0].message.content)
         print(f"✅ AI full-collection deck: {deck_data.get('deck_name', 'unnamed')} ({chunks} chunks, {token_cost} tokens)")
+
+        # Verification pass
+        verify_prompt = f"""Review this Magic: The Gathering deck and improve it if needed.
+
+DECK: {json.dumps(deck_data)}
+
+ORIGINAL REQUEST: {input_data.description}
+FORMAT: {input_data.format or 'not specified'}
+COLORS: {input_data.colors or 'not restricted'}
+COLLECTION: only cards from "{collection.name}" are allowed (plus basic lands)
+
+Check:
+1. Card count sums to exactly {deck_size}
+2. Mana curve is appropriate
+3. Land count is correct (usually 22-26 for 60-card, 36-38 for Commander)
+4. All cards are from the available collection (basic lands always allowed)
+5. Synergies are coherent
+
+Return the improved deck as the same JSON structure. Respond with valid JSON only."""
+
+        verify_response = await client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": f"You are an expert MTG deck reviewer. Respond in {lang_label}. Always respond with valid JSON only."},
+                {"role": "user", "content": verify_prompt}
+            ],
+            temperature=0.3,
+            max_tokens=4000,
+            response_format={"type": "json_object"}
+        )
+        final_deck = json.loads(verify_response.choices[0].message.content)
+        print(f"✅ AI verified full-collection deck: {final_deck.get('deck_name', 'unnamed')}")
+
         return {
-            "deck": deck_data,
+            "deck": final_deck,
             "tokens_remaining": user.tokens,
             "collection_stats": {"total_cards": total, "chunks_processed": chunks, "cards_selected": len(selected_cards)}
         }

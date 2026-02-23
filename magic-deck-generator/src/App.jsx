@@ -1166,7 +1166,7 @@ function App() {
               className={`global-nav-btn ${currentView === 'main' ? 'active' : ''}`}
               onClick={() => setCurrentView('main')}
             >
-              🔍 {language === 'it' ? 'Ricerca' : 'Search'}
+              🔍 {language === 'it' ? 'Confronta' : 'Compare'}
             </button>
             <button 
               className={`global-nav-btn ${currentView === 'collections' || currentView === 'collection-detail' ? 'active' : ''}`}
