@@ -95,19 +95,19 @@ def get_current_user(token: str, db: Session):
     
     return user
 
-def consume_token(user: User, action: str, description: str, db: Session):
-    """Consume 1 token from user balance. Returns True if successful, raises 403 if insufficient."""
-    if user.tokens <= 0:
+def consume_token(user: User, action: str, description: str, db: Session, tokens_to_consume: int = 1):
+    """Consume tokens from user balance. Returns True if successful, raises 403 if insufficient."""
+    if user.tokens < tokens_to_consume:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient tokens. Please purchase more tokens to continue."
+            detail=f"Insufficient tokens. Need {tokens_to_consume} tokens, but you have {user.tokens}. Please purchase more tokens to continue."
         )
     
-    user.tokens -= 1
+    user.tokens -= tokens_to_consume
     
     transaction = TokenTransaction(
         user_id=user.id,
-        amount=-1,
+        amount=-tokens_to_consume,
         action=action,
         description=description
     )

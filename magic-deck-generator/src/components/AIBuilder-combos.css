@@ -1,0 +1,112 @@
+/* Combos Section Styles */
+.combos-section {
+  background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+  border-left-color: #f56565 !important;
+}
+
+.combos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.combo-item {
+  background: white;
+  border: 2px solid #feb2b2;
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s;
+}
+
+.combo-item:hover {
+  border-color: #f56565;
+  box-shadow: 0 4px 12px rgba(245, 101, 101, 0.2);
+  transform: translateY(-2px);
+}
+
+.combo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.combo-cards {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.combo-card-name {
+  font-weight: 700;
+  color: #2d3748;
+  font-size: 0.95rem;
+}
+
+.combo-separator {
+  color: #f56565;
+  font-weight: 800;
+  margin: 0 4px;
+}
+
+.combo-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.combo-type-badge,
+.combo-difficulty-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.combo-type-badge.infinite {
+  background: #9f7aea;
+  color: white;
+}
+
+.combo-type-badge.game-winning {
+  background: #f56565;
+  color: white;
+}
+
+.combo-type-badge.value {
+  background: #48bb78;
+  color: white;
+}
+
+.combo-type-badge.synergy {
+  background: #4299e1;
+  color: white;
+}
+
+.combo-difficulty-badge.easy {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.combo-difficulty-badge.medium {
+  background: #feebc8;
+  color: #7c2d12;
+}
+
+.combo-difficulty-badge.hard {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.combo-description {
+  margin: 0;
+  color: #4a5568;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}

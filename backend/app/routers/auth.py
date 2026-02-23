@@ -103,12 +103,25 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.add(terms_acceptance)
     db.commit()
     
+    # Regala 100 token di benvenuto al nuovo utente
+    from app.models import TokenTransaction
+    new_user.tokens = 100
+    welcome_transaction = TokenTransaction(
+        user_id=new_user.id,
+        amount=100,
+        action='welcome_bonus',
+        description='🎉 Bonus di benvenuto - 100 token gratuiti!'
+    )
+    db.add(welcome_transaction)
+    db.commit()
+    
     # Invia email di verifica tramite Brevo
     send_verification_email(user_data.email, verification_token)
     
     return {
-        "message": "Registration completed. Check your email to verify your account.",
-        "user_id": new_user.id
+        "message": "Registration completed. Check your email to verify your account. You received 100 free tokens!",
+        "user_id": new_user.id,
+        "welcome_tokens": 100
     }
 
 @router.post("/login", response_model=Token)

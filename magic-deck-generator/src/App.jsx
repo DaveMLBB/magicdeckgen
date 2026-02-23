@@ -8,6 +8,7 @@ import CollectionsList from './components/CollectionsList'
 import CardSearch from './components/CardSearch'
 import SavedDecksList from './components/SavedDecksList'
 import SavedDeck from './components/SavedDeck'
+import AIBuilder from './components/AIBuilder'
 import CookieConsentBanner from './components/CookieConsentBanner'
 import PrivacySettings from './components/PrivacySettings'
 import LegalPages from './components/LegalPages'
@@ -47,7 +48,7 @@ function App() {
   const [deckLoading, setDeckLoading] = useState(false)
   const [selectedDeck, setSelectedDeck] = useState(null)
   const [message, setMessage] = useState('')
-  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search', 'saved-decks', 'saved-deck-detail', 'subscriptions', 'privacy-settings', 'privacy-policy', 'terms-of-service', 'cookie-settings', 'email-preferences'
+  const [currentView, setCurrentView] = useState('main') // 'main', 'collections', 'collection-detail', 'card-search', 'saved-decks', 'saved-deck-detail', 'ai-builder', 'subscriptions', 'privacy-settings', 'privacy-policy', 'terms-of-service', 'cookie-settings', 'email-preferences'
   const [selectedCollection, setSelectedCollection] = useState(null)
   const [selectedSavedDeck, setSelectedSavedDeck] = useState(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState(null)
@@ -1176,6 +1177,12 @@ function App() {
             >
               🗂️ {language === 'it' ? 'Mazzi' : 'Decks'}
             </button>
+            <button 
+              className={`global-nav-btn ${currentView === 'ai-builder' ? 'active' : ''}`}
+              onClick={() => setCurrentView('ai-builder')}
+            >
+              🤖 {language === 'it' ? 'AI Analyzer' : 'AI Analyzer'}
+            </button>
           </div>
           <div className="global-nav-right desktop-only">
             <span className="nav-user-email">{user.email}</span>
@@ -1251,6 +1258,12 @@ function App() {
                     onClick={() => { setCurrentView('saved-decks'); setMobileMenuOpen(false); }}
                   >
                     🗂️ {language === 'it' ? 'Mazzi' : 'Decks'}
+                  </button>
+                  <button 
+                    className={`mobile-menu-item ${currentView === 'ai-builder' ? 'active' : ''}`}
+                    onClick={() => { setCurrentView('ai-builder'); setMobileMenuOpen(false); }}
+                  >
+                    🤖 AI Analyzer
                   </button>
                   <button 
                     className={`mobile-menu-item ${currentView === 'subscriptions' ? 'active' : ''}`}
@@ -1368,12 +1381,17 @@ function App() {
         <SavedDeck
           user={user}
           deck={selectedSavedDeck}
-          onBack={() => {
-            setSelectedSavedDeck(null)
-            setCurrentView('saved-decks')
-          }}
+          onBack={() => setCurrentView('saved-decks')}
+          onDeckDeleted={() => setCurrentView('saved-decks')}
+          onShowSubscriptions={() => setCurrentView('subscriptions')}
           language={language}
           onLimitError={showLimitError}
+        />
+      ) : currentView === 'ai-builder' ? (
+        <AIBuilder
+          user={user}
+          onBack={() => setCurrentView('main')}
+          language={language}
         />
       ) : currentView === 'privacy-settings' ? (
         <PrivacySettings

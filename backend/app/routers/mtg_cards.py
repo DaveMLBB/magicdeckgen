@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func
 from typing import Optional
 import json
 from app.database import get_db
@@ -46,16 +46,18 @@ def search_cards(
     )
     
     # Filtro per nome (cerca in entrambe le lingue)
+    # Usa func.lower() invece di ilike per migliori performance con indici
     if query:
+        query_lower = query.lower()
         if language == "it":
             q = q.filter(
                 or_(
-                    MTGCard.name.ilike(f"%{query}%"),
-                    MTGCard.name_it.ilike(f"%{query}%")
+                    func.lower(MTGCard.name).like(f"%{query_lower}%"),
+                    func.lower(MTGCard.name_it).like(f"%{query_lower}%")
                 )
             )
         else:
-            q = q.filter(MTGCard.name.ilike(f"%{query}%"))
+            q = q.filter(func.lower(MTGCard.name).like(f"%{query_lower}%"))
     
     # Filtro per colori (exact match o contains)
     if colors:
@@ -99,15 +101,16 @@ def search_cards(
     
     # Filtro per testo
     if text:
+        text_lower = text.lower()
         if language == "it":
             q = q.filter(
                 or_(
-                    MTGCard.text.ilike(f"%{text}%"),
-                    MTGCard.text_it.ilike(f"%{text}%")
+                    func.lower(MTGCard.text).like(f"%{text_lower}%"),
+                    func.lower(MTGCard.text_it).like(f"%{text_lower}%")
                 )
             )
         else:
-            q = q.filter(MTGCard.text.ilike(f"%{text}%"))
+            q = q.filter(func.lower(MTGCard.text).like(f"%{text_lower}%"))
     
     # Filtro per power
     if power:
@@ -133,11 +136,11 @@ def search_cards(
     
     # Filtro per set code
     if set_code:
-        q = q.filter(MTGCard.set_code.ilike(f"%{set_code}%"))
+        q = q.filter(func.lower(MTGCard.set_code).like(f"%{set_code.lower()}%"))
     
     # Filtro per artist
     if artist:
-        q = q.filter(MTGCard.artist.ilike(f"%{artist}%"))
+        q = q.filter(func.lower(MTGCard.artist).like(f"%{artist.lower()}%"))
     
     # Filtro per layout
     if layout:
@@ -149,8 +152,9 @@ def search_cards(
         q = q.filter(MTGCard.legalities.like(f'%"{format}"%'))
         q = q.filter(MTGCard.legalities.like(f'%"Legal"%'))
     
-    # Count totale
-    total = q.count()
+    # Count totale - usa subquery per migliori performance
+    from sqlalchemy import select
+    total = db.scalar(select(func.count()).select_from(q.subquery()))
     
     # Ordinamento
     if sort_by == "name":
