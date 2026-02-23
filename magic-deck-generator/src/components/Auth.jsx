@@ -140,6 +140,11 @@ function Auth({ onLogin, language, setLanguage }) {
         setMessage(t.registerSuccess)
         setMessageType('success')
         
+        // Google Ads conversion tracking
+        if (typeof window.gtag_report_conversion === 'function') {
+          window.gtag_report_conversion()
+        }
+        
         // Passa a login dopo 3 secondi
         setTimeout(() => {
           setIsLogin(true)

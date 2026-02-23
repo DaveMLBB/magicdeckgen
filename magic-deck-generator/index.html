@@ -11,6 +11,20 @@
       gtag('config', 'G-NTP35MPSLR');
       gtag('config', 'AW-17968159494');
     </script>
+    <script>
+      function gtag_report_conversion(url) {
+        var callback = function () {
+          if (typeof(url) != 'undefined') {
+            window.location = url;
+          }
+        };
+        gtag('event', 'conversion', {
+          'send_to': 'AW-17968159494/BTMiCKac0P0bEIa28fdC',
+          'event_callback': callback
+        });
+        return false;
+      }
+    </script>
     
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
