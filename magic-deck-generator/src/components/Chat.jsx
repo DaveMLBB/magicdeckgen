@@ -517,8 +517,8 @@ export default function Chat({ user, language = 'it' }) {
           rows={1}
           maxLength={2000}
         />
-        <button className="chat-send-btn" onClick={sendMessage} disabled={!msgInput.trim()}>
-          {t.send}
+        <button className="chat-send-btn" onClick={sendMessage} disabled={!msgInput.trim()} title={t.send}>
+          ➤
         </button>
       </div>
     </div>
