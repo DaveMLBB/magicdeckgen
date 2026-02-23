@@ -1132,20 +1132,19 @@ function App() {
     <div className="app">
       {animatedBg && <RandomArtBackground />}
       <div className="app-content">
+      {/* Mobile floating menu button - outside nav, always on top */}
+      {showGlobalNav && (
+        <button
+          className="mobile-menu-toggle"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Menu"
+        >
+          ···
+        </button>
+      )}
+
       {showGlobalNav && (
         <nav className="global-nav">
-          {/* Mobile hamburger button */}
-          <button 
-            className="mobile-menu-toggle"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Menu"
-          >
-            <span className={`hamburger ${mobileMenuOpen ? 'open' : ''}`}>
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-          </button>
 
           {/* Desktop nav - hidden on mobile */}
           <div className="global-nav-left desktop-only">
@@ -1239,18 +1238,6 @@ function App() {
             <button className="global-nav-btn logout" onClick={handleLogout}>
               🚪
             </button>
-          </div>
-
-          {/* Mobile menu - token badge always visible */}
-          <div className="mobile-nav-header mobile-only">
-            {subscriptionStatus && (
-              <button 
-                className={`global-nav-btn subscription ${currentView === 'subscriptions' ? 'active' : ''}`}
-                onClick={() => { setCurrentView('subscriptions'); setMobileMenuOpen(false); }}
-              >
-                🪙 {subscriptionStatus.tokens ?? 0}
-              </button>
-            )}
           </div>
 
           {/* Mobile dropdown menu */}
