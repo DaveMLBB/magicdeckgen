@@ -53,7 +53,7 @@ async def build_deck(
         raise HTTPException(status_code=400, detail="Description too short (min 10 characters)")
 
     from app.routers.tokens import consume_token
-    consume_token(user, 'ai_build_deck', f'AI build deck: {input_data.description[:60]}', db, tokens_to_consume=10)
+    consume_token(user, 'ai_build_deck', f'AI build deck: {input_data.description[:60]}', db, tokens_to_consume=30)
 
     groq_api_key = os.getenv("GROQ_API_KEY")
     if not groq_api_key:
@@ -194,7 +194,7 @@ def get_full_collection_cost(collection_id: int, user_id: int, db: Session = Dep
         raise HTTPException(status_code=404, detail="Collection not found")
     total = db.query(Card).filter(Card.collection_id == collection_id).count()
     chunks = math.ceil(total / 200) if total > 0 else 1
-    token_cost = 10 + chunks
+    token_cost = 30 + chunks * 3
     return {"total_cards": total, "chunks": chunks, "token_cost": token_cost}
 
 @router.post("/build-deck-full-collection")
@@ -232,7 +232,7 @@ async def build_deck_full_collection(
 
     chunk_size = 200
     chunks = math.ceil(total / chunk_size)
-    token_cost = 10 + chunks
+    token_cost = 30 + chunks * 3
 
     from app.routers.tokens import consume_token
     consume_token(user, 'ai_build_deck_full', f'AI full collection deck: {input_data.description[:50]}', db, tokens_to_consume=token_cost)

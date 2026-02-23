@@ -399,7 +399,7 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
                 />
                 <span>
                   📚 {language === 'it' ? 'Usa top 200 carte dalla collezione' : 'Use top 200 cards from collection'}
-                  <span className="adb-cost-badge">🪙 10</span>
+                  <span className="adb-cost-badge">🪙 30</span>
                 </span>
               </label>
 
