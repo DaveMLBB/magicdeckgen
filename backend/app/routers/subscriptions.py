@@ -132,7 +132,7 @@ def get_subscription_status(token: str, db: Session = Depends(get_db)):
         if is_expired and user.subscription_type != 'lifetime':
             if not check_stripe_subscription_active(user, db):
                 user.subscription_type = 'free'
-                user.uploads_limit = 3
+                user.uploads_limit = 999999  # Unlimited - token system used
                 user.uploads_count = 0
                 user.subscription_expires_at = None
                 db.commit()
@@ -259,18 +259,10 @@ def activate_subscription(user: User, plan_id: str, db: Session):
     if not plan:
         return
     
-    search_limits = {
-        'free': 10,
-        'monthly_10': 20,
-        'monthly_30': 30,
-        'yearly': 999999,
-        'lifetime': 999999
-    }
-    
     user.subscription_type = plan_id
-    user.uploads_limit = plan['uploads_limit']
+    user.uploads_limit = 999999  # Unlimited - token system used
     user.uploads_count = 0
-    user.searches_limit = search_limits.get(plan_id, 10)
+    user.searches_limit = 999999  # Unlimited - token system used
     user.searches_count = 0
     
     if plan['duration_days']:
@@ -710,7 +702,7 @@ def can_upload(token: str, db: Session = Depends(get_db)):
         if user.subscription_type != 'lifetime':
             if not check_stripe_subscription_active(user, db):
                 user.subscription_type = 'free'
-                user.uploads_limit = 3
+                user.uploads_limit = 999999  # Unlimited - token system used
                 user.uploads_count = 0
                 user.subscription_expires_at = None
                 db.commit()

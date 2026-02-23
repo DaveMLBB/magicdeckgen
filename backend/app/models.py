@@ -27,9 +27,9 @@ class User(Base):
     subscription_type = Column(String, default='free')
     subscription_expires_at = Column(DateTime, nullable=True)
     uploads_count = Column(Integer, default=0)
-    uploads_limit = Column(Integer, default=3)
+    uploads_limit = Column(Integer, default=999999)  # Unlimited - token system used instead
     searches_count = Column(Integer, default=0)
-    searches_limit = Column(Integer, default=10)
+    searches_limit = Column(Integer, default=999999)  # Unlimited - token system used instead
     
     # Token system
     tokens = Column(Integer, default=100)  # Current token balance (100 free on registration)
