@@ -114,7 +114,7 @@ const sections = {
         'L\'AI Analyzer analizza i tuoi mazzi salvati e suggerisce ottimizzazioni.',
         'Seleziona un mazzo dalla lista, poi scegli un obiettivo di ottimizzazione.',
         'Obiettivi disponibili: Bilanciato, Aggressivo, Controllo, Combo, Tribal, Token, Cimitero e molti altri.',
-        'L\'AI (Groq Llama 3.3 70B) analizza la curva di mana, le sinergie e suggerisce carte da aggiungere/rimuovere.',
+        'L\'AI analizza la curva di mana, le sinergie e suggerisce carte da aggiungere/rimuovere.',
         'Vengono identificati anche combo e catene sinergiche nel mazzo.',
         '⚠️ Consuma 2 token per analisi (operazione premium).',
       ]
