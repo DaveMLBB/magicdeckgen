@@ -80,15 +80,19 @@ async def build_deck(
             CardCollection.user_id == input_data.user_id
         ).first()
         if collection:
-            coll_cards = db.query(Card).filter(Card.collection_id == input_data.collection_id).all()
+            coll_cards = db.query(Card).filter(Card.collection_id == input_data.collection_id)\
+                .order_by(Card.quantity_owned.desc())\
+                .limit(200).all()
             if coll_cards:
+                total_in_coll = db.query(Card).filter(Card.collection_id == input_data.collection_id).count()
                 card_list = ", ".join(
                     f"{c.name} (x{c.quantity_owned})" for c in coll_cards
                 )
+                truncation_note = f" (showing top 200 by quantity out of {total_in_coll} total)" if total_in_coll > 200 else ""
                 collection_constraint = f"""
 
 COLLECTION CONSTRAINT (VERY IMPORTANT):
-The user wants to build this deck using ONLY cards from their collection "{collection.name}".
+The user wants to build this deck using ONLY cards from their collection "{collection.name}"{truncation_note}.
 Available cards: {card_list}
 - You MUST use only cards from this list (you may use basic lands freely even if not in the list)
 - Respect the quantity_owned limits — do not use more copies than available
