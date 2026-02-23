@@ -271,7 +271,6 @@ function AIDeckBuilder({ user, onBack, language }) {
   }, {})
 
   return (
-    <>
     <div className="ai-deck-builder">
       <div className="adb-header">
         <button onClick={onBack} className="adb-back-btn">← {tr.back}</button>
@@ -514,16 +513,14 @@ function AIDeckBuilder({ user, onBack, language }) {
           )}
         </div>
       </div>
+      {previewCard && (
+        <CardPreviewModal
+          cardName={previewCard}
+          language={language}
+          onClose={() => setPreviewCard(null)}
+        />
+      )}
     </div>
-
-    {previewCard && (
-      <CardPreviewModal
-        cardName={previewCard}
-        language={language}
-        onClose={() => setPreviewCard(null)}
-      />
-    )}
-    </>
   )
 }
 

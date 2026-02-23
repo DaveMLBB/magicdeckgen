@@ -246,7 +246,6 @@ function CardSynergy({ user, onBack, language }) {
   }
 
   return (
-    <>
     <div className="card-synergy">
       <div className="cs-header">
         <button onClick={onBack} className="cs-back-btn">← {t.back}</button>
@@ -528,16 +527,14 @@ function CardSynergy({ user, onBack, language }) {
           )}
         </div>
       </div>
+      {previewCard && (
+        <CardPreviewModal
+          cardName={previewCard}
+          language={language}
+          onClose={() => setPreviewCard(null)}
+        />
+      )}
     </div>
-
-    {previewCard && (
-      <CardPreviewModal
-        cardName={previewCard}
-        language={language}
-        onClose={() => setPreviewCard(null)}
-      />
-    )}
-    </>
   )
 }
 

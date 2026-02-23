@@ -198,7 +198,6 @@ function CardTwins({ user, onBack, language }) {
   const relConfig = (rel) => RELATIONSHIP_CONFIG[rel] || { color: '#6b7280', icon: '?', label: { it: rel, en: rel } }
 
   return (
-    <>
     <div className="card-twins">
       <div className="ct-header">
         <button onClick={onBack} className="ct-back-btn">← {t.back}</button>
@@ -428,16 +427,14 @@ function CardTwins({ user, onBack, language }) {
           )}
         </div>
       </div>
+      {previewCard && (
+        <CardPreviewModal
+          cardName={previewCard}
+          language={language}
+          onClose={() => setPreviewCard(null)}
+        />
+      )}
     </div>
-
-    {previewCard && (
-      <CardPreviewModal
-        cardName={previewCard}
-        language={language}
-        onClose={() => setPreviewCard(null)}
-      />
-    )}
-    </>
   )
 }
 
