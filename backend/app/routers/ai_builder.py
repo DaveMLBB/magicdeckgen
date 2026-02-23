@@ -43,7 +43,7 @@ async def build_deck(
 ):
     """
     Genera un mazzo completo da una descrizione testuale usando AI.
-    Consuma 10 token.
+    Consuma 30 token.
     """
     user = db.query(User).filter(User.id == input_data.user_id).first()
     if not user:
