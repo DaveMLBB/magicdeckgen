@@ -3,9 +3,13 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Ottieni il path assoluto della cartella backend
 BACKEND_DIR = Path(__file__).parent.parent
+
+# Carica il .env dalla cartella backend
+load_dotenv(BACKEND_DIR / ".env")
 
 # Database URL da variabile d'ambiente (default: PostgreSQL locale)
 SQLALCHEMY_DATABASE_URL = os.environ.get(
