@@ -342,6 +342,11 @@ function App() {
     setShowUpgradeModal(true)
   }
 
+  // Contatore visite
+  useEffect(() => {
+    fetch(`${API_URL}/api/visit`, { method: 'POST' }).catch(() => {})
+  }, [])
+
   // Gestione ritorno da Stripe Checkout
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)

@@ -1,7 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine, Base
+from app.database import engine, Base, get_db
 from app.routers import cards, decks, auth, subscriptions, collections, mtg_cards, saved_decks, gdpr, tokens, ai_builder, feedback, chat
+from app.models import SiteVisit
+from sqlalchemy.orm import Session
+from datetime import datetime
 import os
 
 Base.metadata.create_all(bind=engine)
@@ -48,3 +51,16 @@ app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 @app.get("/")
 def root():
     return {"message": "Magic Deck Generator API"}
+
+
+@app.post("/api/visit")
+def record_visit(db: Session = Depends(get_db)):
+    row = db.query(SiteVisit).filter(SiteVisit.id == 1).first()
+    if row is None:
+        row = SiteVisit(id=1, count=1, last_visit=datetime.utcnow())
+        db.add(row)
+    else:
+        row.count += 1
+        row.last_visit = datetime.utcnow()
+    db.commit()
+    return {"count": row.count}

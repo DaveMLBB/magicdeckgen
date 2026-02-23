@@ -334,3 +334,10 @@ class Feedback(Base):
     message = Column(String, nullable=False)
     feature = Column(String, nullable=True)  # which feature the feedback is about
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class SiteVisit(Base):
+    __tablename__ = 'site_visits'
+    id = Column(Integer, primary_key=True, default=1)
+    count = Column(Integer, default=0, nullable=False)
+    last_visit = Column(DateTime, default=datetime.utcnow, nullable=False)
