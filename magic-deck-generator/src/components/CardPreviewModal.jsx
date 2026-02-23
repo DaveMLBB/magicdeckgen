@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { cardImageCache } from '../utils/cardImageCache'
+import './CardPreviewModal.css'
 
 const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site'
@@ -106,8 +107,8 @@ function CardPreviewModal({ cardName, language, onClose }) {
     : { rarity: 'Rarity', set: 'Set', artist: 'Artist', legalities: 'Legalities' }
 
   return ReactDOM.createPortal(
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content card-detail-modal" onClick={e => e.stopPropagation()}>
+    <div className="card-preview-modal-overlay" onClick={onClose}>
+      <div className="card-preview-modal" onClick={e => e.stopPropagation()}>
         <button className="close-modal-btn" onClick={onClose}>✕</button>
 
         {loading && (
