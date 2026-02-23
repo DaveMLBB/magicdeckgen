@@ -406,6 +406,41 @@
 .adb-upgrade-card h3 { margin: 0 0 10px; font-size: 1rem; font-weight: 700; color: #e2e8f0; }
 .adb-upgrade-card p { margin: 0; color: #94a3b8; font-size: 0.9rem; line-height: 1.65; }
 
+/* ── Collection Filter ── */
+.adb-collection-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+}
+
+.adb-collection-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  user-select: none;
+}
+
+.adb-collection-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #6366f1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.adb-collection-select {
+  margin-top: 0.25rem;
+}
+
 /* ── Responsive ── */
 @media (max-width: 1410px) {
   .adb-layout { grid-template-columns: 1fr; }

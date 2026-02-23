@@ -33,6 +33,7 @@ class BuildDeckInput(BaseModel):
     colors: Optional[str] = None  # e.g. "WU", "BRG"
     budget: Optional[str] = None  # budget, affordable, any, expensive
     deck_size: Optional[int] = 60  # 60 or 100 (commander)
+    collection_id: Optional[int] = None  # restrict to cards in this collection
 
 @router.post("/build-deck")
 async def build_deck(
@@ -70,6 +71,29 @@ async def build_deck(
     colors_line = f"Color restriction: {input_data.colors}" if input_data.colors else "Colors: not restricted (choose what fits best)"
     budget_line = f"Budget preference: {input_data.budget}" if input_data.budget else "Budget: no restriction"
 
+    # Load collection cards if collection_id provided
+    collection_constraint = ""
+    if input_data.collection_id:
+        from app.models import Card, CardCollection
+        collection = db.query(CardCollection).filter(
+            CardCollection.id == input_data.collection_id,
+            CardCollection.user_id == input_data.user_id
+        ).first()
+        if collection:
+            coll_cards = db.query(Card).filter(Card.collection_id == input_data.collection_id).all()
+            if coll_cards:
+                card_list = ", ".join(
+                    f"{c.name} (x{c.quantity_owned})" for c in coll_cards
+                )
+                collection_constraint = f"""
+
+COLLECTION CONSTRAINT (VERY IMPORTANT):
+The user wants to build this deck using ONLY cards from their collection "{collection.name}".
+Available cards: {card_list}
+- You MUST use only cards from this list (you may use basic lands freely even if not in the list)
+- Respect the quantity_owned limits — do not use more copies than available
+- If the collection does not have enough cards to fill the deck, use the best subset and note it in strategy_notes"""
+
     prompt = f"""You are an expert Magic: The Gathering deck builder. Build a complete, competitive and well-structured deck based on the user's description.
 
 USER DESCRIPTION: {input_data.description}
@@ -81,7 +105,7 @@ CONSTRAINTS:
 - Deck size: exactly {deck_size} cards (not counting basic lands unless specified)
 - All card names must be REAL Magic: The Gathering cards
 - Include a proper mana base (lands)
-- The deck must be playable and coherent
+- The deck must be playable and coherent{collection_constraint}
 
 LANGUAGE: Respond in {lang_label}.
 

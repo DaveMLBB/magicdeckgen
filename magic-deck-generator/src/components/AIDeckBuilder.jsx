@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './AIDeckBuilder.css'
 import CardPreviewModal from './CardPreviewModal'
 
@@ -166,6 +166,21 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
   const [activeTab, setActiveTab] = useState('main') // 'main' | 'sideboard'
   const [filterCat, setFilterCat] = useState('all')
   const [sortMode, setSortMode] = useState('category')
+  const [useCollection, setUseCollection] = useState(false)
+  const [collections, setCollections] = useState([])
+  const [selectedCollectionId, setSelectedCollectionId] = useState(null)
+
+  useEffect(() => {
+    if (!user?.userId) return
+    fetch(`${API_URL}/api/collections/user/${user.userId}`)
+      .then(r => r.json())
+      .then(data => {
+        const cols = data.collections || []
+        setCollections(cols)
+        if (cols.length > 0) setSelectedCollectionId(cols[0].id)
+      })
+      .catch(() => {})
+  }, [user])
 
   const toggleColor = (code) => {
     setSelectedColors(prev =>
@@ -187,6 +202,7 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
           colors: selectedColors.length > 0 ? selectedColors.join('') : null,
           budget: budget || null,
           deck_size: deckSize,
+          collection_id: useCollection && selectedCollectionId ? selectedCollectionId : null,
         })
       })
       const data = await res.json()
@@ -346,6 +362,33 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
               </div>
             </div>
           </div>
+
+          {/* Collection filter */}
+          {collections.length > 0 && (
+            <div className="adb-collection-filter">
+              <label className="adb-collection-check">
+                <input
+                  type="checkbox"
+                  checked={useCollection}
+                  onChange={e => setUseCollection(e.target.checked)}
+                />
+                <span>📚 {language === 'it' ? 'Usa solo carte dalla collezione' : 'Use only cards from collection'}</span>
+              </label>
+              {useCollection && (
+                <select
+                  className="adb-select adb-collection-select"
+                  value={selectedCollectionId || ''}
+                  onChange={e => setSelectedCollectionId(Number(e.target.value))}
+                >
+                  {collections.map(col => (
+                    <option key={col.id} value={col.id}>
+                      {col.name} ({col.total_cards} {language === 'it' ? 'carte' : 'cards'})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
 
           <button
             className="adb-build-btn"
