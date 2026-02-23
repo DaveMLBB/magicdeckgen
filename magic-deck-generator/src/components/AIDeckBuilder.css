@@ -407,7 +407,7 @@
 .adb-upgrade-card p { margin: 0; color: #94a3b8; font-size: 0.9rem; line-height: 1.65; }
 
 /* ── Responsive ── */
-@media (max-width: 1260px) {
+@media (max-width: 1410px) {
   .adb-layout { grid-template-columns: 1fr; }
   .adb-input-panel { position: static; }
   .adb-header h1 { font-size: 1.6rem; }

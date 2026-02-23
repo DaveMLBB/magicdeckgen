@@ -746,7 +746,7 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 1260px) {
+@media (max-width: 1410px) {
   .cs-layout {
     grid-template-columns: 1fr;
   }
