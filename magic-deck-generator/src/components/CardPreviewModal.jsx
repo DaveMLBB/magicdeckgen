@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import React from 'react'
+import ReactDOM from 'react-dom'
 import { cardImageCache } from '../utils/cardImageCache'
 
 const API_URL = import.meta.env.PROD
@@ -104,7 +105,7 @@ function CardPreviewModal({ cardName, language, onClose }) {
     ? { rarity: 'Rarità', set: 'Set', artist: 'Artista', legalities: 'Legalità' }
     : { rarity: 'Rarity', set: 'Set', artist: 'Artist', legalities: 'Legalities' }
 
-  return (
+  return ReactDOM.createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content card-detail-modal" onClick={e => e.stopPropagation()}>
         <button className="close-modal-btn" onClick={onClose}>✕</button>
@@ -168,7 +169,8 @@ function CardPreviewModal({ cardName, language, onClose }) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
