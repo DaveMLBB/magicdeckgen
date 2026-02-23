@@ -126,32 +126,41 @@ function CardTwins({ user, onBack, language }) {
   const [sortMode, setSortMode] = useState('similarity')
   const [copied, setCopied] = useState(false)
   const [previewCard, setPreviewCard] = useState(null)
-  const [cardSuggestions, setCardSuggestions] = useState([])
-  const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(null)
+  const suggestionsRef = useRef({ list: [], idx: null })
+  const [suggestTick, setSuggestTick] = useState(0)
   const debounceRef = useRef(null)
 
+  const cardSuggestions = suggestionsRef.current.list
+  const activeSuggestionIdx = suggestionsRef.current.idx
+
+  const setSuggestions = (list, idx) => {
+    suggestionsRef.current = { list, idx }
+    setSuggestTick(t => t + 1)
+  }
+
   const fetchCardSuggestions = async (query, idx) => {
-    if (!query || query.length < 2) { setCardSuggestions([]); setActiveSuggestionIdx(null); return }
+    if (!query || query.length < 2) { setSuggestions([], null); return }
     try {
       const res = await fetch(`${API_URL}/api/mtg-cards/search?query=${encodeURIComponent(query)}&page_size=8&language=${language}`)
       if (res.ok) {
         const data = await res.json()
-        setCardSuggestions(data.cards?.map(c => c.name) || [])
-        setActiveSuggestionIdx(idx)
+        setSuggestions(data.cards?.map(c => c.name) || [], idx)
       }
-    } catch { setCardSuggestions([]) }
+    } catch { setSuggestions([], null) }
   }
 
   const handleCardInput = (idx, value) => {
-    const updated = [...seedCards]; updated[idx] = value; setSeedCards(updated)
-    setCardSuggestions([]); setActiveSuggestionIdx(null)
+    const updated = [...seedCards]; updated[idx] = value
+    suggestionsRef.current = { list: [], idx: null }
+    setSeedCards(updated)
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => fetchCardSuggestions(value, idx), 300)
   }
 
   const selectSuggestion = (idx, name) => {
-    const updated = [...seedCards]; updated[idx] = name; setSeedCards(updated)
-    setCardSuggestions([]); setActiveSuggestionIdx(null)
+    const updated = [...seedCards]; updated[idx] = name
+    suggestionsRef.current = { list: [], idx: null }
+    setSeedCards(updated)
   }
 
   const addCard = () => { if (seedCards.length < 5) setSeedCards([...seedCards, '']) }

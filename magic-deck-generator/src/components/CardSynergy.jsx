@@ -129,10 +129,17 @@ function CardSynergy({ user, onBack, language }) {
   const [previewCard, setPreviewCard] = useState(null)
   const [sortMode, setSortMode] = useState('priority')
   const [copied, setCopied] = useState(false)
-  const [cardSuggestions, setCardSuggestions] = useState([])
-  const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(null)
-  const [suggestionLoading, setSuggestionLoading] = useState(false)
+  const suggestionsRef = useRef({ list: [], idx: null })
+  const [suggestTick, setSuggestTick] = useState(0)
   const debounceRef = useRef(null)
+
+  const cardSuggestions = suggestionsRef.current.list
+  const activeSuggestionIdx = suggestionsRef.current.idx
+
+  const setSuggestions = (list, idx) => {
+    suggestionsRef.current = { list, idx }
+    setSuggestTick(t => t + 1)
+  }
 
   useEffect(() => {
     if (user?.tokens !== undefined) setTokens(user.tokens)
@@ -140,30 +147,25 @@ function CardSynergy({ user, onBack, language }) {
 
   const fetchCardSuggestions = async (query, idx) => {
     if (!query || query.length < 2) {
-      setCardSuggestions([])
-      setActiveSuggestionIdx(null)
+      setSuggestions([], null)
       return
     }
-    setSuggestionLoading(true)
     try {
       const res = await fetch(`${API_URL}/api/mtg-cards/search?query=${encodeURIComponent(query)}&page_size=8&language=${language}`)
       if (res.ok) {
         const data = await res.json()
-        setCardSuggestions(data.cards?.map(c => c.name) || [])
-        setActiveSuggestionIdx(idx)
+        setSuggestions(data.cards?.map(c => c.name) || [], idx)
       }
     } catch {
-      setCardSuggestions([])
+      setSuggestions([], null)
     }
-    setSuggestionLoading(false)
   }
 
   const handleCardInput = (idx, value) => {
     const updated = [...seedCards]
     updated[idx] = value
+    suggestionsRef.current = { list: [], idx: null }
     setSeedCards(updated)
-    setCardSuggestions([])
-    setActiveSuggestionIdx(null)
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => fetchCardSuggestions(value, idx), 300)
   }
@@ -171,9 +173,8 @@ function CardSynergy({ user, onBack, language }) {
   const selectSuggestion = (idx, name) => {
     const updated = [...seedCards]
     updated[idx] = name
+    suggestionsRef.current = { list: [], idx: null }
     setSeedCards(updated)
-    setCardSuggestions([])
-    setActiveSuggestionIdx(null)
   }
 
   const addCard = () => {
@@ -278,7 +279,7 @@ function CardSynergy({ user, onBack, language }) {
                       onChange={e => handleCardInput(idx, e.target.value)}
                       onKeyDown={e => {
                         if (e.key === 'Enter' && idx === seedCards.length - 1 && seedCards.length < 5) addCard()
-                        if (e.key === 'Escape') { setCardSuggestions([]); setActiveSuggestionIdx(null) }
+                        if (e.key === 'Escape') { suggestionsRef.current = { list: [], idx: null }; setSuggestTick(t => t + 1) }
                       }}
                       autoComplete="off"
                     />
