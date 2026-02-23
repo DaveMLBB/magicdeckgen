@@ -2055,6 +2055,10 @@ function App() {
             <div className="footer-content">
               <p>Magic Deck Builder © 2026</p>
               <div className="footer-links">
+                <button onClick={() => setShowGuide(true)} className="footer-link">
+                  📖 {language === 'it' ? 'Guida' : 'Guide'}
+                </button>
+                <span className="footer-separator">•</span>
                 <button onClick={() => setCurrentView('privacy-policy')} className="footer-link">
                   {language === 'it' ? 'Privacy' : 'Privacy Policy'}
                 </button>

@@ -294,6 +294,9 @@ const FormatPage = ({ format, lang = 'en' }) => {
       <footer className="public-footer">
         <div className="container">
           <p>© 2026 Magic Deck Builder. All rights reserved.</p>
+          <div className="footer-links">
+            <Link to="/app" className="footer-link-guide">{lang === 'en' ? '📖 User Guide' : '📖 Guida'}</Link>
+          </div>
         </div>
       </footer>
     </div>

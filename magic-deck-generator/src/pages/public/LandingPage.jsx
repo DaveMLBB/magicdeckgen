@@ -218,6 +218,7 @@ const LandingPage = ({ lang = 'en' }) => {
           <div className="footer-links">
             <Link to="/privacy-policy">{lang === 'en' ? 'Privacy Policy' : 'Privacy Policy'}</Link>
             <Link to="/terms-of-service">{lang === 'en' ? 'Terms of Service' : 'Termini di Servizio'}</Link>
+            <Link to="/app" className="footer-link-guide">{lang === 'en' ? '📖 User Guide' : '📖 Guida'}</Link>
           </div>
         </div>
       </footer>
