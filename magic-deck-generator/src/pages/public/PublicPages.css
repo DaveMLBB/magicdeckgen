@@ -320,29 +320,6 @@
   box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
 }
 
-/* Footer */
-.seo-public-page .public-footer {
-  background: #1a1a2e;
-  padding: 3rem 2rem;
-  text-align: center;
-  border-top: 1px solid #2a2a3e;
-}
-
-.seo-public-page .footer-links {
-  display: flex;
-  gap: 2rem;
-  justify-content: center;
-  margin-top: 1rem;
-}
-
-.seo-public-page .footer-links a {
-  color: #4a9eff;
-  text-decoration: none;
-}
-
-.seo-public-page .footer-links a:hover {
-  text-decoration: underline;
-}
 
 /* Format Page Specific */
 .seo-public-page .format-hero {
@@ -997,6 +974,80 @@
   .seo-public-page .lp-reasons-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* CTA Section */
+.seo-public-page .cta-section {
+  padding: 6rem 2rem;
+  text-align: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.seo-public-page .cta-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 70% 50%, rgba(255,255,255,0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.seo-public-page .cta-container {
+  position: relative;
+  z-index: 1;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.seo-public-page .cta-section h2 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.seo-public-page .cta-subtitle {
+  font-size: 1.15rem;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.seo-public-page .cta-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2.5rem;
+  text-align: left;
+}
+
+.seo-public-page .cta-features li {
+  color: rgba(255,255,255,0.9);
+  font-size: 0.95rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+}
+
+.seo-public-page .cta-button {
+  display: inline-block;
+  background: #fff;
+  color: #667eea;
+  padding: 1rem 2.5rem;
+  border-radius: 50px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+.seo-public-page .cta-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(0,0,0,0.3);
 }
 
 /* Public Footer */

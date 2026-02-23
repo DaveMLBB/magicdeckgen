@@ -39,7 +39,7 @@ function Auth({ onLogin, language, setLanguage }) {
       privacyPolicy: 'Privacy Policy',
       mustAcceptTerms: 'Devi accettare i Termini di Servizio e la Privacy Policy per registrarti',
       loginAcceptance: 'Effettuando il login accetti automaticamente i nostri',
-      desktopRecommended: '💻 Per un\'esperienza ottimale, consigliamo l\'utilizzo su PC desktop',
+      desktopRecommended: 'Per un\'esperienza ottimale, consigliamo l\'utilizzo su PC desktop',
       desktopRecommendedShort: 'Consigliato: PC Desktop'
     },
     en: {
@@ -63,7 +63,7 @@ function Auth({ onLogin, language, setLanguage }) {
       privacyPolicy: 'Privacy Policy',
       mustAcceptTerms: 'You must accept the Terms of Service and Privacy Policy to register',
       loginAcceptance: 'By logging in, you automatically accept our',
-      desktopRecommended: '💻 For the best experience, we recommend using a desktop PC',
+      desktopRecommended: 'For the best experience, we recommend using a desktop PC',
       desktopRecommendedShort: 'Recommended: Desktop PC'
     }
   }
