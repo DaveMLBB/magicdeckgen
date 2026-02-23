@@ -243,7 +243,7 @@ body {
   display: none;
 }
 
-@media (max-width: 1150px) {
+@media (max-width: 1260px) {
   .desktop-only {
     display: none !important;
   }
