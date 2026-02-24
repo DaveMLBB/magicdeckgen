@@ -1139,16 +1139,62 @@ function App() {
     <div className="app">
       {animatedBg && <RandomArtBackground />}
 
-      {/* Mobile floating menu button - directly in .app so position:fixed is never broken */}
-      {showGlobalNav && (
-        <button
-          className="mobile-menu-toggle"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Menu"
-        >
-          ···
-        </button>
-      )}
+      {/* Mobile top bar - fixed, always visible on mobile */}
+      {showGlobalNav && (() => {
+        const viewLabels = {
+          it: {
+            main: 'Ricerca Mazzi',
+            collections: 'Collezioni',
+            'collection-detail': 'Collezione',
+            'card-search': 'Carte',
+            'saved-decks': 'I Miei Mazzi',
+            'saved-deck-detail': 'Dettaglio Mazzo',
+            community: 'Community',
+            'ai-builder': 'AI Analyzer',
+            'card-synergy': 'AI Synergy',
+            'card-twins': 'AI Gemelli',
+            'ai-deck-builder': 'AI Deck Builder',
+            subscriptions: 'Token',
+            'privacy-settings': 'Privacy',
+          },
+          en: {
+            main: 'Deck Search',
+            collections: 'Collections',
+            'collection-detail': 'Collection',
+            'card-search': 'Cards',
+            'saved-decks': 'My Decks',
+            'saved-deck-detail': 'Deck Detail',
+            community: 'Community',
+            'ai-builder': 'AI Analyzer',
+            'card-synergy': 'AI Synergy',
+            'card-twins': 'AI Twins',
+            'ai-deck-builder': 'AI Deck Builder',
+            subscriptions: 'Tokens',
+            'privacy-settings': 'Privacy',
+          }
+        }
+        const label = viewLabels[language]?.[currentView] ?? currentView
+        return (
+          <div className="mobile-topbar">
+            <button
+              className="mobile-topbar-hamburger"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Menu"
+            >
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+            <span className="mobile-topbar-title">{label}</span>
+            <button
+              className="mobile-topbar-tokens"
+              onClick={() => setCurrentView('subscriptions')}
+            >
+              🪙 {subscriptionStatus?.tokens ?? '—'}
+            </button>
+          </div>
+        )
+      })()}
 
       {/* Mobile dropdown menu - directly in .app so position:fixed works on all mobile browsers */}
       {showGlobalNav && mobileMenuOpen && (
