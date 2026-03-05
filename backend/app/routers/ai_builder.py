@@ -334,9 +334,9 @@ CONSTRAINTS: {format_line}, {colors_line}, {budget_line}, deck size {deck_size}
 
 AVAILABLE CARDS (chunk {i+1}/{chunks}): {card_list}
 
-Return ONLY a JSON array of the most useful card names from this list (max 30 cards), like:
-["Card Name 1", "Card Name 2", ...]
-Only include cards that would genuinely fit this deck. Respond with JSON only."""
+Select up to 30 cards from this list that would fit the deck. Return ONLY valid JSON in this exact format:
+{{"cards": ["Card Name 1", "Card Name 2", ...]}}
+Only include card names that appear exactly in the list above. Respond with JSON only."""
 
         try:
             resp = await client.chat.completions.create(
@@ -347,16 +347,18 @@ Only include cards that would genuinely fit this deck. Respond with JSON only.""
                 response_format={"type": "json_object"}
             )
             raw = resp.choices[0].message.content
+            print(f"🔍 Chunk {i+1} raw response: {raw[:200]}")
             parsed = json.loads(raw)
-            # handle both {"cards": [...]} and direct array wrapped in object
-            if isinstance(parsed, list):
-                names = parsed
-            elif isinstance(parsed, dict):
+            # Robust extraction: look for any list value in the object
+            if isinstance(parsed, dict):
                 names = next((v for v in parsed.values() if isinstance(v, list)), [])
+            elif isinstance(parsed, list):
+                names = parsed
             else:
                 names = []
+            print(f"🔍 Chunk {i+1} extracted {len(names)} card names")
             # match back to card objects to get quantity
-            name_set = {n.lower() for n in names}
+            name_set = {n.lower() for n in names if isinstance(n, str)}
             for c in chunk:
                 if c.name.lower() in name_set:
                     selected_cards.append(f"{c.name} (x{c.quantity_owned})")
