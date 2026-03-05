@@ -182,7 +182,7 @@ IMPORTANT:
 
     try:
         response = await client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="moonshotai/kimi-k2-instruct-0905",
             messages=[
                 {
                     "role": "system",
@@ -216,7 +216,7 @@ Check:
 Return the improved deck as the same JSON structure. If no changes needed, return the same deck. Respond with valid JSON only."""
 
         verify_response = await client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="moonshotai/kimi-k2-instruct-0905",
             messages=[
                 {"role": "system", "content": f"You are an expert MTG deck reviewer. Respond in {lang_label}. Always respond with valid JSON only."},
                 {"role": "user", "content": verify_prompt}
@@ -340,7 +340,7 @@ Only include cards that would genuinely fit this deck. Respond with JSON only.""
 
         try:
             resp = await client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="moonshotai/kimi-k2-instruct-0905",
                 messages=[{"role": "user", "content": selection_prompt}],
                 temperature=0.3,
                 max_tokens=800,
@@ -404,7 +404,7 @@ IMPORTANT: total cards must sum to exactly {deck_size}. Include 15 sideboard car
 
     try:
         response = await client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="moonshotai/kimi-k2-instruct-0905",
             messages=[
                 {"role": "system", "content": f"You are an expert MTG deck builder. Respond in {lang_label}. Always respond with valid JSON only."},
                 {"role": "user", "content": final_prompt}
@@ -436,7 +436,7 @@ Check:
 Return the improved deck as the same JSON structure. Respond with valid JSON only."""
 
         verify_response = await client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="moonshotai/kimi-k2-instruct-0905",
             messages=[
                 {"role": "system", "content": f"You are an expert MTG deck reviewer. Respond in {lang_label}. Always respond with valid JSON only."},
                 {"role": "user", "content": verify_prompt}
@@ -597,7 +597,7 @@ Respond ONLY with valid JSON in this exact structure:
 """
 
     response = await client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="moonshotai/kimi-k2-instruct-0905",
         messages=[
             {
                 "role": "system",
@@ -745,7 +745,7 @@ Respond ONLY with valid JSON in this exact structure:
 """
 
     response = await client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="moonshotai/kimi-k2-instruct-0905",
         messages=[
             {
                 "role": "system",
@@ -976,7 +976,7 @@ Format your response as JSON with this structure:
     lang_instruction = "Respond in Italian (italiano)" if language == "it" else "Respond in English"
     
     response = await client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="moonshotai/kimi-k2-instruct-0905",
         messages=[
             {"role": "system", "content": f"You are an expert Magic: The Gathering deck builder specializing in {optimization_goal} strategies. {lang_instruction}. Provide detailed, actionable advice for improving decks. Always respond with valid JSON. Make your suggestions SPECIFIC to the {optimization_goal} optimization goal."},
             {"role": "user", "content": prompt}
