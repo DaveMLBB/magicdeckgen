@@ -112,6 +112,7 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
   const [cardSearchInitialQuery, setCardSearchInitialQuery] = useState('')
+  const [sessionExpired, setSessionExpired] = useState(false)
 
   // Traduzioni
   const translations = {
@@ -497,7 +498,25 @@ function App() {
     setUser(null)
     setCards([])
     setDecks([])
+    setSessionExpired(false)
   }
+
+  const handleUnauthorized = () => {
+    if (user) setSessionExpired(true)
+  }
+
+  // Fetch interceptor globale per catturare i 401
+  useEffect(() => {
+    const originalFetch = window.fetch
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args)
+      if (response.status === 401) {
+        handleUnauthorized()
+      }
+      return response
+    }
+    return () => { window.fetch = originalFetch }
+  }, [user])
 
   if (loading) {
     return (
@@ -2113,6 +2132,22 @@ function App() {
       >
         🐛 {language === 'it' ? 'Segnala Bug' : 'Report Bug'}
       </a>
+
+      {/* Session Expired Overlay */}
+      {sessionExpired && (
+        <div className="session-expired-overlay">
+          <div className="session-expired-modal">
+            <div className="session-expired-icon">🔒</div>
+            <h2>{language === 'it' ? 'Sessione scaduta' : 'Session expired'}</h2>
+            <p>{language === 'it' ? 'La tua sessione è scaduta o non è più valida. Effettua il logout e accedi di nuovo.' : 'Your session has expired or is no longer valid. Please log out and sign in again.'}</p>
+            <div className="session-expired-actions">
+              <button className="session-expired-logout-btn" onClick={handleLogout}>
+                🚪 {language === 'it' ? 'Esci e accedi di nuovo' : 'Logout & sign in again'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upgrade Plan Modal */}
       {showUpgradeModal && (
