@@ -84,8 +84,21 @@ def parse_arena_log(content: str) -> dict:
             data = json.loads(match.group(0))
             decks = data.get('Decks', {})
             if decks:
+                # Filtra solo i mazzi personalizzati (esclude i preconfezionati di Arena)
+                # I precon hanno nome che inizia con "?=?Loc/Decks/Precon/"
+                summaries = data.get('DeckSummariesV2', [])
+                custom_deck_ids = {
+                    s['DeckId'] for s in summaries
+                    if not s.get('Name', '').startswith('?=?Loc/Decks/Precon')
+                }
+                # Se non ci sono summary (log vecchio), usa tutti i mazzi
+                if not summaries:
+                    custom_deck_ids = set(decks.keys())
+
                 all_cards: dict = {}
-                for deck in decks.values():
+                for deck_id, deck in decks.items():
+                    if deck_id not in custom_deck_ids:
+                        continue  # salta i mazzi preconfezionati
                     for section in ['MainDeck', 'Sideboard', 'CommandZone', 'Companions']:
                         for entry in deck.get(section, []):
                             if isinstance(entry, dict):
@@ -183,7 +196,7 @@ async def import_arena_log(
 
     new_collection = CardCollection(
         name=coll_name,
-        description="Importata da Magic Arena (Player.log) — contiene le carte presenti nei mazzi costruiti",
+        description="Importata da Magic Arena (Player.log) — carte dai mazzi personalizzati",
         user_id=user_id
     )
     db.add(new_collection)
