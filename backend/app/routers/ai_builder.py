@@ -418,6 +418,55 @@ IMPORTANT: total cards must sum to exactly {deck_size}. Include 15 sideboard car
         deck_data = json.loads(response.choices[0].message.content)
         print(f"✅ AI full-collection deck: {deck_data.get('deck_name', 'unnamed')} ({chunks} chunks, {token_cost} tokens)")
 
+        # --- Server-side enforcement: remove cards not in collection ---
+        BASIC_LANDS = {"plains", "island", "swamp", "mountain", "forest",
+                       "wastes", "snow-covered plains", "snow-covered island",
+                       "snow-covered swamp", "snow-covered mountain", "snow-covered forest"}
+
+        # Build a lookup: lowercase name -> max quantity owned
+        collection_limit: dict[str, int] = {}
+        for c in all_cards:
+            key = c.name.lower()
+            collection_limit[key] = collection_limit.get(key, 0) + c.quantity_owned
+
+        def enforce_collection(card_list: list) -> tuple[list, list]:
+            """Return (kept_cards, removed_card_names)"""
+            kept, removed = [], []
+            used_qty: dict[str, int] = {}
+            for entry in (card_list or []):
+                name = entry.get("card_name", "")
+                qty = int(entry.get("quantity", 1))
+                key = name.lower()
+                if key in BASIC_LANDS:
+                    kept.append(entry)
+                    continue
+                if key not in collection_limit:
+                    removed.append(name)
+                    print(f"⚠️ Removed from deck (not in collection): {name}")
+                    continue
+                already_used = used_qty.get(key, 0)
+                allowed = collection_limit[key] - already_used
+                if allowed <= 0:
+                    removed.append(name)
+                    print(f"⚠️ Removed from deck (quantity exceeded): {name}")
+                    continue
+                actual_qty = min(qty, allowed)
+                used_qty[key] = already_used + actual_qty
+                new_entry = dict(entry)
+                new_entry["quantity"] = actual_qty
+                kept.append(new_entry)
+            return kept, removed
+
+        filtered_main, removed_main = enforce_collection(deck_data.get("cards", []))
+        filtered_side, removed_side = enforce_collection(deck_data.get("sideboard", []))
+        deck_data["cards"] = filtered_main
+        deck_data["sideboard"] = filtered_side
+        all_removed = list(set(removed_main + removed_side))
+        if all_removed:
+            deck_data["_enforcement_note"] = f"Removed {len(all_removed)} card(s) not in collection: {', '.join(all_removed[:10])}"
+            print(f"⚠️ Enforcement removed {len(all_removed)} cards: {all_removed[:10]}")
+        # --- End enforcement ---
+
         # Verification pass
         verify_prompt = f"""Review this Magic: The Gathering deck and improve it if needed.
 
@@ -450,10 +499,92 @@ Return the improved deck as the same JSON structure. Respond with valid JSON onl
         final_deck = json.loads(verify_response.choices[0].message.content)
         print(f"✅ AI verified full-collection deck: {final_deck.get('deck_name', 'unnamed')}")
 
+        # Re-apply enforcement after verification (verifier may reintroduce invalid cards)
+        final_main, final_removed_main = enforce_collection(final_deck.get("cards", []))
+        final_side, final_removed_side = enforce_collection(final_deck.get("sideboard", []))
+        final_deck["cards"] = final_main
+        final_deck["sideboard"] = final_side
+        all_removed_final = list(set(final_removed_main + final_removed_side))
+        if all_removed_final:
+            final_deck["_enforcement_note"] = f"Removed {len(all_removed_final)} card(s) not in collection: {', '.join(all_removed_final[:10])}"
+            print(f"⚠️ Post-verify enforcement removed {len(all_removed_final)} cards: {all_removed_final[:10]}")
+
+        # --- Fix mana base: replace basic lands with color-appropriate ones ---
+        COLOR_TO_BASIC = {"W": "Plains", "U": "Island", "B": "Swamp", "R": "Mountain", "G": "Forest"}
+        deck_colors_raw = (final_deck.get("colors") or input_data.colors or "").upper()
+        deck_color_letters = [c for c in ["W", "U", "B", "R", "G"] if c in deck_colors_raw]
+
+        if deck_color_letters:
+            correct_basics = {COLOR_TO_BASIC[c].lower() for c in deck_color_letters}
+            wrong_basics_in_deck = []
+            fixed_cards = []
+            for entry in final_deck.get("cards", []):
+                name_key = entry.get("card_name", "").lower()
+                if name_key in BASIC_LANDS and name_key not in correct_basics:
+                    wrong_basics_in_deck.append(entry["card_name"])
+                    # Replace with the first correct basic land
+                    replacement = COLOR_TO_BASIC[deck_color_letters[0]]
+                    new_entry = dict(entry)
+                    new_entry["card_name"] = replacement
+                    new_entry["category"] = "Land"
+                    fixed_cards.append(new_entry)
+                    print(f"🔧 Replaced wrong basic land '{entry['card_name']}' with '{replacement}'")
+                else:
+                    fixed_cards.append(entry)
+            if wrong_basics_in_deck:
+                # Merge duplicates (e.g. multiple Plains entries)
+                merged: dict[str, dict] = {}
+                for entry in fixed_cards:
+                    key = entry["card_name"].lower()
+                    if key in merged:
+                        merged[key]["quantity"] = merged[key].get("quantity", 0) + entry.get("quantity", 1)
+                    else:
+                        merged[key] = dict(entry)
+                final_deck["cards"] = list(merged.values())
+                print(f"🔧 Fixed mana base: replaced {len(wrong_basics_in_deck)} wrong basic(s) for colors {deck_color_letters}")
+        # --- End mana base fix ---
+
+        # --- MTGA legality check ---
+        ARENA_FORMATS = {"alchemy", "historic", "historicbrawl", "timeless", "standardbrawl", "explorer", "gladiator"}
+        is_arena_request = any(kw in input_data.description.lower() for kw in ["arena", "mtga", "magic arena"])
+        if input_data.format:
+            is_arena_request = is_arena_request or input_data.format.lower() in ARENA_FORMATS
+
+        arena_unavailable: list[str] = []
+        arena_warnings: list[str] = []
+
+        all_deck_card_names = [
+            e.get("card_name", "") for e in (final_deck.get("cards", []) + final_deck.get("sideboard", []))
+            if e.get("card_name", "").lower() not in BASIC_LANDS
+        ]
+
+        for card_name in set(all_deck_card_names):
+            if not card_name:
+                continue
+            mtg_row = db.query(MTGCard).filter(MTGCard.name == card_name).first()
+            if mtg_row and mtg_row.legalities:
+                import json as _json
+                try:
+                    leg = _json.loads(mtg_row.legalities)
+                    on_arena = any(leg.get(fmt, "") == "Legal" for fmt in ARENA_FORMATS)
+                    if not on_arena:
+                        arena_unavailable.append(card_name)
+                except Exception:
+                    pass
+            elif not mtg_row:
+                # Card not in our DB at all — can't verify
+                pass
+
+        if arena_unavailable:
+            print(f"ℹ️ Cards not on MTGA: {arena_unavailable}")
+        # --- End MTGA check ---
+
         return {
             "deck": final_deck,
             "tokens_remaining": user.tokens,
-            "collection_stats": {"total_cards": total, "chunks_processed": chunks, "cards_selected": len(selected_cards)}
+            "collection_stats": {"total_cards": total, "chunks_processed": chunks, "cards_selected": len(selected_cards)},
+            "arena_unavailable": arena_unavailable,
+            "arena_check": is_arena_request,
         }
     except Exception as e:
         err_str = str(e)

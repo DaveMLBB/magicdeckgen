@@ -469,6 +469,61 @@
   margin-left: 0.2rem;
 }
 
+/* ── Arena availability banners ── */
+.adb-arena-warning {
+  background: rgba(251, 191, 36, 0.07);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.adb-arena-warning-title {
+  font-weight: 700;
+  color: #fbbf24;
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+}
+
+.adb-arena-warning-desc {
+  color: #d1a72a;
+  font-size: 0.83rem;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+}
+
+.adb-arena-unavailable-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.adb-arena-unavail-tag {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fcd34d;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.adb-arena-unavail-tag:hover {
+  background: rgba(251, 191, 36, 0.22);
+}
+
+.adb-arena-ok {
+  background: rgba(74, 222, 128, 0.07);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  color: #4ade80;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
 /* ── Responsive ── */
 @media (max-width: 1410px) {
   .adb-layout { grid-template-columns: 1fr; }

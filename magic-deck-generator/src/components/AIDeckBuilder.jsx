@@ -72,6 +72,9 @@ const t = {
     filterAll: 'Tutti',
     sortByCategory: 'Per categoria',
     sortByQuantity: 'Per quantità',
+    arenaUnavailableTitle: '⚠️ Carte non disponibili su Magic Arena',
+    arenaUnavailableDesc: 'Le seguenti carte del mazzo non sono disponibili su MTGA (non presenti nei formati Arena):',
+    arenaCheckNote: '✅ Tutte le carte del mazzo risultano disponibili su Magic Arena.',
   },
   en: {
     title: '🏗️ AI Deck Builder',
@@ -113,6 +116,9 @@ const t = {
     filterAll: 'All',
     sortByCategory: 'By category',
     sortByQuantity: 'By quantity',
+    arenaUnavailableTitle: '⚠️ Cards not available on Magic Arena',
+    arenaUnavailableDesc: 'The following deck cards are not available on MTGA (not present in Arena formats):',
+    arenaCheckNote: '✅ All deck cards appear to be available on Magic Arena.',
   }
 }
 
@@ -492,6 +498,22 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
                   {deck.estimated_budget && <span className="adb-meta-tag">💰 {deck.estimated_budget}</span>}
                 </div>
               </div>
+
+              {/* Arena availability banner */}
+              {result?.arena_check && result?.arena_unavailable?.length > 0 && (
+                <div className="adb-arena-warning">
+                  <div className="adb-arena-warning-title">{tr.arenaUnavailableTitle}</div>
+                  <p className="adb-arena-warning-desc">{tr.arenaUnavailableDesc}</p>
+                  <div className="adb-arena-unavailable-list">
+                    {result.arena_unavailable.map((name, i) => (
+                      <span key={i} className="adb-arena-unavail-tag" onClick={() => setPreviewCard(name)}>{name}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {result?.arena_check && result?.arena_unavailable?.length === 0 && (
+                <div className="adb-arena-ok">{tr.arenaCheckNote}</div>
+              )}
 
               {/* Strategy */}
               {deck.strategy_notes && (
