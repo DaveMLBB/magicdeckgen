@@ -52,27 +52,42 @@ def _apply_filters_to_query(query, db, filters: dict):
             or_(Card.name.ilike(f"%{s}%"), Card.name_it.ilike(f"%{s}%"))
         )
     if filters.get('colors'):
+        from sqlalchemy import not_
         color_list = [c.strip() for c in filters['colors'].split(',')]
-        color_conditions = []
-        for color in color_list:
-            color_conditions.append(
-                or_(
-                    # Metodo principale: mana_cost contiene il simbolo {W}, {U}, ecc.
-                    Card.mana_cost.like(f"%{{{color}}}%"),
-                    # Fallback 1: Card.colors salvato direttamente
-                    Card.colors.like(f"%{color}%"),
-                    # Fallback 2: DB MTG
-                    Card.name.in_(
-                        db.query(MTGCard.name).filter(
-                            or_(
-                                MTGCard.colors.like(f"%{color}%"),
-                                MTGCard.color_identity.like(f"%{color}%")
-                            )
+        all_colors = ['W', 'U', 'B', 'R', 'G']
+        excluded_colors = [c for c in all_colors if c not in color_list]
+
+        # La carta deve avere almeno uno dei colori selezionati
+        has_selected = or_(
+            *[or_(
+                Card.mana_cost.like(f"%{{{color}}}%"),
+                Card.colors.like(f"%{color}%"),
+                Card.name.in_(
+                    db.query(MTGCard.name).filter(
+                        or_(
+                            MTGCard.colors.like(f"%{color}%"),
+                            MTGCard.color_identity.like(f"%{color}%")
+                        )
+                    )
+                )
+            ) for color in color_list]
+        )
+        query = query.filter(has_selected)
+
+        # La carta NON deve avere nessun colore escluso
+        for excl in excluded_colors:
+            query = query.filter(
+                not_(Card.mana_cost.like(f"%{{{excl}}}%")),
+                not_(Card.colors.like(f"%{excl}%")),
+                ~Card.name.in_(
+                    db.query(MTGCard.name).filter(
+                        or_(
+                            MTGCard.colors.like(f"%{excl}%"),
+                            MTGCard.color_identity.like(f"%{excl}%")
                         )
                     )
                 )
             )
-        query = query.filter(or_(*color_conditions))
     if filters.get('types'):
         type_list = filters['types'].split(',')
         query = query.filter(or_(*[Card.card_type.like(f"%{t}%") for t in type_list]))
