@@ -747,7 +747,14 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
         target_collection_id: parseInt(targetCollectionId),
         user_id: user.userId,
         ...(selectAllPages
-          ? { source_collection_id: collection?.id }
+          ? {
+              source_collection_id: collection?.id,
+              search: search || undefined,
+              colors: filters.colors.length ? filters.colors.join(',') : undefined,
+              types: filters.types.length ? filters.types.join(',') : undefined,
+              cmc_min: filters.cmcMin ? parseInt(filters.cmcMin) : undefined,
+              cmc_max: filters.cmcMax ? parseInt(filters.cmcMax) : undefined,
+            }
           : { card_ids: selectedCardIds })
       }
       const res = await fetch(`${API_URL}/api/collections/move-cards`, {
@@ -776,7 +783,14 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       const body = {
         user_id: user.userId,
         ...(selectAllPages
-          ? { source_collection_id: collection?.id }
+          ? {
+              source_collection_id: collection?.id,
+              search: search || undefined,
+              colors: filters.colors.length ? filters.colors.join(',') : undefined,
+              types: filters.types.length ? filters.types.join(',') : undefined,
+              cmc_min: filters.cmcMin ? parseInt(filters.cmcMin) : undefined,
+              cmc_max: filters.cmcMax ? parseInt(filters.cmcMax) : undefined,
+            }
           : { card_ids: selectedCardIds })
       }
       const res = await fetch(`${API_URL}/api/collections/delete-cards`, {
@@ -1068,14 +1082,14 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                 <div className="selection-bar">
                   <span className="selection-count">
                     {selectAllPages
-                      ? `${stats?.total_unique_cards || '?'} ${t.cardsSelected}`
+                      ? `${pagination?.total_cards ?? '?'} ${t.cardsSelected}`
                       : `${selectedCardIds.length} ${t.cardsSelected}`}
                   </span>
                   {!selectAllPages && pagination && pagination.total_pages > 1 && (
                     <button className="select-all-pages-btn" onClick={activateSelectAllPages}>
                       {language === 'it'
-                        ? `Seleziona tutte le ${stats?.total_unique_cards} carte`
-                        : `Select all ${stats?.total_unique_cards} cards`}
+                        ? `Seleziona tutte le ${pagination.total_cards} carte`
+                        : `Select all ${pagination.total_cards} cards`}
                     </button>
                   )}
                   {selectAllPages && (
@@ -1322,7 +1336,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
             </p>
             <p className="delete-count">
               {selectAllPages
-                ? `${stats?.total_unique_cards || '?'} ${t.cardsSelected}`
+                ? `${pagination?.total_cards ?? '?'} ${t.cardsSelected}`
                 : `${selectedCardIds.length} ${t.cardsSelected}`}
             </p>
             <div className="modal-actions">

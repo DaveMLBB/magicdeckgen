@@ -19,14 +19,56 @@ class CollectionUpdate(BaseModel):
 
 class MoveCardsInput(BaseModel):
     card_ids: Optional[List[int]] = None
-    source_collection_id: Optional[int] = None  # se presente, sposta TUTTE le carte della collezione
+    source_collection_id: Optional[int] = None
     target_collection_id: int
     user_id: int
+    # Filtri attivi (usati solo con source_collection_id)
+    search: Optional[str] = None
+    colors: Optional[str] = None
+    types: Optional[str] = None
+    cmc_min: Optional[int] = None
+    cmc_max: Optional[int] = None
 
 class DeleteCardsInput(BaseModel):
     card_ids: Optional[List[int]] = None
-    source_collection_id: Optional[int] = None  # se presente, elimina TUTTE le carte
+    source_collection_id: Optional[int] = None
     user_id: int
+    # Filtri attivi (usati solo con source_collection_id)
+    search: Optional[str] = None
+    colors: Optional[str] = None
+    types: Optional[str] = None
+    cmc_min: Optional[int] = None
+    cmc_max: Optional[int] = None
+
+
+def _apply_filters_to_query(query, db, filters: dict):
+    """Applica i filtri attivi a una query di Card, incluso CMC via join MTGCard."""
+    from sqlalchemy import or_
+    from app.models import MTGCard
+
+    if filters.get('search'):
+        s = filters['search']
+        query = query.filter(
+            or_(Card.name.ilike(f"%{s}%"), Card.name_it.ilike(f"%{s}%"))
+        )
+    if filters.get('colors'):
+        color_list = filters['colors'].split(',')
+        query = query.filter(or_(*[Card.colors.like(f"%{c}%") for c in color_list]))
+    if filters.get('types'):
+        type_list = filters['types'].split(',')
+        query = query.filter(or_(*[Card.card_type.like(f"%{t}%") for t in type_list]))
+
+    cmc_min = filters.get('cmc_min')
+    cmc_max = filters.get('cmc_max')
+    if cmc_min is not None or cmc_max is not None:
+        # Join con MTGCard per filtrare per mana_value
+        query = query.join(MTGCard, MTGCard.name == Card.name)
+        if cmc_min is not None:
+            query = query.filter(MTGCard.mana_value >= cmc_min)
+        if cmc_max is not None:
+            query = query.filter(MTGCard.mana_value <= cmc_max)
+
+    return query
 
 
 @router.post("/delete-cards")
@@ -34,19 +76,27 @@ def delete_cards_from_collection(
     data: DeleteCardsInput,
     db: Session = Depends(get_db)
 ):
-    """Elimina una lista di carte (o tutte quelle di una collezione)"""
+    """Elimina una lista di carte (o quelle filtrate di una collezione)"""
     if data.source_collection_id is not None:
-        # Verifica ownership
         coll = db.query(CardCollection).filter(
             CardCollection.id == data.source_collection_id,
             CardCollection.user_id == data.user_id
         ).first()
         if not coll:
             raise HTTPException(status_code=404, detail="Collection not found")
-        deleted = db.query(Card).filter(
+        query = db.query(Card).filter(
             Card.collection_id == data.source_collection_id,
             Card.user_id == data.user_id
-        ).delete()
+        )
+        active_filters = {
+            'search': data.search, 'colors': data.colors, 'types': data.types,
+            'cmc_min': data.cmc_min, 'cmc_max': data.cmc_max
+        }
+        query = _apply_filters_to_query(query, db, active_filters)
+        cards_to_delete = query.all()
+        for card in cards_to_delete:
+            db.delete(card)
+        deleted = len(cards_to_delete)
     elif data.card_ids:
         deleted = db.query(Card).filter(
             Card.id.in_(data.card_ids),
@@ -74,11 +124,15 @@ def move_cards_to_collection(
 
     # Determina le carte da spostare
     if data.source_collection_id is not None:
-        # Sposta TUTTE le carte della collezione sorgente
         cards_to_move = db.query(Card).filter(
             Card.collection_id == data.source_collection_id,
             Card.user_id == data.user_id
-        ).all()
+        )
+        active_filters = {
+            'search': data.search, 'colors': data.colors, 'types': data.types,
+            'cmc_min': data.cmc_min, 'cmc_max': data.cmc_max
+        }
+        cards_to_move = _apply_filters_to_query(cards_to_move, db, active_filters).all()
     elif data.card_ids:
         cards_to_move = db.query(Card).filter(
             Card.id.in_(data.card_ids),
