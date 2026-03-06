@@ -35,3 +35,7 @@ build/
 
 # Logs
 *.log
+
+# Large Scryfall/card database JSON files (upload manually on server)
+backend/default-cards*.json
+default-cards*.json
