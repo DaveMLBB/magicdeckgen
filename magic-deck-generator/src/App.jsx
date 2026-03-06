@@ -13,6 +13,7 @@ import AIBuilder from './components/AIBuilder'
 import CardSynergy from './components/CardSynergy'
 import CardTwins from './components/CardTwins'
 import AIDeckBuilder from './components/AIDeckBuilder'
+import ArenaImport from './components/ArenaImport'
 import UserGuide, { GUIDE_VERSION } from './components/UserGuide'
 import CookieConsentBanner from './components/CookieConsentBanner'
 import PrivacySettings from './components/PrivacySettings'
@@ -1242,6 +1243,7 @@ function App() {
     { id: 'card-synergy', icon: '✨', labelIt: 'AI Synergy', labelEn: 'AI Synergy' },
     { id: 'card-twins', icon: '🪞', labelIt: 'AI Gemelli', labelEn: 'AI Twins' },
     { id: 'ai-deck-builder', icon: '🏗️', labelIt: 'AI Builder', labelEn: 'AI Builder' },
+    { id: 'arena-import', icon: '🎮', labelIt: 'Arena Import', labelEn: 'Arena Import' },
     { id: 'community', icon: '💬', labelIt: 'Community', labelEn: 'Community' },
     { id: 'subscriptions', icon: '🪙', labelIt: 'Token', labelEn: 'Tokens' },
   ]
@@ -1339,6 +1341,9 @@ function App() {
     }
     if (currentView === 'ai-deck-builder') {
       return <AIDeckBuilder user={user} onBack={() => setCurrentView('dashboard')} language={language} onSaved={() => setCurrentView('saved-decks')} />
+    }
+    if (currentView === 'arena-import') {
+      return <ArenaImport user={user} language={language} onNavigate={setCurrentView} />
     }
     if (currentView === 'community') {
       return <Chat user={user} language={language} />

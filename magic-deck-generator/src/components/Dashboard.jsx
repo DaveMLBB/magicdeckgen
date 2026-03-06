@@ -82,6 +82,16 @@ const features = [
     gradient: 'linear-gradient(135deg, #00cec9, #81ecec)',
   },
   {
+    id: 'arena-import',
+    icon: '🎮',
+    labelIt: 'Arena Import',
+    labelEn: 'Arena Import',
+    descIt: 'Importa la tua collezione direttamente dal log di Magic Arena',
+    descEn: 'Import your collection directly from the Magic Arena log',
+    color: '#e84393',
+    gradient: 'linear-gradient(135deg, #e84393, #a029b0)',
+  },
+  {
     id: 'community',
     icon: '💬',
     labelIt: 'Community',
