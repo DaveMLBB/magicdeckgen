@@ -17,6 +17,51 @@ class CollectionUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
 
+class MoveCardsInput(BaseModel):
+    card_ids: List[int]
+    target_collection_id: int
+    user_id: int
+
+@router.post("/move-cards")
+def move_cards_to_collection(
+    data: MoveCardsInput,
+    db: Session = Depends(get_db)
+):
+    """Sposta una lista di carte in un'altra collezione dello stesso utente"""
+    # Verifica che la collezione target esista e appartenga all'utente
+    target = db.query(CardCollection).filter(
+        CardCollection.id == data.target_collection_id,
+        CardCollection.user_id == data.user_id
+    ).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Target collection not found")
+
+    # Sposta le carte
+    moved = 0
+    for card_id in data.card_ids:
+        card = db.query(Card).filter(
+            Card.id == card_id,
+            Card.user_id == data.user_id
+        ).first()
+        if not card:
+            continue
+        # Controlla se nella target esiste già una carta con lo stesso nome
+        existing = db.query(Card).filter(
+            Card.collection_id == data.target_collection_id,
+            Card.name == card.name
+        ).first()
+        if existing:
+            # Somma le quantità
+            existing.quantity_owned += card.quantity_owned
+            db.delete(card)
+        else:
+            card.collection_id = data.target_collection_id
+        moved += 1
+
+    db.commit()
+    return {"moved": moved, "target_collection": target.name}
+
+
 @router.get("/user/{user_id}")
 def get_user_collections(user_id: int, db: Session = Depends(get_db)):
     """Get all collections for a user"""

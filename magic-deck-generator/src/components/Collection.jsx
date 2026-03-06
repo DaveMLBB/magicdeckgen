@@ -60,6 +60,13 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   const [availableDecks, setAvailableDecks] = useState([])
   const [loadingDecks, setLoadingDecks] = useState(false)
 
+  // Move cards states
+  const [selectedCardIds, setSelectedCardIds] = useState([])
+  const [showMoveModal, setShowMoveModal] = useState(false)
+  const [targetCollectionId, setTargetCollectionId] = useState('')
+  const [availableCollections, setAvailableCollections] = useState([])
+  const [moving, setMoving] = useState(false)
+
   // Debug: verify onShowSubscriptions is available
   //console.log('Collection mounted - onShowSubscriptions type:', typeof onShowSubscriptions, 'value:', !!onShowSubscriptions)
 
@@ -137,7 +144,16 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       common: 'Comune',
       uncommon: 'Non Comune',
       rare: 'Rara',
-      mythic: 'Mitica'
+      mythic: 'Mitica',
+      moveCards: 'Sposta in collezione',
+      moveSelected: 'Sposta selezionate',
+      selectTarget: 'Seleziona collezione di destinazione',
+      moving: 'Spostamento...',
+      moveConfirm: 'Sposta',
+      cardsSelected: 'carte selezionate',
+      selectAll: 'Seleziona tutto',
+      deselectAll: 'Deseleziona tutto',
+      moveSuccess: 'Carte spostate con successo',
     },
     en: {
       title: 'Collection',
@@ -212,7 +228,16 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       common: 'Common',
       uncommon: 'Uncommon',
       rare: 'Rare',
-      mythic: 'Mythic'
+      mythic: 'Mythic',
+      moveCards: 'Move to collection',
+      moveSelected: 'Move selected',
+      selectTarget: 'Select target collection',
+      moving: 'Moving...',
+      moveConfirm: 'Move',
+      cardsSelected: 'cards selected',
+      selectAll: 'Select all',
+      deselectAll: 'Deselect all',
+      moveSuccess: 'Cards moved successfully',
     }
   }
 
@@ -650,6 +675,62 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     setEditQuantity('')
   }
 
+  const toggleCardSelection = (cardId) => {
+    setSelectedCardIds(prev =>
+      prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    const selectableIds = cards.filter(c => !c.locked).map(c => c.id)
+    if (selectableIds.every(id => selectedCardIds.includes(id))) {
+      setSelectedCardIds([])
+    } else {
+      setSelectedCardIds(selectableIds)
+    }
+  }
+
+  const openMoveModal = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/collections/user/${user.userId}`)
+      const data = await res.json()
+      // Escludi la collezione corrente
+      const others = (data.collections || []).filter(c => c.id !== collection?.id)
+      setAvailableCollections(others)
+    } catch (err) {
+      console.error('Error loading collections:', err)
+    }
+    setTargetCollectionId('')
+    setShowMoveModal(true)
+  }
+
+  const handleMoveCards = async () => {
+    if (!targetCollectionId || selectedCardIds.length === 0) return
+    setMoving(true)
+    try {
+      const res = await fetch(`${API_URL}/api/collections/move-cards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          card_ids: selectedCardIds,
+          target_collection_id: parseInt(targetCollectionId),
+          user_id: user.userId
+        })
+      })
+      if (res.ok) {
+        setShowMoveModal(false)
+        setSelectedCardIds([])
+        setUploadMessage(`✓ ${t.moveSuccess}`)
+        setTimeout(() => setUploadMessage(''), 3000)
+        loadCollection()
+        loadStats()
+      }
+    } catch (err) {
+      console.error('Error moving cards:', err)
+    }
+    setMoving(false)
+  }
+
   const handleCardHover = (cardName) => {
     if (!cardName) return
     
@@ -914,9 +995,28 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
               </div>
             )}
             <div className="cards-table">
+              {selectedCardIds.length > 0 && (
+                <div className="selection-bar">
+                  <span className="selection-count">{selectedCardIds.length} {t.cardsSelected}</span>
+                  <button className="select-all-btn" onClick={toggleSelectAll}>
+                    {cards.filter(c => !c.locked).every(c => selectedCardIds.includes(c.id)) ? t.deselectAll : t.selectAll}
+                  </button>
+                  <button className="move-cards-btn" onClick={openMoveModal}>
+                    📦 {t.moveSelected}
+                  </button>
+                  <button className="deselect-btn" onClick={() => setSelectedCardIds([])}>✕</button>
+                </div>
+              )}
               <table>
                 <thead>
                   <tr>
+                    <th className="checkbox-header">
+                      <input
+                        type="checkbox"
+                        onChange={toggleSelectAll}
+                        checked={cards.filter(c => !c.locked).length > 0 && cards.filter(c => !c.locked).every(c => selectedCardIds.includes(c.id))}
+                      />
+                    </th>
                     <th className="actions-header">{language === 'it' ? 'Azioni' : 'Actions'}</th>
                     <th onClick={() => handleSort('name')} className="sortable">
                       {t.name} {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -936,11 +1036,20 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   {cards.map((card) => (
                     <tr 
                       key={card.id} 
-                      className={card.locked ? 'locked-row' : 'clickable-row'}
+                      className={`${card.locked ? 'locked-row' : 'clickable-row'} ${selectedCardIds.includes(card.id) ? 'selected-row' : ''}`}
                       onMouseEnter={() => !card.locked && handleCardHover(card.name)}
                       onMouseLeave={handleCardLeave}
                       onClick={() => handleCardClick(card)}
                     >
+                      <td className="checkbox-cell" onClick={(e) => e.stopPropagation()}>
+                        {!card.locked && (
+                          <input
+                            type="checkbox"
+                            checked={selectedCardIds.includes(card.id)}
+                            onChange={() => toggleCardSelection(card.id)}
+                          />
+                        )}
+                      </td>
                       <td className="card-actions">
                         {!card.locked && editingCardId !== card.id && (
                           <button 
@@ -1113,6 +1222,39 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move Cards Modal */}
+      {showMoveModal && (
+        <div className="modal-overlay" onClick={() => setShowMoveModal(false)}>
+          <div className="modal-content move-cards-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>📦 {t.moveCards}</h2>
+            <p className="modal-subtitle">{selectedCardIds.length} {t.cardsSelected}</p>
+            <div className="form-group">
+              <label>{t.selectTarget}</label>
+              <select
+                value={targetCollectionId}
+                onChange={(e) => setTargetCollectionId(e.target.value)}
+                className="collection-select"
+              >
+                <option value="">-- {t.selectTarget} --</option>
+                {availableCollections.map(c => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.card_count} {t.cards})</option>
+                ))}
+              </select>
+            </div>
+            <div className="modal-actions">
+              <button className="cancel-btn" onClick={() => setShowMoveModal(false)}>{t.cancel}</button>
+              <button
+                className="confirm-btn"
+                onClick={handleMoveCards}
+                disabled={!targetCollectionId || moving}
+              >
+                {moving ? t.moving : t.moveConfirm}
+              </button>
             </div>
           </div>
         </div>
