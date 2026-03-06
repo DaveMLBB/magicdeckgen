@@ -38,6 +38,9 @@ const t = {
     suggestionsTitle: '💡 Suggerimenti',
     emptyChat: 'Seleziona un mazzo e inizia a chattare con l\'AI per modificarlo',
     modified: '✏️ Mazzo aggiornato',
+    collectionLabel: '📚 Collezione (opzionale)',
+    collectionNone: 'Nessuna — usa qualsiasi carta',
+    collectionHint: 'L\'AI userà solo le carte di questa collezione (max 300)',
     errorTokens: 'Token insufficienti. Acquista token per continuare.',
     errorGeneric: 'Errore durante la generazione. Riprova.',
     errorDemoLimit: '⚠️ L\'AI ha raggiunto il limite di richieste. Torna domani!',
@@ -65,6 +68,9 @@ const t = {
     suggestionsTitle: '💡 Suggestions',
     emptyChat: 'Select a deck and start chatting with the AI to modify it',
     modified: '✏️ Deck updated',
+    collectionLabel: '📚 Collection (optional)',
+    collectionNone: 'None — use any card',
+    collectionHint: 'AI will only use cards from this collection (max 300)',
     errorTokens: 'Insufficient tokens. Purchase tokens to continue.',
     errorGeneric: 'Error during generation. Please try again.',
     errorDemoLimit: '⚠️ AI has reached its request limit. Come back tomorrow!',
@@ -114,8 +120,10 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
   const [saveStatus, setSaveStatus] = useState(null)
   const [previewCard, setPreviewCard] = useState(null)
   const [deckModified, setDeckModified] = useState(false)
+  const [collections, setCollections] = useState([])
+  const [selectedCollectionId, setSelectedCollectionId] = useState(null)
 
-  // Carica lista mazzi salvati
+  // Carica lista mazzi salvati e collezioni
   useEffect(() => {
     if (!user?.userId) return
     fetch(`${API_URL}/api/saved-decks/user/${user.userId}`)
@@ -126,8 +134,11 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
         if (list.length > 0) setSelectedDeckId(list[0].id)
       })
       .catch(() => {})
+    fetch(`${API_URL}/api/collections/user/${user.userId}`)
+      .then(r => r.json())
+      .then(data => setCollections(data.collections || []))
+      .catch(() => {})
   }, [user])
-
   // Carica carte del mazzo selezionato
   useEffect(() => {
     if (!selectedDeckId || !user?.userId) return
@@ -137,6 +148,7 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
     setDeckModified(false)
     setSaveStatus(null)
     setError(null)
+    setSelectedCollectionId(null)
 
     fetch(`${API_URL}/api/saved-decks/${selectedDeckId}?user_id=${user.userId}`)
       .then(r => r.json())
@@ -180,7 +192,8 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
           deck_id: selectedDeckId,
           message: userMsg,
           history: history,  // history PRIMA del nuovo messaggio
-          current_deck: { cards: currentCards }
+          current_deck: { cards: currentCards },
+          collection_id: selectedCollectionId || null
         })
       })
       const data = await res.json()
@@ -329,6 +342,32 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
                 {selectedDeck.format && <span>📋 {selectedDeck.format}</span>}
                 {selectedDeck.colors && <span>🎨 {selectedDeck.colors}</span>}
               </div>
+            </div>
+          )}
+
+          {/* Selezione collezione opzionale */}
+          {collections.length > 0 && (
+            <div className="abb-collection-section">
+              <p className="abb-panel-title">{tr.collectionLabel}</p>
+              <select
+                className="abb-deck-select"
+                value={selectedCollectionId || ''}
+                onChange={e => {
+                  setSelectedCollectionId(e.target.value ? Number(e.target.value) : null)
+                  // Reset history quando cambia la collezione — il contesto AI cambia
+                  setHistory([])
+                }}
+              >
+                <option value="">{tr.collectionNone}</option>
+                {collections.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.total_cards} {language === 'it' ? 'carte' : 'cards'})
+                  </option>
+                ))}
+              </select>
+              {selectedCollectionId && (
+                <p className="abb-collection-hint">{tr.collectionHint}</p>
+              )}
             </div>
           )}
 

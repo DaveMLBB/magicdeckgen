@@ -3,14 +3,14 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
 from app.database import get_db
-from app.models import User, SavedDeck, SavedDeckCard
+from app.models import User, SavedDeck, SavedDeckCard, Card, CardCollection
 from app.routers.ai_builder import check_ai_rate_limit, enforce_deck_size
 import os
 import json
 
 router = APIRouter()
 
-BOOST_TOKEN_COST = 10
+MAX_COLLECTION_CARDS = 300
 
 class ChatMessage(BaseModel):
     role: str   # "user" | "assistant"
@@ -22,6 +22,7 @@ class BoostDeckInput(BaseModel):
     message: str                        # nuovo messaggio utente
     history: List[ChatMessage] = []     # cronologia chat precedente
     current_deck: Optional[dict] = None # stato attuale del mazzo (se già modificato)
+    collection_id: Optional[int] = None # collezione da usare come vincolo
 
 @router.post("/boost-deck")
 async def boost_deck(
@@ -90,12 +91,40 @@ async def boost_deck(
     deck_name = saved_deck.name or "Mazzo senza nome"
     total_cards = sum(c.get("quantity", 1) for c in deck_cards)
 
+    # Carica la collezione se fornita (max 300 carte uniche)
+    collection_constraint = ""
+    if input_data.collection_id:
+        collection = db.query(CardCollection).filter(
+            CardCollection.id == input_data.collection_id,
+            CardCollection.user_id == input_data.user_id
+        ).first()
+        if collection:
+            coll_cards = db.query(Card).filter(
+                Card.collection_id == input_data.collection_id
+            ).order_by(Card.quantity_owned.desc()).limit(MAX_COLLECTION_CARDS).all()
+
+            if coll_cards:
+                BASIC_LANDS = {"plains", "island", "swamp", "mountain", "forest",
+                               "wastes", "snow-covered plains", "snow-covered island",
+                               "snow-covered swamp", "snow-covered mountain", "snow-covered forest"}
+                card_list = ", ".join(
+                    f"{c.name} (x{c.quantity_owned})" for c in coll_cards
+                )
+                collection_constraint = f"""
+
+VINCOLO COLLEZIONE (MOLTO IMPORTANTE):
+Il giocatore vuole modificare il mazzo usando SOLO le carte della sua collezione "{collection.name}".
+Carte disponibili (max {MAX_COLLECTION_CARDS} per quantità): {card_list}
+- Puoi usare SOLO carte presenti in questa lista (le terre base sono sempre permesse)
+- Rispetta i limiti di quantità indicati come (xN)
+- Se una carta del mazzo attuale non è nella collezione, sostituiscila con una alternativa disponibile"""
+
     system_prompt = f"""Sei un esperto costruttore di mazzi Magic: The Gathering. Stai aiutando un giocatore a modificare il suo mazzo esistente tramite una conversazione.
 
 MAZZO ATTUALE: "{deck_name}"
 Formato: {deck_format}
 Totale carte: {total_cards}
-Carte: {json.dumps(deck_cards, ensure_ascii=False)}
+Carte: {json.dumps(deck_cards, ensure_ascii=False)}{collection_constraint}
 
 ISTRUZIONI:
 - Rispondi SEMPRE in {lang_label}
