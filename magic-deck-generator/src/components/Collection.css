@@ -1869,3 +1869,20 @@
 .select-all-pages-btn:hover {
   background: rgba(124, 58, 237, 0.1);
 }
+
+.apply-filters-btn {
+  background: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.apply-filters-btn:hover {
+  background: #6d28d9;
+}

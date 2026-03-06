@@ -25,6 +25,12 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     cmcMin: '',
     cmcMax: ''
   })
+  const [pendingFilters, setPendingFilters] = useState({
+    colors: [],
+    types: [],
+    cmcMin: '',
+    cmcMax: ''
+  })
   
   // Upload states
   const [uploading, setUploading] = useState(false)
@@ -135,7 +141,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       min: 'Min',
       max: 'Max',
       reset: 'Reset',
-      creature: 'Creatura',
+      applyFilters: 'Applica Filtri',
       instant: 'Istantaneo',
       sorcery: 'Stregoneria',
       enchantment: 'Incantesimo',
@@ -219,7 +225,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       min: 'Min',
       max: 'Max',
       reset: 'Reset',
-      creature: 'Creature',
+      applyFilters: 'Apply Filters',
       instant: 'Instant',
       sorcery: 'Sorcery',
       enchantment: 'Enchantment',
@@ -403,32 +409,32 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   }
 
   const toggleColor = (color) => {
-    setFilters(prev => ({
+    setPendingFilters(prev => ({
       ...prev,
       colors: prev.colors.includes(color)
         ? prev.colors.filter(c => c !== color)
         : [...prev.colors, color]
     }))
-    setPage(1)
   }
 
   const toggleType = (type) => {
-    setFilters(prev => ({
+    setPendingFilters(prev => ({
       ...prev,
       types: prev.types.includes(type)
         ? prev.types.filter(t => t !== type)
         : [...prev.types, type]
     }))
-    setPage(1)
   }
 
   const resetFilters = () => {
-    setFilters({
-      colors: [],
-      types: [],
-      cmcMin: '',
-      cmcMax: ''
-    })
+    const empty = { colors: [], types: [], cmcMin: '', cmcMax: '' }
+    setPendingFilters(empty)
+    setFilters(empty)
+    setPage(1)
+  }
+
+  const applyFilters = () => {
+    setFilters({ ...pendingFilters })
     setPage(1)
   }
 
@@ -935,7 +941,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                     {Object.entries(manaSymbolMap).map(([key, info]) => (
                       <button
                         key={key}
-                        className={`mana-color-btn ${filters.colors.includes(key) ? 'active' : ''}`}
+                        className={`mana-color-btn ${pendingFilters.colors.includes(key) ? 'active' : ''}`}
                         style={{ background: info.bg, borderColor: info.border, color: info.text }}
                         onClick={() => toggleColor(key)}
                       >
@@ -948,8 +954,8 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                     <input
                       type="number"
                       placeholder={t.min}
-                      value={filters.cmcMin}
-                      onChange={(e) => { setFilters({...filters, cmcMin: e.target.value}); setPage(1); }}
+                      value={pendingFilters.cmcMin}
+                      onChange={(e) => setPendingFilters({...pendingFilters, cmcMin: e.target.value})}
                       className="cmc-input"
                       min="0"
                     />
@@ -957,8 +963,8 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                     <input
                       type="number"
                       placeholder={t.max}
-                      value={filters.cmcMax}
-                      onChange={(e) => { setFilters({...filters, cmcMax: e.target.value}); setPage(1); }}
+                      value={pendingFilters.cmcMax}
+                      onChange={(e) => setPendingFilters({...pendingFilters, cmcMax: e.target.value})}
                       className="cmc-input"
                       min="0"
                     />
@@ -972,7 +978,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   {typeOptions.map(type => (
                     <button
                       key={type}
-                      className={`type-btn ${filters.types.includes(type) ? 'active' : ''}`}
+                      className={`type-btn ${pendingFilters.types.includes(type) ? 'active' : ''}`}
                       onClick={() => toggleType(type)}
                     >
                       {t[type.toLowerCase()] || type}
@@ -982,6 +988,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
               </div>
 
               <button className="reset-btn" onClick={resetFilters}>{t.reset}</button>
+              <button className="apply-filters-btn" onClick={applyFilters}>{t.applyFilters}</button>
             </div>
           </div>
         )}
