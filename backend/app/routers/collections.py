@@ -56,11 +56,18 @@ def _apply_filters_to_query(query, db, filters: dict):
         color_conditions = []
         for color in color_list:
             color_conditions.append(
-                Card.name.in_(
-                    db.query(MTGCard.name).filter(
-                        or_(
-                            MTGCard.colors.like(f"%{color}%"),
-                            MTGCard.color_identity.like(f"%{color}%")
+                or_(
+                    # Metodo principale: mana_cost contiene il simbolo {W}, {U}, ecc.
+                    Card.mana_cost.like(f"%{{{color}}}%"),
+                    # Fallback 1: Card.colors salvato direttamente
+                    Card.colors.like(f"%{color}%"),
+                    # Fallback 2: DB MTG
+                    Card.name.in_(
+                        db.query(MTGCard.name).filter(
+                            or_(
+                                MTGCard.colors.like(f"%{color}%"),
+                                MTGCard.color_identity.like(f"%{color}%")
+                            )
                         )
                     )
                 )

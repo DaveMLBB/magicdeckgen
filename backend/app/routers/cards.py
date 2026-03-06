@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 import pandas as pd
@@ -549,20 +549,26 @@ def get_user_collection(
             or_(Card.name.ilike(f"%{search}%"), Card.name_it.ilike(f"%{search}%"))
         )
     
-    # Apply color filter - usa MTGCard.colors che è il dato affidabile
+    # Apply color filter - estrae i colori dal mana_cost (es. {W}, {U}, {B}, {R}, {G})
+    # con fallback su Card.colors e MTGCard
     if colors:
         from app.models import MTGCard as MTGCardModel
         color_list = [c.strip() for c in colors.split(',')]
-        # Join con MTGCard per avere i colori corretti
-        # Usa color_identity per includere carte multicolore e commander
         color_conditions = []
         for color in color_list:
             color_conditions.append(
-                Card.name.in_(
-                    db.query(MTGCardModel.name).filter(
-                        or_(
-                            MTGCardModel.colors.like(f"%{color}%"),
-                            MTGCardModel.color_identity.like(f"%{color}%")
+                or_(
+                    # Metodo principale: mana_cost contiene il simbolo {W}, {U}, ecc.
+                    Card.mana_cost.like(f"%{{{color}}}%"),
+                    # Fallback 1: Card.colors salvato direttamente
+                    Card.colors.like(f"%{color}%"),
+                    # Fallback 2: DB MTG (color_identity copre anche commander/multicolore)
+                    Card.name.in_(
+                        db.query(MTGCardModel.name).filter(
+                            or_(
+                                MTGCardModel.colors.like(f"%{color}%"),
+                                MTGCardModel.color_identity.like(f"%{color}%")
+                            )
                         )
                     )
                 )
