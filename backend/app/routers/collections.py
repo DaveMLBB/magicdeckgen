@@ -23,6 +23,42 @@ class MoveCardsInput(BaseModel):
     target_collection_id: int
     user_id: int
 
+class DeleteCardsInput(BaseModel):
+    card_ids: Optional[List[int]] = None
+    source_collection_id: Optional[int] = None  # se presente, elimina TUTTE le carte
+    user_id: int
+
+
+@router.post("/delete-cards")
+def delete_cards_from_collection(
+    data: DeleteCardsInput,
+    db: Session = Depends(get_db)
+):
+    """Elimina una lista di carte (o tutte quelle di una collezione)"""
+    if data.source_collection_id is not None:
+        # Verifica ownership
+        coll = db.query(CardCollection).filter(
+            CardCollection.id == data.source_collection_id,
+            CardCollection.user_id == data.user_id
+        ).first()
+        if not coll:
+            raise HTTPException(status_code=404, detail="Collection not found")
+        deleted = db.query(Card).filter(
+            Card.collection_id == data.source_collection_id,
+            Card.user_id == data.user_id
+        ).delete()
+    elif data.card_ids:
+        deleted = db.query(Card).filter(
+            Card.id.in_(data.card_ids),
+            Card.user_id == data.user_id
+        ).delete(synchronize_session=False)
+    else:
+        raise HTTPException(status_code=400, detail="Provide card_ids or source_collection_id")
+
+    db.commit()
+    return {"deleted": deleted}
+
+
 @router.post("/move-cards")
 def move_cards_to_collection(
     data: MoveCardsInput,

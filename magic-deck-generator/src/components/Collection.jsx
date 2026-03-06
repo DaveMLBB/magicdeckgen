@@ -73,6 +73,8 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   const [targetCollectionId, setTargetCollectionId] = useState('')
   const [availableCollections, setAvailableCollections] = useState([])
   const [moving, setMoving] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Debug: verify onShowSubscriptions is available
   //console.log('Collection mounted - onShowSubscriptions type:', typeof onShowSubscriptions, 'value:', !!onShowSubscriptions)
@@ -161,6 +163,13 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       selectAll: 'Seleziona tutto',
       deselectAll: 'Deseleziona tutto',
       moveSuccess: 'Carte spostate con successo',
+      deleteSelected: 'Elimina selezionate',
+      deleteConfirmTitle: 'Conferma eliminazione',
+      deleteConfirmMsg: 'Sei sicuro di voler eliminare le carte selezionate? L\'operazione non è reversibile.',
+      deleteConfirmAll: 'Sei sicuro di voler eliminare tutte le carte della collezione? L\'operazione non è reversibile.',
+      deleting: 'Eliminazione...',
+      deleteConfirm: 'Elimina',
+      deleteSuccess: 'Carte eliminate con successo',
     },
     en: {
       title: 'Collection',
@@ -245,6 +254,13 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       selectAll: 'Select all',
       deselectAll: 'Deselect all',
       moveSuccess: 'Cards moved successfully',
+      deleteSelected: 'Delete selected',
+      deleteConfirmTitle: 'Confirm deletion',
+      deleteConfirmMsg: 'Are you sure you want to delete the selected cards? This cannot be undone.',
+      deleteConfirmAll: 'Are you sure you want to delete all cards in this collection? This cannot be undone.',
+      deleting: 'Deleting...',
+      deleteConfirm: 'Delete',
+      deleteSuccess: 'Cards deleted successfully',
     }
   }
 
@@ -754,6 +770,35 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     setMoving(false)
   }
 
+  const handleDeleteCards = async () => {
+    setDeleting(true)
+    try {
+      const body = {
+        user_id: user.userId,
+        ...(selectAllPages
+          ? { source_collection_id: collection?.id }
+          : { card_ids: selectedCardIds })
+      }
+      const res = await fetch(`${API_URL}/api/collections/delete-cards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      if (res.ok) {
+        setShowDeleteConfirm(false)
+        setSelectedCardIds([])
+        setSelectAllPages(false)
+        setUploadMessage(`✓ ${t.deleteSuccess}`)
+        setTimeout(() => setUploadMessage(''), 3000)
+        loadCollection()
+        loadStats()
+      }
+    } catch (err) {
+      console.error('Error deleting cards:', err)
+    }
+    setDeleting(false)
+  }
+
   const handleCardHover = (cardName) => {
     if (!cardName) return
     
@@ -1041,6 +1086,9 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   <button className="move-cards-btn" onClick={openMoveModal}>
                     📦 {t.moveSelected}
                   </button>
+                  <button className="delete-cards-btn" onClick={() => setShowDeleteConfirm(true)}>
+                    🗑️ {t.deleteSelected}
+                  </button>
                   <button className="deselect-btn" onClick={() => { setSelectedCardIds([]); setSelectAllPages(false) }}>✕</button>
                 </div>
               ) : null}
@@ -1259,6 +1307,29 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="modal-content delete-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>🗑️ {t.deleteConfirmTitle}</h2>
+            <p className="modal-subtitle">
+              {selectAllPages ? t.deleteConfirmAll : t.deleteConfirmMsg}
+            </p>
+            <p className="delete-count">
+              {selectAllPages
+                ? `${stats?.total_unique_cards || '?'} ${t.cardsSelected}`
+                : `${selectedCardIds.length} ${t.cardsSelected}`}
+            </p>
+            <div className="modal-actions">
+              <button className="cancel-btn" onClick={() => setShowDeleteConfirm(false)}>{t.cancel}</button>
+              <button className="delete-confirm-btn" onClick={handleDeleteCards} disabled={deleting}>
+                {deleting ? t.deleting : t.deleteConfirm}
+              </button>
             </div>
           </div>
         </div>

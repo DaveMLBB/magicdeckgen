@@ -1886,3 +1886,45 @@
 .apply-filters-btn:hover {
   background: #6d28d9;
 }
+
+.delete-cards-btn {
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.delete-cards-btn:hover {
+  background: #b91c1c;
+}
+
+.delete-confirm-modal .delete-count {
+  font-weight: 700;
+  color: #dc2626;
+  font-size: 1rem;
+  margin: 8px 0 16px;
+}
+
+.delete-confirm-btn {
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.delete-confirm-btn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.delete-confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
