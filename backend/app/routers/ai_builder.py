@@ -12,6 +12,91 @@ from threading import Lock
 
 router = APIRouter()
 
+# ── Costanti formato ──
+FORMAT_MIN_CARDS = {
+    "commander": 100,
+    "edh": 100,
+    "brawl": 60,
+    "standardbrawl": 60,
+    "historicbrawl": 100,
+}
+DEFAULT_MIN_CARDS = 60
+
+BASIC_LANDS_BY_COLOR = {
+    "W": "Plains", "U": "Island", "B": "Swamp", "R": "Mountain", "G": "Forest"
+}
+BASIC_LANDS_SET = {"plains", "island", "swamp", "mountain", "forest",
+                   "wastes", "snow-covered plains", "snow-covered island",
+                   "snow-covered swamp", "snow-covered mountain", "snow-covered forest"}
+
+
+def get_min_deck_size(fmt: str | None) -> int:
+    if not fmt:
+        return DEFAULT_MIN_CARDS
+    return FORMAT_MIN_CARDS.get(fmt.lower().strip(), DEFAULT_MIN_CARDS)
+
+
+def enforce_deck_size(deck_data: dict, fmt: str | None, colors: str | None) -> dict:
+    """
+    Garantisce che il mazzo abbia esattamente il numero minimo di carte.
+    - Se mancano carte: aggiunge terre base appropriate
+    - Se ci sono troppe carte: rimuove copie eccedenti partendo dalle terre
+    """
+    min_size = get_min_deck_size(fmt)
+    cards = deck_data.get("cards", [])
+
+    # Calcola totale attuale
+    total = sum(int(c.get("quantity", 1)) for c in cards)
+
+    if total == min_size:
+        return deck_data
+
+    # Determina quali terre base usare
+    color_str = (colors or deck_data.get("colors") or "").upper()
+    color_letters = [c for c in ["W", "U", "B", "R", "G"] if c in color_str]
+    if not color_letters:
+        color_letters = ["W"]  # fallback
+    basic_land_name = BASIC_LANDS_BY_COLOR[color_letters[0]]
+
+    if total < min_size:
+        # Mancano carte: aggiungi terre base
+        missing = min_size - total
+        # Cerca se c'è già una entry per questa terra base
+        existing = next(
+            (c for c in cards if c.get("card_name", "").lower() == basic_land_name.lower()),
+            None
+        )
+        if existing:
+            existing["quantity"] = int(existing.get("quantity", 0)) + missing
+        else:
+            cards.append({
+                "card_name": basic_land_name,
+                "quantity": missing,
+                "category": "Land",
+                "role": "Mana base"
+            })
+        print(f"🔧 enforce_deck_size: added {missing}x {basic_land_name} (total was {total}, needed {min_size})")
+
+    elif total > min_size:
+        # Troppe carte: rimuovi eccedenza partendo dalle terre base
+        excess = total - min_size
+        for entry in cards:
+            if excess <= 0:
+                break
+            name_key = entry.get("card_name", "").lower()
+            if name_key in BASIC_LANDS_SET:
+                qty = int(entry.get("quantity", 0))
+                remove = min(qty, excess)
+                entry["quantity"] = qty - remove
+                excess -= remove
+        # Rimuovi entries con quantity 0
+        cards = [c for c in cards if int(c.get("quantity", 0)) > 0]
+        print(f"🔧 enforce_deck_size: removed excess cards (total was {total}, needed {min_size})")
+
+    deck_data["cards"] = cards
+    return deck_data
+
+
 # ── Rate limiter: max 3 AI requests per minute per user ──
 _rate_limit_store: dict[int, deque] = {}
 _rate_limit_lock = Lock()
@@ -227,6 +312,9 @@ Return the improved deck as the same JSON structure. If no changes needed, retur
         )
         final_deck = json.loads(verify_response.choices[0].message.content)
         print(f"✅ AI verified deck: {final_deck.get('deck_name', 'unnamed')}")
+
+        # Garantisce il conteggio minimo carte
+        final_deck = enforce_deck_size(final_deck, input_data.format, input_data.colors)
 
         return {
             "deck": final_deck,
@@ -508,6 +596,9 @@ Return the improved deck as the same JSON structure. Respond with valid JSON onl
         if all_removed_final:
             final_deck["_enforcement_note"] = f"Removed {len(all_removed_final)} card(s) not in collection: {', '.join(all_removed_final[:10])}"
             print(f"⚠️ Post-verify enforcement removed {len(all_removed_final)} cards: {all_removed_final[:10]}")
+
+        # Garantisce il conteggio minimo carte (dopo enforcement collezione)
+        final_deck = enforce_deck_size(final_deck, input_data.format, input_data.colors)
 
         # --- Fix mana base: replace basic lands with color-appropriate ones ---
         COLOR_TO_BASIC = {"W": "Plains", "U": "Island", "B": "Swamp", "R": "Mountain", "G": "Forest"}
