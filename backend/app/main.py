@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base, get_db
-from app.routers import cards, decks, auth, subscriptions, collections, mtg_cards, saved_decks, gdpr, tokens, ai_builder, feedback, chat, arena_import
+from app.routers import cards, decks, auth, subscriptions, collections, mtg_cards, saved_decks, gdpr, tokens, ai_builder, ai_boost, feedback, chat, arena_import
 from app.models import SiteVisit
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -45,6 +45,7 @@ app.include_router(mtg_cards.router, prefix="/api/mtg-cards", tags=["mtg-cards"]
 app.include_router(saved_decks.router, prefix="/api/saved-decks", tags=["saved-decks"])
 app.include_router(gdpr.router, prefix="/api/gdpr", tags=["gdpr"])
 app.include_router(ai_builder.router, prefix="/api/ai", tags=["ai"])
+app.include_router(ai_boost.router, prefix="/api/ai", tags=["ai"])
 app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(arena_import.router, prefix="/api/arena", tags=["arena"])
