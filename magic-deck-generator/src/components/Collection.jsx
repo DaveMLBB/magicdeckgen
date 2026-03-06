@@ -305,6 +305,9 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   useEffect(() => {
     loadCollection()
     loadStats()
+    // Reset selezione quando cambiano i filtri/ricerca
+    setSelectedCardIds([])
+    setSelectAllPages(false)
   }, [page, search, sortBy, sortOrder, filters])
 
   useEffect(() => {
@@ -1088,8 +1091,8 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   {!selectAllPages && pagination && pagination.total_pages > 1 && (
                     <button className="select-all-pages-btn" onClick={activateSelectAllPages}>
                       {language === 'it'
-                        ? `Seleziona tutte le ${pagination.total_cards} carte`
-                        : `Select all ${pagination.total_cards} cards`}
+                        ? `Seleziona tutte le ${pagination.total_cards} carte filtrate`
+                        : `Select all ${pagination.total_cards} filtered cards`}
                     </button>
                   )}
                   {selectAllPages && (
