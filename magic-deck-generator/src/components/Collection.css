@@ -1854,3 +1854,18 @@
   font-size: 0.95rem;
   margin-top: 6px;
 }
+
+.select-all-pages-btn {
+  background: none;
+  border: 1px solid #7c3aed;
+  color: #7c3aed;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.select-all-pages-btn:hover {
+  background: rgba(124, 58, 237, 0.1);
+}

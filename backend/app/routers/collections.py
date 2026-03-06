@@ -18,7 +18,8 @@ class CollectionUpdate(BaseModel):
     description: Optional[str] = None
 
 class MoveCardsInput(BaseModel):
-    card_ids: List[int]
+    card_ids: Optional[List[int]] = None
+    source_collection_id: Optional[int] = None  # se presente, sposta TUTTE le carte della collezione
     target_collection_id: int
     user_id: int
 
@@ -27,8 +28,7 @@ def move_cards_to_collection(
     data: MoveCardsInput,
     db: Session = Depends(get_db)
 ):
-    """Sposta una lista di carte in un'altra collezione dello stesso utente"""
-    # Verifica che la collezione target esista e appartenga all'utente
+    """Sposta una lista di carte (o tutte quelle di una collezione) in un'altra collezione"""
     target = db.query(CardCollection).filter(
         CardCollection.id == data.target_collection_id,
         CardCollection.user_id == data.user_id
@@ -36,22 +36,28 @@ def move_cards_to_collection(
     if not target:
         raise HTTPException(status_code=404, detail="Target collection not found")
 
-    # Sposta le carte
-    moved = 0
-    for card_id in data.card_ids:
-        card = db.query(Card).filter(
-            Card.id == card_id,
+    # Determina le carte da spostare
+    if data.source_collection_id is not None:
+        # Sposta TUTTE le carte della collezione sorgente
+        cards_to_move = db.query(Card).filter(
+            Card.collection_id == data.source_collection_id,
             Card.user_id == data.user_id
-        ).first()
-        if not card:
-            continue
-        # Controlla se nella target esiste già una carta con lo stesso nome
+        ).all()
+    elif data.card_ids:
+        cards_to_move = db.query(Card).filter(
+            Card.id.in_(data.card_ids),
+            Card.user_id == data.user_id
+        ).all()
+    else:
+        raise HTTPException(status_code=400, detail="Provide card_ids or source_collection_id")
+
+    moved = 0
+    for card in cards_to_move:
         existing = db.query(Card).filter(
             Card.collection_id == data.target_collection_id,
             Card.name == card.name
         ).first()
         if existing:
-            # Somma le quantità
             existing.quantity_owned += card.quantity_owned
             db.delete(card)
         else:

@@ -62,6 +62,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
 
   // Move cards states
   const [selectedCardIds, setSelectedCardIds] = useState([])
+  const [selectAllPages, setSelectAllPages] = useState(false)
   const [showMoveModal, setShowMoveModal] = useState(false)
   const [targetCollectionId, setTargetCollectionId] = useState('')
   const [availableCollections, setAvailableCollections] = useState([])
@@ -676,25 +677,37 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   }
 
   const toggleCardSelection = (cardId) => {
+    setSelectAllPages(false)
     setSelectedCardIds(prev =>
       prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]
     )
   }
 
   const toggleSelectAll = () => {
+    // Se è già attivo "seleziona tutto pagine", deseleziona tutto
+    if (selectAllPages) {
+      setSelectAllPages(false)
+      setSelectedCardIds([])
+      return
+    }
     const selectableIds = cards.filter(c => !c.locked).map(c => c.id)
-    if (selectableIds.every(id => selectedCardIds.includes(id))) {
+    const allCurrentSelected = selectableIds.every(id => selectedCardIds.includes(id))
+    if (allCurrentSelected) {
       setSelectedCardIds([])
     } else {
       setSelectedCardIds(selectableIds)
     }
   }
 
+  const activateSelectAllPages = () => {
+    setSelectAllPages(true)
+    setSelectedCardIds([])
+  }
+
   const openMoveModal = async () => {
     try {
       const res = await fetch(`${API_URL}/api/collections/user/${user.userId}`)
       const data = await res.json()
-      // Escludi la collezione corrente
       const others = (data.collections || []).filter(c => c.id !== collection?.id)
       setAvailableCollections(others)
     } catch (err) {
@@ -705,21 +718,25 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   }
 
   const handleMoveCards = async () => {
-    if (!targetCollectionId || selectedCardIds.length === 0) return
+    if (!targetCollectionId || (!selectAllPages && selectedCardIds.length === 0)) return
     setMoving(true)
     try {
+      const body = {
+        target_collection_id: parseInt(targetCollectionId),
+        user_id: user.userId,
+        ...(selectAllPages
+          ? { source_collection_id: collection?.id }
+          : { card_ids: selectedCardIds })
+      }
       const res = await fetch(`${API_URL}/api/collections/move-cards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          card_ids: selectedCardIds,
-          target_collection_id: parseInt(targetCollectionId),
-          user_id: user.userId
-        })
+        body: JSON.stringify(body)
       })
       if (res.ok) {
         setShowMoveModal(false)
         setSelectedCardIds([])
+        setSelectAllPages(false)
         setUploadMessage(`✓ ${t.moveSuccess}`)
         setTimeout(() => setUploadMessage(''), 3000)
         loadCollection()
@@ -995,18 +1012,31 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
               </div>
             )}
             <div className="cards-table">
-              {selectedCardIds.length > 0 && (
+              {selectedCardIds.length > 0 || selectAllPages ? (
                 <div className="selection-bar">
-                  <span className="selection-count">{selectedCardIds.length} {t.cardsSelected}</span>
-                  <button className="select-all-btn" onClick={toggleSelectAll}>
-                    {cards.filter(c => !c.locked).every(c => selectedCardIds.includes(c.id)) ? t.deselectAll : t.selectAll}
-                  </button>
+                  <span className="selection-count">
+                    {selectAllPages
+                      ? `${stats?.total_unique_cards || '?'} ${t.cardsSelected}`
+                      : `${selectedCardIds.length} ${t.cardsSelected}`}
+                  </span>
+                  {!selectAllPages && pagination && pagination.total_pages > 1 && (
+                    <button className="select-all-pages-btn" onClick={activateSelectAllPages}>
+                      {language === 'it'
+                        ? `Seleziona tutte le ${stats?.total_unique_cards} carte`
+                        : `Select all ${stats?.total_unique_cards} cards`}
+                    </button>
+                  )}
+                  {selectAllPages && (
+                    <button className="select-all-btn" onClick={() => { setSelectAllPages(false); setSelectedCardIds([]) }}>
+                      {t.deselectAll}
+                    </button>
+                  )}
                   <button className="move-cards-btn" onClick={openMoveModal}>
                     📦 {t.moveSelected}
                   </button>
-                  <button className="deselect-btn" onClick={() => setSelectedCardIds([])}>✕</button>
+                  <button className="deselect-btn" onClick={() => { setSelectedCardIds([]); setSelectAllPages(false) }}>✕</button>
                 </div>
-              )}
+              ) : null}
               <table>
                 <thead>
                   <tr>
@@ -1014,7 +1044,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                       <input
                         type="checkbox"
                         onChange={toggleSelectAll}
-                        checked={cards.filter(c => !c.locked).length > 0 && cards.filter(c => !c.locked).every(c => selectedCardIds.includes(c.id))}
+                        checked={selectAllPages || (cards.filter(c => !c.locked).length > 0 && cards.filter(c => !c.locked).every(c => selectedCardIds.includes(c.id)))}
                       />
                     </th>
                     <th className="actions-header">{language === 'it' ? 'Azioni' : 'Actions'}</th>
@@ -1036,7 +1066,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   {cards.map((card) => (
                     <tr 
                       key={card.id} 
-                      className={`${card.locked ? 'locked-row' : 'clickable-row'} ${selectedCardIds.includes(card.id) ? 'selected-row' : ''}`}
+                      className={`${card.locked ? 'locked-row' : 'clickable-row'} ${selectAllPages || selectedCardIds.includes(card.id) ? 'selected-row' : ''}`}
                       onMouseEnter={() => !card.locked && handleCardHover(card.name)}
                       onMouseLeave={handleCardLeave}
                       onClick={() => handleCardClick(card)}
@@ -1045,7 +1075,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                         {!card.locked && (
                           <input
                             type="checkbox"
-                            checked={selectedCardIds.includes(card.id)}
+                            checked={selectAllPages || selectedCardIds.includes(card.id)}
                             onChange={() => toggleCardSelection(card.id)}
                           />
                         )}
