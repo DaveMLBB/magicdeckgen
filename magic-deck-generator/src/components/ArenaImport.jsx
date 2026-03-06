@@ -14,7 +14,7 @@ const STEPS_IT = [
   {
     icon: '🗑️',
     title: 'Cancella il vecchio log',
-    desc: 'Vai alla cartella del log (vedi sotto) e cancella il file Player.log esistente. Questo serve per ottenere un log pulito con la tua collezione aggiornata.',
+    desc: 'Vai alla cartella del log (vedi sotto) e cancella il file Player.log esistente.',
   },
   {
     icon: '🚀',
@@ -24,17 +24,17 @@ const STEPS_IT = [
   {
     icon: '⚙️',
     title: 'Abilita i registri dettagliati',
-    desc: 'Clicca sull\'icona del profilo (in alto a destra) → Impostazioni → Scorrere fino a "Registri dettagliati (richiede riavvio)" → Attiva l\'opzione.',
+    desc: 'Clicca sull\'icona del profilo (in alto a destra) → Impostazioni → "Registri dettagliati (richiede riavvio)" → Attiva.',
   },
   {
     icon: '🔄',
     title: 'Riavvia Arena',
-    desc: 'Chiudi completamente Magic Arena e riaprilo. Questo passaggio è fondamentale per attivare la registrazione dettagliata.',
+    desc: 'Chiudi completamente Magic Arena e riaprilo.',
   },
   {
     icon: '🃏',
-    title: 'Visita la tua Collezione',
-    desc: 'Nel menu principale, clicca su "Collezione" e aspetta che si carichi. Questo fa sì che Arena scriva le carte nel log.',
+    title: 'Apri i tuoi mazzi',
+    desc: 'Nel menu principale, clicca su "Mazzi" e scorri la lista. Questo fa sì che Arena scriva le carte dei tuoi mazzi nel log.',
   },
   {
     icon: '📁',
@@ -47,7 +47,7 @@ const STEPS_EN = [
   {
     icon: '🗑️',
     title: 'Delete the old log',
-    desc: 'Go to the log folder (see below) and delete the existing Player.log file. This ensures you get a clean log with your updated collection.',
+    desc: 'Go to the log folder (see below) and delete the existing Player.log file.',
   },
   {
     icon: '🚀',
@@ -57,17 +57,17 @@ const STEPS_EN = [
   {
     icon: '⚙️',
     title: 'Enable detailed logs',
-    desc: 'Click the profile icon (top right) → Settings → Scroll to "Detailed Logs (requires restart)" → Enable the option.',
+    desc: 'Click the profile icon (top right) → Settings → "Detailed Logs (requires restart)" → Enable.',
   },
   {
     icon: '🔄',
     title: 'Restart Arena',
-    desc: 'Fully close Magic Arena and relaunch it. This step is required to activate detailed logging.',
+    desc: 'Fully close Magic Arena and relaunch it.',
   },
   {
     icon: '🃏',
-    title: 'Visit your Collection',
-    desc: 'From the main menu, click "Collection" and wait for it to load. This causes Arena to write your cards to the log.',
+    title: 'Open your Decks',
+    desc: 'From the main menu, click "Decks" and scroll through the list. This causes Arena to write your deck cards to the log.',
   },
   {
     icon: '📁',
@@ -90,20 +90,20 @@ export default function ArenaImport({ user, language, onNavigate }) {
   const steps = it ? STEPS_IT : STEPS_EN
 
   const t = {
-    title: it ? '📥 Importa da Magic Arena' : '📥 Import from Magic Arena',
+    title: it ? '📥 Importa Mazzi da Magic Arena' : '📥 Import Decks from Magic Arena',
     subtitle: it
-      ? 'Importa automaticamente la tua collezione direttamente da Magic Arena'
-      : 'Automatically import your collection directly from Magic Arena',
+      ? 'Importa le carte presenti nei tuoi mazzi di Magic Arena. Nota: il log di Arena contiene solo le carte nei mazzi costruiti, non l\'intera collezione.'
+      : 'Import cards from your Magic Arena decks. Note: the Arena log only contains cards in your built decks, not your full collection.',
     whereTitle: it ? '📂 Dove si trova il file di log?' : '📂 Where is the log file?',
     windows: 'Windows',
     mac: 'macOS',
     copyBtn: it ? 'Copia percorso' : 'Copy path',
     copied: it ? 'Copiato!' : 'Copied!',
     stepsTitle: it ? '📋 Segui questi passi PRIMA di caricare il file' : '📋 Follow these steps BEFORE uploading the file',
-    warningTitle: it ? '⚠️ Importante' : '⚠️ Important',
+    warningTitle: it ? '⚠️ Limitazione importante' : '⚠️ Important limitation',
     warningText: it
-      ? 'Se non segui questi passi nell\'ordine corretto, il file di log potrebbe non contenere la tua collezione aggiornata.'
-      : 'If you do not follow these steps in order, the log file may not contain your updated collection.',
+      ? 'Il Player.log di Arena contiene solo le carte presenti nei tuoi mazzi costruiti, NON l\'intera collezione. Per importare tutte le carte che possiedi, usa un file CSV/Excel.'
+      : 'The Arena Player.log only contains cards in your built decks, NOT your full collection. To import all cards you own, use a CSV/Excel file instead.',
     confirmCheck: it
       ? 'Ho seguito tutti i passi sopra e il mio file di log è pronto'
       : 'I have followed all the steps above and my log file is ready',

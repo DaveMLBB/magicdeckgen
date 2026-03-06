@@ -147,7 +147,7 @@ async def import_arena_log(
     if not parsed:
         raise HTTPException(
             status_code=400,
-            detail="Nessuna carta trovata nel file. Assicurati di aver abilitato i registri dettagliati in Arena e di aver visitato la tua Collezione dopo il riavvio."
+            detail="Nessuna carta trovata nel file. Il Player.log di Arena contiene solo le carte presenti nei mazzi costruiti, non l'intera collezione. Per importare la collezione completa, usa un file CSV/Excel."
         )
 
     # Risolvi Arena ID -> nome carta
@@ -183,7 +183,7 @@ async def import_arena_log(
 
     new_collection = CardCollection(
         name=coll_name,
-        description="Importata da Magic Arena (Player.log)",
+        description="Importata da Magic Arena (Player.log) — contiene le carte presenti nei mazzi costruiti",
         user_id=user_id
     )
     db.add(new_collection)
