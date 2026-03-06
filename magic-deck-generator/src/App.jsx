@@ -22,7 +22,6 @@ import CookieSettings from './components/CookieSettings'
 import EmailPreferences from './components/EmailPreferences'
 import { cardImageCache } from './utils/cardImageCache'
 import RandomArtBackground from './components/RandomArtBackground'
-import FeedbackForm from './components/FeedbackForm'
 import Chat from './components/Chat'
 import Dashboard from './components/Dashboard'
 import Breadcrumb from './components/Breadcrumb'
@@ -1925,10 +1924,6 @@ function App() {
           </div>
         )}
       </main>
-
-      <div className="footer-feedback-section">
-        <FeedbackForm user={user} language={language} />
-      </div>
 
       <footer>
         <div className="footer-content">

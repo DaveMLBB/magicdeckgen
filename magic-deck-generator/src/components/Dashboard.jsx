@@ -1,4 +1,5 @@
 import './Dashboard.css'
+import FeedbackForm from './FeedbackForm'
 
 const features = [
   {
@@ -172,6 +173,7 @@ export default function Dashboard({ language, onNavigate, subscriptionStatus, us
           ))}
         </div>
       </div>
+      <FeedbackForm user={user} language={language} />
     </div>
   )
 }
