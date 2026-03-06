@@ -549,12 +549,24 @@ def get_user_collection(
             or_(Card.name.ilike(f"%{search}%"), Card.name_it.ilike(f"%{search}%"))
         )
     
-    # Apply color filter - check both Card.colors and MTGCard.colors
+    # Apply color filter - usa MTGCard.colors che è il dato affidabile
     if colors:
-        color_list = colors.split(',')
+        from app.models import MTGCard as MTGCardModel
+        color_list = [c.strip() for c in colors.split(',')]
+        # Join con MTGCard per avere i colori corretti
+        # Usa color_identity per includere carte multicolore e commander
         color_conditions = []
         for color in color_list:
-            color_conditions.append(Card.colors.like(f"%{color}%"))
+            color_conditions.append(
+                Card.name.in_(
+                    db.query(MTGCardModel.name).filter(
+                        or_(
+                            MTGCardModel.colors.like(f"%{color}%"),
+                            MTGCardModel.color_identity.like(f"%{color}%")
+                        )
+                    )
+                )
+            )
         query = query.filter(or_(*color_conditions))
     
     # Apply type filter

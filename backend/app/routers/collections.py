@@ -52,8 +52,20 @@ def _apply_filters_to_query(query, db, filters: dict):
             or_(Card.name.ilike(f"%{s}%"), Card.name_it.ilike(f"%{s}%"))
         )
     if filters.get('colors'):
-        color_list = filters['colors'].split(',')
-        query = query.filter(or_(*[Card.colors.like(f"%{c}%") for c in color_list]))
+        color_list = [c.strip() for c in filters['colors'].split(',')]
+        color_conditions = []
+        for color in color_list:
+            color_conditions.append(
+                Card.name.in_(
+                    db.query(MTGCard.name).filter(
+                        or_(
+                            MTGCard.colors.like(f"%{color}%"),
+                            MTGCard.color_identity.like(f"%{color}%")
+                        )
+                    )
+                )
+            )
+        query = query.filter(or_(*color_conditions))
     if filters.get('types'):
         type_list = filters['types'].split(',')
         query = query.filter(or_(*[Card.card_type.like(f"%{t}%") for t in type_list]))
