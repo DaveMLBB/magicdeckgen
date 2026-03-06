@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import './AIBeckBoost.css'
+import './AIDeckBoost.css'
 import CardPreviewModal from './CardPreviewModal'
 
 const API_URL = import.meta.env.PROD
@@ -18,7 +18,7 @@ const CATEGORY_COLORS = {
 
 const t = {
   it: {
-    title: '⚡ AI Beck Boost',
+    title: '⚡ AI Deck Boost',
     subtitle: 'Modifica il tuo mazzo tramite chat AI con memoria della sessione',
     back: 'Indietro',
     selectDeck: 'Seleziona un mazzo...',
@@ -45,7 +45,7 @@ const t = {
     errorNoDecks: 'Seleziona prima un mazzo',
   },
   en: {
-    title: '⚡ AI Beck Boost',
+    title: '⚡ AI Deck Boost',
     subtitle: 'Modify your deck via AI chat with session memory',
     back: 'Back',
     selectDeck: 'Select a deck...',
@@ -96,7 +96,7 @@ const SUGGESTIONS = {
   ]
 }
 
-function AIBeckBoost({ user, language, onBack, onSaved }) {
+function AIDeckBoost({ user, language, onBack, onSaved }) {
   const tr = t[language] || t.en
   const messagesEndRef = useRef(null)
 
@@ -292,7 +292,7 @@ function AIBeckBoost({ user, language, onBack, onSaved }) {
   const totalCards = currentCards.reduce((s, c) => s + (c.quantity || 0), 0)
 
   return (
-    <div className="ai-beck-boost">
+    <div className="ai-deck-boost">
       {/* Header */}
       <div className="abb-header">
         <button onClick={onBack} className="abb-back-btn">← {tr.back}</button>
@@ -459,4 +459,4 @@ function AIBeckBoost({ user, language, onBack, onSaved }) {
   )
 }
 
-export default AIBeckBoost
+export default AIDeckBoost

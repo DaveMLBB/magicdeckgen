@@ -70,7 +70,7 @@ async def boost_deck(
     from app.routers.tokens import consume_token
     consume_token(
         user, 'ai_boost_deck',
-        f'AI Beck Boost: {input_data.message[:50]}',
+        f'AI Deck Boost: {input_data.message[:50]}',
         db,
         tokens_to_consume=BOOST_TOKEN_COST
     )
