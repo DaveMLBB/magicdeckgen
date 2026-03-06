@@ -4,27 +4,10 @@ from app.database import get_db
 from app.models import Card, User, CardCollection, MTGCard
 from app.routers.tokens import consume_token
 import re
+import json
 from datetime import datetime
 
 router = APIRouter()
-
-# Pattern per estrarre le carte dalla sezione Inventory del log di Arena
-# Riga tipica: "Completed  Draft  (all  0  sets) (Event_PlayerDraft_...) > ...
-# La sezione inventory del Player.log ha righe tipo:
-#   <PlayerName> <SetCode> <CollectorNumber> <Quantity>
-# oppure il formato moderno del log:
-#   Inventory.Updated ... "Cards":{"12345":4,"67890":2}
-# Usiamo regex multipli per supportare entrambi i formati
-
-ARENA_LOG_CARD_PATTERN = re.compile(
-    r'"Cards"\s*:\s*(\{[^}]+\})',
-    re.DOTALL
-)
-
-ARENA_LOG_INVENTORY_PATTERN = re.compile(
-    r'<Duel\.Announce>.*?inventory.*?"cards"\s*:\s*\{([^}]*)\}',
-    re.IGNORECASE | re.DOTALL
-)
 
 # Pattern per il formato testo esportato da Arena (Collection export)
 # "4 Lightning Bolt (M10) 147"
@@ -36,38 +19,46 @@ ARENA_EXPORT_LINE = re.compile(
 SIMPLE_LINE = re.compile(r'^(\d+)\s+(.+)$')
 
 
-def parse_arena_log(content: str) -> dict[str, int]:
+def parse_arena_log(content: str) -> dict:
     """
-    Parsa il file Player.log di Arena ed estrae le carte con le quantità.
+    Parsa il file Player.log di Arena ed estrae le carte con le quantita'.
     Supporta:
-    1. Formato JSON "Cards":{"arenaId":qty,...} (log completo)
+    1. Formato JSON InventoryInfo con Decks (log completo - formato reale di Arena)
     2. Formato export testuale Arena: "4 Lightning Bolt (M10) 147"
     3. Formato semplice: "4 Lightning Bolt"
     """
-    cards: dict[str, int] = {}
 
-    # Strategia 1: cerca blocchi JSON "Cards":{...} nel log
-    # Prendiamo l'ultimo trovato (il più aggiornato)
-    json_matches = list(ARENA_LOG_CARD_PATTERN.finditer(content))
-    if json_matches:
-        last_match = json_matches[-1]
-        cards_json_str = last_match.group(1)
-        # Estrai coppie "arenaId": qty
-        id_qty_pairs = re.findall(r'"(\d+)"\s*:\s*(\d+)', cards_json_str)
-        if id_qty_pairs:
-            # In questo caso abbiamo solo gli Arena ID, non i nomi
-            # Restituiamo un dizionario speciale da gestire separatamente
-            return {"__arena_ids__": {aid: int(qty) for aid, qty in id_qty_pairs}}
+    # Strategia 1: cerca il blocco InventoryInfo nel log (formato reale di Arena)
+    # Il log contiene una riga JSON che inizia con {"InventoryInfo":...}
+    match = re.search(r'\{"InventoryInfo".*', content)
+    if match:
+        try:
+            data = json.loads(match.group(0))
+            decks = data.get('Decks', {})
+            if decks:
+                # Raccogli tutte le carte dai mazzi (quantita' massima vista per carta)
+                all_cards: dict = {}
+                for deck in decks.values():
+                    for section in ['MainDeck', 'Sideboard', 'CommandZone', 'Companions']:
+                        for entry in deck.get(section, []):
+                            if isinstance(entry, dict):
+                                card_id = str(entry.get('cardId', ''))
+                                quantity = entry.get('quantity', 1)
+                                if card_id:
+                                    all_cards[card_id] = max(all_cards.get(card_id, 0), quantity)
+                if all_cards:
+                    return {"__arena_ids__": all_cards}
+        except (json.JSONDecodeError, Exception):
+            pass  # fallback alle strategie successive
 
-    # Strategia 2: formato export testuale Arena
-    # "4 Lightning Bolt (M10) 147"
+    # Strategia 2: formato export testuale Arena "4 Lightning Bolt (M10) 147"
+    cards: dict = {}
     lines = content.splitlines()
     for line in lines:
         line = line.strip()
         if not line or line.startswith('#') or line.startswith('//'):
             continue
 
-        # Formato export Arena con set code
         m = ARENA_EXPORT_LINE.match(line)
         if m:
             qty = int(m.group(1))
@@ -76,12 +67,11 @@ def parse_arena_log(content: str) -> dict[str, int]:
                 cards[name] = cards.get(name, 0) + qty
             continue
 
-        # Formato semplice "4 CardName"
+        # Strategia 3: formato semplice "4 CardName"
         m = SIMPLE_LINE.match(line)
         if m:
             qty = int(m.group(1))
             name = m.group(2).strip()
-            # Ignora righe che sembrano metadati
             if name and len(name) > 1 and not name.startswith('{'):
                 cards[name] = cards.get(name, 0) + qty
 
@@ -96,7 +86,7 @@ async def import_arena_log(
     db: Session = Depends(get_db)
 ):
     """
-    Parsa il file Player.log di Magic Arena ed crea una nuova collezione
+    Parsa il file Player.log di Magic Arena e crea una nuova collezione
     con tutte le carte trovate nel log.
     """
     user = db.query(User).filter(User.id == user_id).first()
@@ -128,7 +118,7 @@ async def import_arena_log(
     # Se abbiamo Arena ID invece di nomi, gestiscili tramite DB MTG
     if "__arena_ids__" in parsed:
         arena_ids_map = parsed["__arena_ids__"]
-        cards_by_name: dict[str, int] = {}
+        cards_by_name: dict = {}
 
         for arena_id, qty in arena_ids_map.items():
             mtg_card = db.query(MTGCard).filter(
@@ -137,7 +127,7 @@ async def import_arena_log(
             if mtg_card:
                 name = mtg_card.name
                 cards_by_name[name] = cards_by_name.get(name, 0) + qty
-            # Se non trovato, lo saltiamo (carta non nel nostro DB)
+            # Se non trovato nel DB, lo saltiamo
 
         if not cards_by_name:
             raise HTTPException(
@@ -153,7 +143,6 @@ async def import_arena_log(
         CardCollection.name == coll_name
     ).first()
     if existing:
-        # Aggiungi timestamp per evitare duplicati
         coll_name = f"{coll_name} ({datetime.utcnow().strftime('%d/%m %H:%M')})"
 
     # Consuma 1 token
