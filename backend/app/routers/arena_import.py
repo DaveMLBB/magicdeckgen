@@ -161,14 +161,7 @@ async def import_arena_log(
                 # Usa il JSON Scryfall (piu' veloce e completo)
                 name = _SCRYFALL_DB[arena_id]['name']
                 cards_by_name[name] = cards_by_name.get(name, 0) + qty
-            else:
-                # Fallback: query al DB SQL
-                from app.models import MTGCard
-                mtg_card = db.query(MTGCard).filter(
-                    MTGCard.arena_id == int(arena_id)
-                ).first()
-                if mtg_card:
-                    cards_by_name[mtg_card.name] = cards_by_name.get(mtg_card.name, 0) + qty
+            # Nota: non c'e' fallback al DB SQL perche' MTGCard non ha la colonna arena_id
 
         if not cards_by_name:
             raise HTTPException(
