@@ -9,7 +9,6 @@ import CollectionsList from './components/CollectionsList'
 import CardSearch from './components/CardSearch'
 import SavedDecksList from './components/SavedDecksList'
 import SavedDeck from './components/SavedDeck'
-import AIBuilder from './components/AIBuilder'
 import CardSynergy from './components/CardSynergy'
 import CardTwins from './components/CardTwins'
 import AIDeckBuilder from './components/AIDeckBuilder'
@@ -1176,7 +1175,6 @@ function App() {
       'saved-decks': '🗂️ I Miei Mazzi',
       'saved-deck-detail': '📋 Dettaglio Mazzo',
       community: '💬 Community',
-      'ai-builder': '🤖 AI Analyzer',
       'card-synergy': '✨ AI Synergy',
       'card-twins': '🪞 AI Gemelli',
       'ai-deck-builder': '🏗️ AI Deck Builder',
@@ -1196,7 +1194,6 @@ function App() {
       'saved-decks': '🗂️ My Decks',
       'saved-deck-detail': '📋 Deck Detail',
       community: '💬 Community',
-      'ai-builder': '🤖 AI Analyzer',
       'card-synergy': '✨ AI Synergy',
       'card-twins': '🪞 AI Twins',
       'ai-deck-builder': '🏗️ AI Deck Builder',
@@ -1330,9 +1327,6 @@ function App() {
           onLimitError={showLimitError}
         />
       )
-    }
-    if (currentView === 'ai-builder') {
-      return <AIBuilder user={user} onBack={() => setCurrentView('dashboard')} language={language} />
     }
     if (currentView === 'card-synergy') {
       return <CardSynergy user={user} onBack={() => setCurrentView('dashboard')} language={language} />

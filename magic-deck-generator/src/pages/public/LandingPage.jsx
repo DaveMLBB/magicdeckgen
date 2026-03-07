@@ -84,7 +84,6 @@ const LandingPage = ({ lang = 'en' }) => {
         { icon: '🏗️', title: 'AI Deck Builder', badge: '10 token', desc: 'Descrivi il mazzo che vuoi in testo libero — "aggro rosso Modern" o "Commander Atraxa con counter +1/+1" — e l\'AI costruisce un mazzo completo da 60 o 100 carte con sideboard, note strategiche, carte chiave e percorso di upgrade. Può anche costruire usando solo le carte della tua collezione.' },
         { icon: '✨', title: 'AI Synergy Finder', badge: '10 token', desc: 'Inserisci 1–5 carte di partenza e l\'AI trova le carte più sinergiche per costruire attorno ad esse. Risultati raggruppati per ruolo: Enabler, Payoff, Removal, Ramp, Support. Perfetto per creare nuovi archetipi da zero.' },
         { icon: '🪞', title: 'AI Gemelli', badge: '10 token', desc: 'Trova equivalenti funzionali per qualsiasi carta. Scopri sostituti economici, upgrade, o carte che fanno la stessa cosa con un nome diverso. Ogni gemello classificato: Copia Funzionale, Superiore, Inferiore o Laterale.' },
-        { icon: '🤖', title: 'AI Analyzer', badge: '10 token', desc: 'Seleziona un mazzo salvato e scegli un obiettivo di ottimizzazione (Aggro, Control, Combo, Tribal, Token…). L\'AI analizza la curva di mana, identifica sinergie e combo, e suggerisce carte specifiche da aggiungere o rimuovere.' },
       ],
       toolsTitle: 'Tutto il Resto di cui Hai Bisogno',
       tools: [

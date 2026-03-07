@@ -43,16 +43,6 @@ const features = [
     gradient: 'linear-gradient(135deg, #e17055, #fab1a0)',
   },
   {
-    id: 'ai-builder',
-    icon: '🤖',
-    labelIt: 'AI Analyzer',
-    labelEn: 'AI Analyzer',
-    descIt: 'Analizza il tuo mazzo con intelligenza artificiale',
-    descEn: 'Analyze your deck with artificial intelligence',
-    color: '#fd79a8',
-    gradient: 'linear-gradient(135deg, #fd79a8, #fdcb6e)',
-  },
-  {
     id: 'card-synergy',
     icon: '✨',
     labelIt: 'AI Synergy',

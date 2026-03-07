@@ -107,19 +107,6 @@ const sections = {
       ]
     },
     {
-      id: 'ai-analyzer',
-      icon: '🤖',
-      title: 'AI Analyzer',
-      content: [
-        'L\'AI Analyzer analizza i tuoi mazzi salvati e suggerisce ottimizzazioni.',
-        'Seleziona un mazzo dalla lista, poi scegli un obiettivo di ottimizzazione.',
-        'Obiettivi disponibili: Bilanciato, Aggressivo, Controllo, Combo, Tribal, Token, Cimitero e molti altri.',
-        'L\'AI analizza la curva di mana, le sinergie e suggerisce carte da aggiungere/rimuovere.',
-        'Vengono identificati anche combo e catene sinergiche nel mazzo.',
-        '⚠️ Consuma 2 token per analisi (operazione premium).',
-      ]
-    },
-    {
       id: 'ai-synergy',
       icon: '✨',
       title: 'AI Synergy Finder',
@@ -270,19 +257,6 @@ const sections = {
         'You can make a deck "public" to share it with other users.',
         'Public decks appear in other users\' search results.',
         'From the deck page you can launch AI analysis directly.',
-      ]
-    },
-    {
-      id: 'ai-analyzer',
-      icon: '🤖',
-      title: 'AI Analyzer',
-      content: [
-        'The AI Analyzer analyzes your saved decks and suggests optimizations.',
-        'Select a deck from the list, then choose an optimization goal.',
-        'Available goals: Balanced, Aggressive, Control, Combo, Tribal, Tokens, Graveyard and many more.',
-        'The AI analyzes mana curve, synergies and suggests cards to add/remove.',
-        'Combos and synergy chains in the deck are also identified.',
-        '⚠️ Costs 2 tokens per analysis (premium operation).',
       ]
     },
     {

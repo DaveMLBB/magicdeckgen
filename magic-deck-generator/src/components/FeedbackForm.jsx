@@ -6,8 +6,8 @@ const API_URL = import.meta.env.PROD
   : 'http://localhost:8000'
 
 const FEATURES = {
-  it: ['Generale', 'AI Deck Builder', 'AI Synergy', 'AI Gemelli', 'AI Analyzer', 'Confronto Mazzi', 'Collezioni', 'Database Carte', 'Mazzi Salvati'],
-  en: ['General', 'AI Deck Builder', 'AI Synergy', 'AI Twins', 'AI Analyzer', 'Deck Matching', 'Collections', 'Card Database', 'Saved Decks'],
+  it: ['Generale', 'AI Deck Builder', 'AI Synergy', 'AI Gemelli', 'Confronto Mazzi', 'Collezioni', 'Database Carte', 'Mazzi Salvati'],
+  en: ['General', 'AI Deck Builder', 'AI Synergy', 'AI Twins', 'Deck Matching', 'Collections', 'Card Database', 'Saved Decks'],
 }
 
 const TR = {
