@@ -1354,7 +1354,7 @@ def get_deck_stats(
     }
 
 # ── Chat Build Deck ──
-MAX_COLLECTION_CARDS_CHAT = 300
+MAX_COLLECTION_CARDS_CHAT = 415
 CHAT_BUILD_TOKEN_COST = 5
 
 class ChatBuildMessage(BaseModel):
@@ -1469,7 +1469,7 @@ Se deck_updated è false, deck può essere null."""
             model="gpt-5.1",
             messages=messages,
             temperature=0.7,
-            max_tokens=4000,
+            max_completion_tokens=10000,
             response_format={"type": "json_object"}
         )
         result = json.loads(response.choices[0].message.content)
