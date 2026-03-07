@@ -300,7 +300,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
                 <option value="">{t.collectionNone}</option>
                 {collections.map(c => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.total_cards} {language === 'it' ? 'carte' : 'cards'})
+                    {c.name} ({c.card_count} {language === 'it' ? 'carte' : 'cards'})
                   </option>
                 ))}
               </select>
