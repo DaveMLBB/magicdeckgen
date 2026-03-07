@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import './AIDeckBoost.css'
 import './AIDeckBuilder.css'
 import CardPreviewModal from './CardPreviewModal'
 
@@ -6,240 +7,198 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site'
   : 'http://localhost:8000'
 
-const FORMATS = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'commander', 'pauper', 'historic', 'explorer', 'brawl']
-const BUDGETS = [
-  { value: 'budget',     label: { it: 'Economico (<$50)',      en: 'Budget (<$50)'      } },
-  { value: 'affordable', label: { it: 'Accessibile ($50-150)', en: 'Affordable ($50-150)' } },
-  { value: 'any',        label: { it: 'Qualsiasi',             en: 'Any'                } },
-  { value: 'expensive',  label: { it: 'Premium (>$400)',       en: 'Premium (>$400)'    } },
-]
-const COLOR_OPTIONS = [
-  { code: 'W', symbol: '☀️', name: { it: 'Bianco', en: 'White' } },
-  { code: 'U', symbol: '💧', name: { it: 'Blu',    en: 'Blue'  } },
-  { code: 'B', symbol: '💀', name: { it: 'Nero',   en: 'Black' } },
-  { code: 'R', symbol: '🔥', name: { it: 'Rosso',  en: 'Red'   } },
-  { code: 'G', symbol: '🌲', name: { it: 'Verde',  en: 'Green' } },
-]
-const CATEGORY_ORDER = ['Creature', 'Spell', 'Enchantment', 'Artifact', 'Planeswalker', 'Land', 'Other']
 const CATEGORY_COLORS = {
-  Creature:     '#10b981',
-  Spell:        '#6366f1',
-  Enchantment:  '#ec4899',
-  Artifact:     '#94a3b8',
-  Planeswalker: '#f59e0b',
-  Land:         '#78716c',
-  Other:        '#64748b',
+  Creature: '#10b981', Spell: '#6366f1', Enchantment: '#ec4899',
+  Artifact: '#94a3b8', Planeswalker: '#f59e0b', Land: '#78716c', Other: '#64748b',
 }
 
-const t = {
-  it: {
-    title: '🏗️ AI Deck Builder',
-    subtitle: 'Descrivi il mazzo che vuoi costruire e l\'AI lo creerà per te',
-    descLabel: 'Descrivi il tuo mazzo',
-    descPlaceholder: 'Es: "Voglio un mazzo aggro rosso con molte creature a basso costo e burn spells per finire l\'avversario velocemente in Modern" oppure "Un mazzo Commander con Atraxa come comandante, focalizzato sui counter +1/+1 e proliferate"...',
-    format: 'Formato',
-    formatAny: 'Lascia decidere all\'AI',
-    colors: 'Colori (opzionale)',
-    budget: 'Budget',
-    deckSize: 'Dimensione mazzo',
-    buildBtn: 'Costruisci Mazzo (30 🪙)',
-    building: 'L\'AI sta costruendo il mazzo...',
-    buildingSub: 'Questo può richiedere 15-30 secondi',
-    back: 'Indietro',
-    saveBtn: '💾 Salva Mazzo',
-    saving: 'Salvataggio...',
-    saved: '✅ Mazzo Salvato!',
-    saveError: 'Errore nel salvataggio',
-    strategy: 'Strategia',
-    keyCards: 'Carte Chiave',
-    upgradePath: 'Come Migliorare',
-    mainDeck: 'Mazzo Principale',
-    sideboard: 'Sideboard',
-    totalCards: 'carte totali',
-    copyList: '📋 Copia Lista',
-    copied: '✅ Copiato!',
-    errorTokens: 'Token insufficienti. Acquista token per continuare.',
-    errorShort: 'Descrizione troppo corta (minimo 10 caratteri)',
-    errorGeneric: 'Errore durante la generazione. Riprova.',
-    errorDemoLimit: "⚠️ L'AI è ancora in fase di demo e ha raggiunto il limite di richieste. Torna domani per riprovare!",
-    errorRateLimit: '⏱️ Limite raggiunto: max 3 richieste AI al minuto. Attendi qualche secondo e riprova.',
-    noResult: 'Inserisci una descrizione e clicca "Costruisci Mazzo"',
-    exampleTitle: 'Esempi di descrizione:',
-    budget_label: 'Budget stimato',
-    archetype_label: 'Archetipo',
-    format_label: 'Formato',
-    colors_label: 'Colori',
-    filterAll: 'Tutti',
-    sortByCategory: 'Per categoria',
-    sortByQuantity: 'Per quantità',
-    arenaUnavailableTitle: '⚠️ Carte non disponibili su Magic Arena',
-    arenaUnavailableDesc: 'Le seguenti carte del mazzo non sono disponibili su MTGA (non presenti nei formati Arena):',
-    arenaCheckNote: '✅ Tutte le carte del mazzo risultano disponibili su Magic Arena.',
-  },
-  en: {
-    title: '🏗️ AI Deck Builder',
-    subtitle: 'Describe the deck you want to build and the AI will create it for you',
-    descLabel: 'Describe your deck',
-    descPlaceholder: 'E.g. "I want a red aggro deck with lots of low-cost creatures and burn spells to finish the opponent quickly in Modern" or "A Commander deck with Atraxa as commander, focused on +1/+1 counters and proliferate"...',
-    format: 'Format',
-    formatAny: 'Let AI decide',
-    colors: 'Colors (optional)',
-    budget: 'Budget',
-    deckSize: 'Deck size',
-    buildBtn: 'Build Deck (30 🪙)',
-    building: 'AI is building your deck...',
-    buildingSub: 'This may take 15-30 seconds',
-    back: 'Back',
-    saveBtn: '💾 Save Deck',
-    saving: 'Saving...',
-    saved: '✅ Deck Saved!',
-    saveError: 'Error saving deck',
-    strategy: 'Strategy',
-    keyCards: 'Key Cards',
-    upgradePath: 'How to Improve',
-    mainDeck: 'Main Deck',
-    sideboard: 'Sideboard',
-    totalCards: 'total cards',
-    copyList: '📋 Copy List',
-    copied: '✅ Copied!',
-    errorTokens: 'Insufficient tokens. Purchase tokens to continue.',
-    errorShort: 'Description too short (minimum 10 characters)',
-    errorGeneric: 'Error during generation. Please try again.',
-    errorDemoLimit: '⚠️ The AI is still in demo phase and has reached its request limit. Come back tomorrow to try again!',
-    errorRateLimit: '⏱️ Rate limit: max 3 AI requests per minute. Wait a few seconds and try again.',
-    noResult: 'Enter a description and click "Build Deck"',
-    exampleTitle: 'Description examples:',
-    budget_label: 'Estimated budget',
-    archetype_label: 'Archetype',
-    format_label: 'Format',
-    colors_label: 'Colors',
-    filterAll: 'All',
-    sortByCategory: 'By category',
-    sortByQuantity: 'By quantity',
-    arenaUnavailableTitle: '⚠️ Cards not available on Magic Arena',
-    arenaUnavailableDesc: 'The following deck cards are not available on MTGA (not present in Arena formats):',
-    arenaCheckNote: '✅ All deck cards appear to be available on Magic Arena.',
-  }
-}
-
-const EXAMPLES = {
+const SUGGESTIONS = {
   it: [
-    'Mazzo aggro rosso in Modern con creature a basso costo e burn spells',
-    'Commander con Atraxa focalizzato su counter +1/+1 e proliferate',
-    'Mazzo control blu-bianco in Standard con counterspell e board wipe',
-    'Tribal Elfi verde in Legacy, molto veloce e aggressivo',
-    'Mazzo combo Storm in Modern per vincere al turno 3-4',
+    '🔥 Mazzo aggro rosso in Modern con burn spells',
+    '🧙 Commander Atraxa con counter +1/+1 e proliferate',
+    '🛡️ Control blu-bianco in Standard con counterspell',
+    '🐉 Dragon Tribal Commander, budget medio',
+    '💀 Reanimator nero in Legacy',
+    '🌊 Merfolk Tribal in Pioneer',
+    '⚡ Storm combo in Modern, turno 3-4',
+    '🌲 Elfi verde in Legacy, molto aggressivo',
   ],
   en: [
-    'Red aggro deck in Modern with low-cost creatures and burn spells',
-    'Atraxa Commander focused on +1/+1 counters and proliferate',
-    'Blue-white control in Standard with counterspells and board wipes',
-    'Green Elf tribal in Legacy, very fast and aggressive',
-    'Storm combo deck in Modern to win on turn 3-4',
+    '🔥 Red aggro deck in Modern with burn spells',
+    '🧙 Atraxa Commander with +1/+1 counters and proliferate',
+    '🛡️ Blue-white control in Standard with counterspells',
+    '🐉 Dragon Tribal Commander, mid budget',
+    '💀 Black Reanimator in Legacy',
+    '🌊 Merfolk Tribal in Pioneer',
+    '⚡ Storm combo in Modern, turn 3-4',
+    '🌲 Green Elves in Legacy, very aggressive',
   ]
 }
 
-function CardRow({ card, onPreview }) {
-  const color = CATEGORY_COLORS[card.category] || CATEGORY_COLORS.Other
-  return (
-    <div className="adb-card-row">
-      <span className="adb-qty-badge">{card.quantity}x</span>
-      <span className="adb-cat-dot" style={{ background: color }} title={card.category}></span>
-      {onPreview ? (
-        <button className="adb-card-name-btn" onClick={() => onPreview(card.card_name)}>
-          {card.card_name}
-        </button>
-      ) : (
-        <span className="adb-card-name">{card.card_name}</span>
-      )}
-      {card.role && <span className="adb-role-tag">{card.role}</span>}
-    </div>
-  )
+const tr = {
+  it: {
+    title: '🏗️ AI Deck Builder',
+    subtitle: 'Costruisci mazzi tramite chat AI',
+    back: 'Indietro',
+    deckPanel: 'Mazzo Generato',
+    totalCards: 'carte totali',
+    emptyChat: 'Descrivi il mazzo che vuoi costruire. Puoi specificare formato, colori, strategia o chiedere di usare la tua collezione.',
+    placeholder: 'Es: "Costruisci un mazzo aggro rosso per Modern", "Aggiungi più rimozioni", "Rendilo più economico"...',
+    costHint: '5 🪙 per messaggio',
+    sendBtn: 'Invia', sending: '...',
+    suggestionsTitle: '💡 Suggerimenti',
+    collectionLabel: '📚 Collezione (opzionale)',
+    collectionNone: 'Nessuna — qualsiasi carta',
+    collectionHint: "L'AI userà solo le carte di questa collezione (max 300)",
+    formatLabel: 'Formato', colorsLabel: 'Colori (es. WU)',
+    resetBtn: '↩️ Nuova conversazione',
+    deckUpdated: '✏️ Mazzo aggiornato',
+    saveBtn: '💾 Salva Mazzo',
+    saving: 'Salvataggio...', saved: '✅ Salvato!', saveError: 'Errore salvataggio',
+    copyList: '📋 Copia Lista', copied: '✅ Copiato!',
+    mainDeck: 'Mazzo', sideboard: 'Sideboard',
+    errorTokens: 'Token insufficienti. Acquista token per continuare.',
+    errorGeneric: 'Errore durante la generazione. Riprova.',
+    errorDemoLimit: "⚠️ L'AI ha raggiunto il limite di richieste. Torna domani!",
+    errorRateLimit: '⏱️ Limite raggiunto: max 3 richieste AI al minuto. Attendi e riprova.',
+  },
+  en: {
+    title: '🏗️ AI Deck Builder',
+    subtitle: 'Build decks via AI chat',
+    back: 'Back',
+    deckPanel: 'Generated Deck',
+    totalCards: 'total cards',
+    emptyChat: 'Describe the deck you want to build. You can specify format, colors, strategy, or ask to use your collection.',
+    placeholder: 'E.g. "Build a red aggro deck for Modern", "Add more removal", "Make it more budget"...',
+    costHint: '5 🪙 per message',
+    sendBtn: 'Send', sending: '...',
+    suggestionsTitle: '💡 Suggestions',
+    collectionLabel: '📚 Collection (optional)',
+    collectionNone: 'None — any card',
+    collectionHint: 'AI will only use cards from this collection (max 300)',
+    formatLabel: 'Format', colorsLabel: 'Colors (e.g. WU)',
+    resetBtn: '↩️ New conversation',
+    deckUpdated: '✏️ Deck updated',
+    saveBtn: '💾 Save Deck',
+    saving: 'Saving...', saved: '✅ Saved!', saveError: 'Save error',
+    copyList: '📋 Copy List', copied: '✅ Copied!',
+    mainDeck: 'Main Deck', sideboard: 'Sideboard',
+    errorTokens: 'Insufficient tokens. Purchase tokens to continue.',
+    errorGeneric: 'Error during generation. Please try again.',
+    errorDemoLimit: '⚠️ AI has reached its request limit. Come back tomorrow!',
+    errorRateLimit: '⏱️ Rate limit: max 3 AI requests per minute. Wait and retry.',
+  }
 }
 
-function AIDeckBuilder({ user, onBack, language, onSaved }) {
-  const tr = t[language] || t.en
+function AIDeckBuilder({ user, language, onBack, onSaved }) {
+  const t = tr[language] || tr.en
+  const messagesEndRef = useRef(null)
 
-  const [description, setDescription] = useState('')
-  const [format, setFormat] = useState('')
-  const [selectedColors, setSelectedColors] = useState([])
-  const [budget, setBudget] = useState('any')
-  const [deckSize, setDeckSize] = useState(60)
+  const [history, setHistory] = useState([])
+  const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [tokens, setTokens] = useState(user?.tokens || 0)
+  const [currentDeck, setCurrentDeck] = useState(null)   // { cards, deck_name, format, colors, ... }
   const [saving, setSaving] = useState(false)
-  const [saveStatus, setSaveStatus] = useState(null) // null | 'saved' | 'error'
+  const [saveStatus, setSaveStatus] = useState(null)
   const [copied, setCopied] = useState(false)
   const [previewCard, setPreviewCard] = useState(null)
-  const [activeTab, setActiveTab] = useState('main') // 'main' | 'sideboard'
-  const [filterCat, setFilterCat] = useState('all')
-  const [sortMode, setSortMode] = useState('category')
-  const [useFullCollection, setUseFullCollection] = useState(false)
   const [collections, setCollections] = useState([])
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
-  const [fullCollectionCost, setFullCollectionCost] = useState(null)
+  const [format, setFormat] = useState('')
+  const [colors, setColors] = useState('')
 
   useEffect(() => {
     if (!user?.userId) return
     fetch(`${API_URL}/api/collections/user/${user.userId}`)
       .then(r => r.json())
-      .then(data => {
-        const cols = data.collections || []
-        setCollections(cols)
-        if (cols.length > 0) setSelectedCollectionId(cols[0].id)
-      })
+      .then(data => setCollections(data.collections || []))
       .catch(() => {})
   }, [user])
 
   useEffect(() => {
-    if (!selectedCollectionId || !user?.userId) { setFullCollectionCost(null); return }
-    fetch(`${API_URL}/api/ai/build-deck-full-collection/cost?collection_id=${selectedCollectionId}&user_id=${user.userId}`)
-      .then(r => r.json())
-      .then(data => setFullCollectionCost(data))
-      .catch(() => setFullCollectionCost(null))
-  }, [selectedCollectionId, user])
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [history, loading])
 
-  const toggleColor = (code) => {
-    setSelectedColors(prev =>
-      prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
-    )
-  }
+  const handleSend = async () => {
+    if (!message.trim()) return
+    const userMsg = message.trim()
+    setMessage('')
+    setError(null)
+    setLoading(true)
 
-  const handleBuild = async () => {
-    if (description.trim().length < 10) { setError(tr.errorShort); return }
-    setLoading(true); setError(null); setResult(null); setSaveStatus(null)
+    const newHistory = [...history, { role: 'user', content: userMsg }]
+    setHistory(newHistory)
+
     try {
-      const endpoint = useFullCollection && selectedCollectionId
-        ? `${API_URL}/api/ai/build-deck-full-collection?language=${language}`
-        : `${API_URL}/api/ai/build-deck?language=${language}`
-      const body = useFullCollection && selectedCollectionId
-        ? { user_id: user.userId, description: description.trim(), format: format || null, colors: selectedColors.length > 0 ? selectedColors.join('') : null, budget: budget || null, deck_size: deckSize, collection_id: selectedCollectionId }
-        : { user_id: user.userId, description: description.trim(), format: format || null, colors: selectedColors.length > 0 ? selectedColors.join('') : null, budget: budget || null, deck_size: deckSize }
-      const res = await fetch(endpoint, {
+      const res = await fetch(`${API_URL}/api/ai/chat-build-deck?language=${language}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify({
+          user_id: user.userId,
+          message: userMsg,
+          history: history,
+          collection_id: selectedCollectionId || null,
+          format: format || null,
+          colors: colors || null,
+        })
       })
       const data = await res.json()
+
       if (!res.ok) {
-        setError(res.status === 429 ? tr.errorRateLimit : res.status === 403 ? tr.errorTokens : data.detail === 'DEMO_RATE_LIMIT' ? tr.errorDemoLimit : (data.detail || tr.errorGeneric))
-        setLoading(false); return
+        const detail = data.detail || ''
+        setError(
+          res.status === 429 ? t.errorRateLimit :
+          res.status === 403 ? t.errorTokens :
+          detail === 'DEMO_RATE_LIMIT' ? t.errorDemoLimit :
+          t.errorGeneric
+        )
+        setHistory(history)
+        setLoading(false)
+        return
       }
-      setResult(data)
+
+      const assistantMsg = {
+        role: 'assistant',
+        content: data.assistant_message,
+        deck_updated: data.deck_updated
+      }
+      setHistory([...newHistory, assistantMsg])
       setTokens(data.tokens_remaining)
       if (user) user.tokens = data.tokens_remaining
-    } catch { setError(tr.errorGeneric) }
+
+      if (data.deck_updated && data.deck?.cards) {
+        setCurrentDeck(data.deck)
+        setSaveStatus(null)
+      }
+    } catch {
+      setError(t.errorGeneric)
+      setHistory(history)
+    }
     setLoading(false)
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  const handleReset = () => {
+    setHistory([])
+    setCurrentDeck(null)
+    setSaveStatus(null)
+    setError(null)
+  }
+
   const handleSave = async () => {
-    if (!result?.deck) return
-    const deck = result.deck
-    setSaving(true); setSaveStatus(null)
+    if (!currentDeck?.cards?.length) return
+    setSaving(true)
+    setSaveStatus(null)
     try {
-      const cards = (deck.cards || []).map(c => ({
+      const cards = currentDeck.cards.map(c => ({
         card_name: c.card_name,
         quantity: c.quantity,
         card_type: c.category || null,
@@ -248,12 +207,12 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: deck.deck_name || 'AI Generated Deck',
-          description: deck.deck_description || description,
-          format: deck.format || format || null,
-          colors: deck.colors || (selectedColors.join('') || null),
-          archetype: deck.archetype || null,
-          source: 'ai_builder',
+          name: currentDeck.deck_name || 'AI Built Deck',
+          description: currentDeck.deck_description || currentDeck.strategy_notes || '',
+          format: currentDeck.format || format || null,
+          colors: currentDeck.colors || colors || null,
+          archetype: currentDeck.archetype || null,
+          source: 'ai_chat_build',
           is_public: false,
           collection_ids: [],
           cards,
@@ -263,345 +222,214 @@ function AIDeckBuilder({ user, onBack, language, onSaved }) {
         setSaveStatus('saved')
         setTimeout(() => { if (onSaved) onSaved() }, 800)
       } else {
-        const err = await res.json()
-        console.error('Save error:', err)
         setSaveStatus('error')
       }
-    } catch { setSaveStatus('error') }
+    } catch {
+      setSaveStatus('error')
+    }
     setSaving(false)
   }
 
-  const copyList = () => {
-    if (!result?.deck?.cards) return
-    const main = result.deck.cards.map(c => `${c.quantity}x ${c.card_name}`).join('\n')
-    const side = result.deck.sideboard?.length
-      ? '\n\nSideboard:\n' + result.deck.sideboard.map(c => `${c.quantity}x ${c.card_name}`).join('\n')
-      : ''
-    navigator.clipboard.writeText(main + side).then(() => {
-      setCopied(true); setTimeout(() => setCopied(false), 2000)
+  const handleCopy = () => {
+    if (!currentDeck?.cards?.length) return
+    const lines = currentDeck.cards.map(c => `${c.quantity} ${c.card_name}`).join('\n')
+    navigator.clipboard.writeText(lines).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     })
   }
 
-  const getFilteredCards = (cards) => {
-    if (!cards) return []
-    let list = filterCat === 'all' ? cards : cards.filter(c => c.category === filterCat)
-    if (sortMode === 'category') {
-      list = [...list].sort((a, b) => (CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category)) || a.card_name.localeCompare(b.card_name))
-    } else {
-      list = [...list].sort((a, b) => b.quantity - a.quantity)
-    }
-    return list
-  }
-
-  const deck = result?.deck
-  const mainCards = deck?.cards || []
-  const sideCards = deck?.sideboard || []
-  const totalMain = mainCards.reduce((s, c) => s + (c.quantity || 0), 0)
-  const totalSide = sideCards.reduce((s, c) => s + (c.quantity || 0), 0)
-
-  const categoryCounts = mainCards.reduce((acc, c) => {
-    acc[c.category] = (acc[c.category] || 0) + c.quantity
-    return acc
-  }, {})
+  const totalCards = currentDeck?.cards?.reduce((s, c) => s + (c.quantity || 0), 0) || 0
 
   return (
-    <div className="ai-deck-builder">
-      <div className="adb-header">
-        <button onClick={onBack} className="adb-back-btn">← {tr.back}</button>
-        <div className="adb-header-content">
-          <h1>{tr.title}</h1>
-          <p className="adb-subtitle">{tr.subtitle}</p>
+    <div className="ai-deck-boost">
+      {/* Header */}
+      <div className="abb-header">
+        <button onClick={onBack} className="abb-back-btn">← {t.back}</button>
+        <div className="abb-header-content">
+          <h1>{t.title}</h1>
+          <p className="abb-subtitle">{t.subtitle}</p>
         </div>
-        <div className="adb-token-badge">🪙 {tokens}</div>
+        <div className="abb-token-badge">🪙 {tokens}</div>
       </div>
 
-      {error && <div className="adb-error">⚠️ {error}</div>}
+      {error && <div className="abb-error">⚠️ {error}</div>}
 
-      <div className="adb-layout">
-        {/* LEFT — Input */}
-        <div className="adb-input-panel">
-          <div className="adb-section">
-            <label className="adb-section-title">✍️ {tr.descLabel}</label>
-            <textarea
-              className="adb-textarea"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder={tr.descPlaceholder}
-              rows={6}
+      <div className="abb-layout">
+        {/* Pannello sinistro */}
+        <div className="abb-deck-panel">
+          {/* Formato e colori */}
+          <div>
+            <p className="abb-panel-title">{t.formatLabel}</p>
+            <select
+              className="abb-deck-select"
+              value={format}
+              onChange={e => setFormat(e.target.value)}
+            >
+              <option value="">— {language === 'it' ? 'Qualsiasi' : 'Any'} —</option>
+              {['Standard','Pioneer','Modern','Legacy','Vintage','Commander','Pauper','Draft'].map(f => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <p className="abb-panel-title">{t.colorsLabel}</p>
+            <input
+              className="abb-deck-select"
+              type="text"
+              value={colors}
+              onChange={e => setColors(e.target.value.toUpperCase())}
+              placeholder="WU, BRG, WUBRG..."
+              maxLength={5}
             />
-            <div className="adb-char-count">{description.length} / 1000</div>
           </div>
 
-          <div className="adb-section">
-            <h2 className="adb-section-title">⚙️ {language === 'it' ? 'Opzioni' : 'Options'}</h2>
-            <div className="adb-options-grid">
-              <div className="adb-option-group">
-                <label className="adb-label">{tr.format}</label>
-                <select className="adb-select" value={format} onChange={e => {
-                  setFormat(e.target.value)
-                  if (e.target.value === 'commander' || e.target.value === 'brawl') setDeckSize(100)
-                  else setDeckSize(60)
-                }}>
-                  <option value="">{tr.formatAny}</option>
-                  {FORMATS.map(f => <option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</option>)}
-                </select>
-              </div>
-              <div className="adb-option-group">
-                <label className="adb-label">{tr.budget}</label>
-                <select className="adb-select" value={budget} onChange={e => setBudget(e.target.value)}>
-                  {BUDGETS.map(b => <option key={b.value} value={b.value}>{b.label[language] || b.label.en}</option>)}
-                </select>
-              </div>
-              <div className="adb-option-group">
-                <label className="adb-label">{tr.deckSize}</label>
-                <select className="adb-select" value={deckSize} onChange={e => setDeckSize(Number(e.target.value))}>
-                  <option value={60}>60 {language === 'it' ? 'carte (Standard)' : 'cards (Standard)'}</option>
-                  <option value={100}>100 {language === 'it' ? 'carte (Commander)' : 'cards (Commander)'}</option>
-                </select>
-              </div>
-            </div>
-            <div className="adb-option-group adb-colors-group">
-              <label className="adb-label">{tr.colors}</label>
-              <div className="adb-color-pills">
-                {COLOR_OPTIONS.map(c => (
-                  <button
-                    key={c.code}
-                    className={`adb-color-pill ${selectedColors.includes(c.code) ? 'active' : ''}`}
-                    onClick={() => toggleColor(c.code)}
-                    title={c.name[language] || c.name.en}
-                  >
-                    {c.symbol} {c.code}
-                  </button>
-                ))}
-                {selectedColors.length > 0 && (
-                  <button className="adb-color-clear" onClick={() => setSelectedColors([])}>✕</button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Collection filter */}
+          {/* Collezione opzionale */}
           {collections.length > 0 && (
-            <div className="adb-collection-filter">
-              <label className="adb-collection-check">
-                <input
-                  type="checkbox"
-                  checked={useFullCollection}
-                  onChange={e => setUseFullCollection(e.target.checked)}
-                />
-                <span>
-                  🔍 {language === 'it' ? 'Analizza collezione completa' : 'Analyze full collection'}
-                  {fullCollectionCost ? (
-                    <span className="adb-cost-badge adb-cost-variable">
-                      🪙 {fullCollectionCost.token_cost}
-                      <span className="adb-cost-detail">
-                        ({fullCollectionCost.total_cards} {language === 'it' ? 'carte' : 'cards'})
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="adb-cost-badge adb-cost-variable">🪙 30</span>
-                  )}
-                </span>
-              </label>
-              {useFullCollection && (
-                <select
-                  className="adb-select adb-collection-select"
-                  value={selectedCollectionId || ''}
-                  onChange={e => setSelectedCollectionId(Number(e.target.value))}
-                >
-                  {collections.map(col => (
-                    <option key={col.id} value={col.id}>
-                      {col.name} ({col.total_cards} {language === 'it' ? 'carte' : 'cards'})
-                    </option>
-                  ))}
-                </select>
+            <div className="abb-collection-section">
+              <p className="abb-panel-title">{t.collectionLabel}</p>
+              <select
+                className="abb-deck-select"
+                value={selectedCollectionId || ''}
+                onChange={e => {
+                  setSelectedCollectionId(e.target.value ? Number(e.target.value) : null)
+                  setHistory([])
+                }}
+              >
+                <option value="">{t.collectionNone}</option>
+                {collections.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.total_cards} {language === 'it' ? 'carte' : 'cards'})
+                  </option>
+                ))}
+              </select>
+              {selectedCollectionId && (
+                <p className="abb-collection-hint">{t.collectionHint}</p>
               )}
             </div>
           )}
 
-          <button
-            className="adb-build-btn"
-            onClick={handleBuild}
-            disabled={loading || description.trim().length < 10}
-          >
-            {loading
-              ? <span className="adb-btn-loading"><span className="adb-spinner"></span>{tr.building}</span>
-              : tr.buildBtn
-            }
-          </button>
+          {/* Mazzo generato */}
+          <p className="abb-panel-title">🃏 {t.deckPanel}</p>
+          <div className="abb-card-list">
+            {(currentDeck?.cards || []).map((card, i) => (
+              <div
+                key={i}
+                className="abb-card-row"
+                onClick={() => setPreviewCard(card.card_name)}
+                title={card.card_name}
+              >
+                <span className="abb-card-qty">{card.quantity}x</span>
+                <span
+                  className="abb-card-dot"
+                  style={{ background: CATEGORY_COLORS[card.category] || CATEGORY_COLORS.Other }}
+                />
+                <span className="abb-card-name">{card.card_name}</span>
+              </div>
+            ))}
+          </div>
+          {totalCards > 0 && (
+            <div className="abb-card-total">{totalCards} {t.totalCards}</div>
+          )}
 
-          {/* Examples */}
-          {!result && !loading && (
-            <div className="adb-examples">
-              <p className="adb-examples-title">{tr.exampleTitle}</p>
-              {(EXAMPLES[language] || EXAMPLES.en).map((ex, i) => (
-                <button key={i} className="adb-example-btn" onClick={() => setDescription(ex)}>
-                  💡 {ex}
+          {/* Azioni */}
+          <div className="abb-deck-actions">
+            {currentDeck?.cards?.length > 0 && (
+              <>
+                <button
+                  className={`abb-save-btn ${saveStatus === 'saved' ? 'saved' : saveStatus === 'error' ? 'error' : ''}`}
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? t.saving : saveStatus === 'saved' ? t.saved : saveStatus === 'error' ? t.saveError : t.saveBtn}
                 </button>
-              ))}
-            </div>
-          )}
-
-          {/* Category breakdown */}
-          {deck && (
-            <div className="adb-breakdown">
-              {CATEGORY_ORDER.filter(cat => categoryCounts[cat]).map(cat => (
-                <div key={cat} className="adb-breakdown-row">
-                  <span className="adb-breakdown-dot" style={{ background: CATEGORY_COLORS[cat] }}></span>
-                  <span className="adb-breakdown-cat">{cat}</span>
-                  <span className="adb-breakdown-count">{categoryCounts[cat]}</span>
-                </div>
-              ))}
-            </div>
-          )}
+                <button
+                  className="abb-save-btn"
+                  style={{ background: '#475569' }}
+                  onClick={handleCopy}
+                >
+                  {copied ? t.copied : t.copyList}
+                </button>
+              </>
+            )}
+            {history.length > 0 && (
+              <button className="abb-reset-btn" onClick={handleReset}>
+                {t.resetBtn}
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* RIGHT — Results */}
-        <div className="adb-results-panel">
-          {loading && (
-            <div className="adb-loading-state">
-              <div className="adb-loading-spinner"></div>
-              <p>🏗️ {tr.building}</p>
-              <p className="adb-loading-sub">{tr.buildingSub}</p>
-            </div>
-          )}
-
-          {!loading && !result && (
-            <div className="adb-empty-state">
-              <div className="adb-empty-icon">🏗️</div>
-              <p>{tr.noResult}</p>
-            </div>
-          )}
-
-          {!loading && deck && (
-            <div className="adb-result-content">
-              {/* Deck header */}
-              <div className="adb-deck-header">
-                <div className="adb-deck-title-row">
-                  <h2 className="adb-deck-name">{deck.deck_name}</h2>
-                  <div className="adb-deck-actions">
-                    <button className="adb-copy-btn" onClick={copyList}>{copied ? tr.copied : tr.copyList}</button>
-                    <button
-                      className={`adb-save-btn ${saveStatus === 'saved' ? 'saved' : saveStatus === 'error' ? 'error' : ''}`}
-                      onClick={handleSave}
-                      disabled={saving || saveStatus === 'saved'}
-                    >
-                      {saving ? tr.saving : saveStatus === 'saved' ? tr.saved : saveStatus === 'error' ? tr.saveError : tr.saveBtn}
-                    </button>
-                  </div>
+        {/* Pannello centrale: chat */}
+        <div className="abb-chat-panel">
+          <div className="abb-messages">
+            {history.length === 0 && !loading && (
+              <div className="abb-empty-chat">
+                <div className="abb-empty-icon">🏗️</div>
+                <p>{t.emptyChat}</p>
+              </div>
+            )}
+            {history.map((msg, i) => (
+              <div key={i} className={`abb-msg ${msg.role}`}>
+                <div className="abb-msg-avatar">
+                  {msg.role === 'user' ? '👤' : '🤖'}
                 </div>
-                <p className="adb-deck-desc">{deck.deck_description}</p>
-                <div className="adb-deck-meta">
-                  {deck.format && <span className="adb-meta-tag">📋 {deck.format}</span>}
-                  {deck.archetype && <span className="adb-meta-tag">⚔️ {deck.archetype}</span>}
-                  {deck.colors && <span className="adb-meta-tag">🎨 {deck.colors}</span>}
-                  {deck.estimated_budget && <span className="adb-meta-tag">💰 {deck.estimated_budget}</span>}
+                <div>
+                  <div className="abb-msg-bubble">{msg.content}</div>
+                  {msg.deck_updated && (
+                    <span className="abb-msg-modified-badge">{t.deckUpdated}</span>
+                  )}
                 </div>
               </div>
-
-              {/* Arena availability banner */}
-              {result?.arena_check && result?.arena_unavailable?.length > 0 && (
-                <div className="adb-arena-warning">
-                  <div className="adb-arena-warning-title">{tr.arenaUnavailableTitle}</div>
-                  <p className="adb-arena-warning-desc">{tr.arenaUnavailableDesc}</p>
-                  <div className="adb-arena-unavailable-list">
-                    {result.arena_unavailable.map((name, i) => (
-                      <span key={i} className="adb-arena-unavail-tag" onClick={() => setPreviewCard(name)}>{name}</span>
-                    ))}
-                  </div>
+            ))}
+            {loading && (
+              <div className="abb-msg assistant">
+                <div className="abb-msg-avatar">🤖</div>
+                <div className="abb-typing">
+                  <span /><span /><span />
                 </div>
-              )}
-              {result?.arena_check && result?.arena_unavailable?.length === 0 && (
-                <div className="adb-arena-ok">{tr.arenaCheckNote}</div>
-              )}
-
-              {/* Strategy */}
-              {deck.strategy_notes && (
-                <div className="adb-strategy-card">
-                  <h3>🧠 {tr.strategy}</h3>
-                  <p>{deck.strategy_notes}</p>
-                </div>
-              )}
-
-              {/* Key cards */}
-              {deck.key_cards?.length > 0 && (
-                <div className="adb-key-cards">
-                  <h3>⭐ {tr.keyCards}</h3>
-                  <div className="adb-key-tags">
-                    {deck.key_cards.map((name, i) => (
-                      <button key={i} className="adb-key-tag adb-key-tag-btn" onClick={() => setPreviewCard(name)}>
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Tabs: main / sideboard */}
-              <div className="adb-tabs">
-                <button
-                  className={`adb-tab ${activeTab === 'main' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('main')}
-                >
-                  {tr.mainDeck} ({totalMain} {tr.totalCards})
-                </button>
-                {sideCards.length > 0 && (
-                  <button
-                    className={`adb-tab ${activeTab === 'sideboard' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('sideboard')}
-                  >
-                    {tr.sideboard} ({totalSide})
-                  </button>
-                )}
               </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
-              {/* Controls */}
-              {activeTab === 'main' && (
-                <div className="adb-controls-bar">
-                  <div className="adb-filter-group">
-                    <button className={`adb-filter-btn ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>{tr.filterAll}</button>
-                    {CATEGORY_ORDER.filter(cat => categoryCounts[cat]).map(cat => (
-                      <button
-                        key={cat}
-                        className={`adb-filter-btn ${filterCat === cat ? 'active' : ''}`}
-                        style={filterCat === cat ? { borderColor: CATEGORY_COLORS[cat], color: CATEGORY_COLORS[cat] } : {}}
-                        onClick={() => setFilterCat(cat)}
-                      >
-                        <span className="adb-filter-dot" style={{ background: CATEGORY_COLORS[cat] }}></span>
-                        {cat} ({categoryCounts[cat]})
-                      </button>
-                    ))}
-                  </div>
-                  <select className="adb-mini-select" value={sortMode} onChange={e => setSortMode(e.target.value)}>
-                    <option value="category">{tr.sortByCategory}</option>
-                    <option value="quantity">{tr.sortByQuantity}</option>
-                  </select>
-                </div>
-              )}
+          <div className="abb-cost-hint">{t.costHint}</div>
+          <div className="abb-input-area">
+            <textarea
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t.placeholder}
+              rows={2}
+              disabled={loading}
+            />
+            <button
+              className="abb-send-btn"
+              onClick={handleSend}
+              disabled={loading || !message.trim()}
+            >
+              {loading ? t.sending : t.sendBtn}
+            </button>
+          </div>
+        </div>
 
-              {/* Card list */}
-              <div className="adb-card-list">
-                {activeTab === 'main'
-                  ? getFilteredCards(mainCards).map((card, i) => (
-                      <CardRow key={i} card={card} onPreview={setPreviewCard} />
-                    ))
-                  : sideCards.map((card, i) => (
-                      <CardRow key={i} card={card} onPreview={setPreviewCard} />
-                    ))
-                }
-              </div>
-
-              {/* Upgrade path */}
-              {deck.upgrade_path && (
-                <div className="adb-upgrade-card">
-                  <h3>📈 {tr.upgradePath}</h3>
-                  <p>{deck.upgrade_path}</p>
-                </div>
-              )}
-            </div>
-          )}
+        {/* Pannello destro: suggerimenti */}
+        <div className="abb-suggestions-panel">
+          <p className="abb-panel-title">{t.suggestionsTitle}</p>
+          {(SUGGESTIONS[language] || SUGGESTIONS.en).map((s, i) => (
+            <button
+              key={i}
+              className="abb-suggestion-btn"
+              onClick={() => setMessage(s.replace(/^[^\s]+ /, ''))}
+              disabled={loading}
+            >
+              {s}
+            </button>
+          ))}
         </div>
       </div>
+
       {previewCard && (
         <CardPreviewModal
           cardName={previewCard}
