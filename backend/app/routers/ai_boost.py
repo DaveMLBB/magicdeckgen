@@ -77,13 +77,13 @@ async def boost_deck(
         tokens_to_consume=BOOST_TOKEN_COST
     )
 
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if not groq_api_key:
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
         raise HTTPException(status_code=503, detail="Servizio AI non configurato")
 
     try:
         from openai import AsyncOpenAI
-        client = AsyncOpenAI(api_key=groq_api_key, base_url="https://api.groq.com/openai/v1")
+        client = AsyncOpenAI(api_key=openai_api_key)
     except ImportError:
         raise HTTPException(status_code=503, detail="Libreria OpenAI non installata")
 
@@ -156,7 +156,7 @@ Se deck_modified è false, updated_deck può essere null."""
 
     try:
         response = await client.chat.completions.create(
-            model="moonshotai/kimi-k2-instruct-0905",
+            model="gpt-5.4-pro",
             messages=messages,
             temperature=0.7,
             max_tokens=3000,

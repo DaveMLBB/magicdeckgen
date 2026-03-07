@@ -703,6 +703,7 @@ function CardSearch({ user, onBack, language, onLimitError, initialQuery }) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchQuery.length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
               placeholder={t.searchPlaceholder}
               className="search-input"
               autoComplete="off"
@@ -713,6 +714,7 @@ function CardSearch({ user, onBack, language, onLimitError, initialQuery }) {
                   <div 
                     key={card.uuid}
                     className="suggestion-item"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => selectSuggestion(card.name)}
                   >
                     <div className="suggestion-name-wrapper">
