@@ -158,16 +158,25 @@ Se deck_modified è false, updated_deck può essere null."""
         response = await client.chat.completions.create(
             model="gpt-5.1-nano",
             messages=messages,
-            max_completion_tokens=3000,
-            response_format={"type": "json_object"}
+            max_completion_tokens=3000
         )
         raw = response.choices[0].message.content
-        print(f"🔍 GPT-5.1-nano raw response: {raw[:200] if raw else 'EMPTY'}")
+        print(f"🔍 GPT-5.1-nano raw response: {raw[:300] if raw else 'EMPTY'}")
         
         if not raw or not raw.strip():
             raise ValueError("GPT-5.1-nano returned empty response")
         
-        result = json.loads(raw)
+        # Estrai JSON dalla risposta (potrebbe avere testo prima/dopo)
+        try:
+            result = json.loads(raw)
+        except json.JSONDecodeError:
+            # Cerca blocco JSON nella risposta
+            import re
+            json_match = re.search(r'\{.*\}', raw, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group(0))
+            else:
+                raise ValueError(f"No valid JSON found in response: {raw[:200]}")
 
         assistant_message = result.get("message", "")
         deck_modified = result.get("deck_modified", False)
