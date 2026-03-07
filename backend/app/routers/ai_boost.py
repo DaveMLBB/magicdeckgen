@@ -159,11 +159,11 @@ Se deck_modified è false, updated_deck può essere null."""
             model="gpt-5.1",
             messages=messages,
             temperature=0.7,
-            max_tokens=3000,
+            max_completion_tokens=10000,
             response_format={"type": "json_object"}
         )
         raw = response.choices[0].message.content
-        print(f"🔍 GPT-4o raw response: {raw[:300] if raw else 'EMPTY'}")
+        print(f"🔍 GPT-5.1 raw response: {raw[:300] if raw else 'EMPTY'}")
         
         if not raw or not raw.strip():
             raise ValueError("GPT-5.1-nano returned empty response")
