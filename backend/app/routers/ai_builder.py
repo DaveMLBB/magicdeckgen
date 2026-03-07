@@ -1466,7 +1466,7 @@ Se deck_updated è false, deck può essere null."""
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-5.4-pro",
+            model="gpt-5.1",
             messages=messages,
             temperature=0.7,
             max_tokens=4000,
