@@ -1352,3 +1352,146 @@ def get_deck_stats(
         "archetype": deck.archetype,
         "stats": stats
     }
+
+# ── Chat Build Deck ──
+MAX_COLLECTION_CARDS_CHAT = 300
+CHAT_BUILD_TOKEN_COST = 5
+
+class ChatBuildMessage(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+class ChatBuildDeckInput(BaseModel):
+    user_id: int
+    message: str
+    history: List[ChatBuildMessage] = []
+    collection_id: Optional[int] = None
+    format: Optional[str] = None
+    colors: Optional[str] = None
+
+@router.post("/chat-build-deck")
+async def chat_build_deck(
+    input_data: ChatBuildDeckInput,
+    language: str = "it",
+    db: Session = Depends(get_db)
+):
+    """
+    Costruisce o modifica un mazzo tramite chat AI con memoria della sessione.
+    Costo: 5 token per messaggio.
+    """
+    user = db.query(User).filter(User.id == input_data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    check_ai_rate_limit(input_data.user_id)
+
+    if not input_data.message or len(input_data.message.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Messaggio troppo corto")
+
+    from app.routers.tokens import consume_token
+    consume_token(user, 'ai_chat_build', f'AI Chat Build: {input_data.message[:50]}', db, tokens_to_consume=CHAT_BUILD_TOKEN_COST)
+
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise HTTPException(status_code=503, detail="AI service not configured")
+
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=openai_api_key)
+    except ImportError:
+        raise HTTPException(status_code=503, detail="OpenAI library not installed")
+
+    lang_label = "Italian (italiano)" if language == "it" else "English"
+
+    # Carica la collezione se fornita (max 300 carte)
+    collection_constraint = ""
+    if input_data.collection_id:
+        from app.models import Card, CardCollection
+        collection = db.query(CardCollection).filter(
+            CardCollection.id == input_data.collection_id,
+            CardCollection.user_id == input_data.user_id
+        ).first()
+        if collection:
+            coll_cards = db.query(Card).filter(
+                Card.collection_id == input_data.collection_id
+            ).order_by(Card.quantity_owned.desc()).limit(MAX_COLLECTION_CARDS_CHAT).all()
+            if coll_cards:
+                card_list = ", ".join(f"{c.name} (x{c.quantity_owned})" for c in coll_cards)
+                collection_constraint = f"""
+
+VINCOLO COLLEZIONE (OBBLIGATORIO):
+Usa SOLO le carte della collezione "{collection.name}" (max {MAX_COLLECTION_CARDS_CHAT} per quantità).
+Carte disponibili: {card_list}
+- Le terre base sono sempre permesse anche se non in lista
+- Rispetta i limiti di quantità (xN)"""
+
+    format_line = f"Formato: {input_data.format}" if input_data.format else ""
+    colors_line = f"Colori: {input_data.colors}" if input_data.colors else ""
+    constraints = "\n".join(filter(None, [format_line, colors_line]))
+
+    system_prompt = f"""Sei un esperto costruttore di mazzi Magic: The Gathering. Aiuti l'utente a costruire mazzi tramite conversazione.
+
+ISTRUZIONI:
+- Rispondi SEMPRE in {lang_label}
+- Quando l'utente descrive un mazzo o chiede modifiche, costruisci/aggiorna il mazzo e restituiscilo nel JSON
+- Se l'utente fa domande generali su MTG, rispondi senza aggiornare il mazzo
+- Mantieni la coerenza con i messaggi precedenti della conversazione
+- Spiega le tue scelte in modo chiaro e conciso
+{constraints}{collection_constraint}
+
+Rispondi SEMPRE con JSON valido in questo formato:
+{{
+  "message": "La tua risposta testuale qui",
+  "deck_updated": true/false,
+  "deck": {{
+    "deck_name": "nome",
+    "deck_description": "descrizione strategia",
+    "format": "formato",
+    "colors": "identità colore (es. WU, BRG)",
+    "archetype": "archetipo",
+    "strategy_notes": "note strategia",
+    "cards": [
+      {{"card_name": "Nome Carta", "quantity": 4, "category": "Creature|Spell|Enchantment|Artifact|Planeswalker|Land|Other", "role": "ruolo"}}
+    ],
+    "key_cards": ["Carta1", "Carta2"]
+  }}
+}}
+
+Se deck_updated è false, deck può essere null."""
+
+    messages = [{"role": "system", "content": system_prompt}]
+    for msg in input_data.history:
+        messages.append({"role": msg.role, "content": msg.content})
+    messages.append({"role": "user", "content": input_data.message.strip()})
+
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-5.4-pro",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=4000,
+            response_format={"type": "json_object"}
+        )
+        result = json.loads(response.choices[0].message.content)
+
+        deck_updated = result.get("deck_updated", False)
+        deck = result.get("deck")
+
+        if deck_updated and deck and deck.get("cards"):
+            deck = enforce_deck_size(deck, input_data.format, input_data.colors)
+
+        print(f"✅ Chat Build Deck: deck_updated={deck_updated}, msg={result.get('message','')[:60]}")
+
+        return {
+            "assistant_message": result.get("message", ""),
+            "deck_updated": deck_updated,
+            "deck": deck,
+            "tokens_remaining": user.tokens
+        }
+
+    except Exception as e:
+        err_str = str(e)
+        print(f"❌ Chat Build Deck failed: {err_str}")
+        if '413' in err_str or 'rate_limit_exceeded' in err_str:
+            raise HTTPException(status_code=503, detail="DEMO_RATE_LIMIT")
+        raise HTTPException(status_code=503, detail=f"AI error: {err_str}")

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './AIBuilder.css'
 import './AIBuilder-combos.css'
 
@@ -17,6 +17,19 @@ function AIBuilder({ user, onBack, language }) {
   const [error, setError] = useState(null)
   const [mobileTab, setMobileTab] = useState('analysis') // 'analysis' or 'chat'
 
+  // Chat Build Deck states
+  const [mainView, setMainView] = useState('optimize') // 'optimize' | 'chat-build'
+  const [chatHistory, setChatHistory] = useState([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+  const [chatDeck, setChatDeck] = useState(null)
+  const [chatCollections, setChatCollections] = useState([])
+  const [chatCollectionId, setChatCollectionId] = useState(null)
+  const [chatFormat, setChatFormat] = useState('')
+  const [chatColors, setChatColors] = useState('')
+  const [tokens, setTokens] = useState(user?.tokens || 0)
+  const chatEndRef = useRef(null)
+
   console.log('🤖 AI Builder component mounted/updated', { 
     userId: user?.userId, 
     hasUser: !!user,
@@ -24,42 +37,76 @@ function AIBuilder({ user, onBack, language }) {
   })
 
   useEffect(() => {
-    console.log('🤖 AI Builder useEffect triggered', { 
-      userId: user?.userId, 
-      hasUser: !!user,
-      hasId: !!(user?.userId)
-    })
     if (user && user.userId) {
-      console.log('🤖 AI Builder: User is ready, loading decks...')
       loadUserDecks()
-    } else {
-      console.log('🤖 AI Builder: User not ready yet. User object:', user)
+      loadCollections()
     }
   }, [user])
 
-  const loadUserDecks = async () => {
-    if (!user || !user.userId) {
-      console.log('AI Builder: User not loaded yet')
-      return
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatHistory])
+
+  const loadCollections = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/collections/user/${user.userId}`)
+      const data = await res.json()
+      setChatCollections(data.collections || [])
+    } catch (err) {
+      console.error('Error loading collections:', err)
     }
-    
-    console.log('AI Builder: Loading decks for user', user.userId)
+  }
+
+  const handleChatSend = async () => {
+    if (!chatInput.trim() || chatLoading) return
+    const userMsg = chatInput.trim()
+    setChatInput('')
+    const newHistory = [...chatHistory, { role: 'user', content: userMsg }]
+    setChatHistory(newHistory)
+    setChatLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/api/ai/chat-build-deck?language=${language}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.userId,
+          message: userMsg,
+          history: chatHistory,
+          collection_id: chatCollectionId || null,
+          format: chatFormat || null,
+          colors: chatColors || null
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        const errMsg = data.detail === 'DEMO_RATE_LIMIT'
+          ? '⚠️ Limite richieste AI raggiunto. Riprova tra poco.'
+          : data.detail || 'Errore AI'
+        setChatHistory([...newHistory, { role: 'assistant', content: errMsg }])
+      } else {
+        setChatHistory([...newHistory, { role: 'assistant', content: data.assistant_message }])
+        if (data.deck_updated && data.deck) setChatDeck(data.deck)
+        if (data.tokens_remaining !== undefined) {
+          setTokens(data.tokens_remaining)
+          if (user) user.tokens = data.tokens_remaining
+        }
+      }
+    } catch (err) {
+      setChatHistory([...newHistory, { role: 'assistant', content: 'Errore di connessione. Riprova.' }])
+    }
+    setChatLoading(false)
+  }
+
+  const loadUserDecks = async () => {
+    if (!user || !user.userId) return
     setLoading(true)
     setError(null)
     try {
       const res = await fetch(`${API_URL}/api/saved-decks/user/${user.userId}?page=1&page_size=100`)
-      console.log('AI Builder: Response status', res.status)
-      if (!res.ok) {
-        throw new Error('Failed to load decks')
-      }
+      if (!res.ok) throw new Error('Failed to load decks')
       const data = await res.json()
-      console.log('AI Builder: Full API response:', data)
-      console.log('AI Builder: Loaded decks count:', data.decks?.length || 0)
-      console.log('AI Builder: First deck example:', data.decks?.[0])
-      console.log('AI Builder: Total from API:', data.total)
       setDecks(data.decks || [])
     } catch (err) {
-      console.error('AI Builder: Error loading decks:', err)
       setError('Errore nel caricamento dei mazzi')
     }
     setLoading(false)
@@ -150,8 +197,10 @@ function AIBuilder({ user, onBack, language }) {
 
   const translations = {
     en: {
-      title: 'AI Deck Analysis',
+      title: 'AI Deck Builder',
       subtitle: 'Optimize your decks with AI-powered suggestions',
+      tabOptimize: '📊 Optimize Deck',
+      tabChatBuild: '✨ Build with AI',
       selectDeck: 'Select a deck to optimize',
       noDeck: 'No decks found. Create a deck first!',
       deckStats: 'Deck Statistics',
@@ -162,42 +211,34 @@ function AIBuilder({ user, onBack, language }) {
       typeDistribution: 'Type Distribution',
       colorDistribution: 'Color Distribution',
       optimizationGoal: 'Optimization Goal',
-      balanced: 'Balanced',
-      aggressive: 'Aggressive',
-      defensive: 'Defensive/Control',
-      midrange: 'Midrange',
-      combo: 'Combo-Focused',
-      tempo: 'Tempo',
-      ramp: 'Ramp/Acceleration',
-      tribal: 'Tribal Synergy',
-      budget: 'Budget-Friendly',
-      competitive: 'Competitive/cEDH',
-      casual: 'Casual/Fun',
-      thematic: 'Thematic/Flavor',
-      voltron: 'Voltron',
-      tokens: 'Token Strategy',
-      graveyard: 'Graveyard Synergy',
-      artifacts: 'Artifact-Focused',
-      enchantments: 'Enchantment-Focused',
-      spellslinger: 'Spellslinger',
-      landfall: 'Landfall',
-      lifegain: 'Lifegain',
-      analyzeButton: 'Analyze Deck (2 🪙)',
-      analyzing: 'Analyzing...',
-      aiSuggestions: 'AI Suggestions',
-      overallAssessment: 'Overall Assessment',
-      manaCurveAnalysis: 'Mana Curve Analysis',
-      synergyEvaluation: 'Synergy Evaluation',
-      cardSuggestions: 'Card Suggestions',
-      strategicRecommendations: 'Strategic Recommendations',
-      priority: 'Priority',
-      action: 'Action',
-      reason: 'Reason',
-      back: 'Back'
+      balanced: 'Balanced', aggressive: 'Aggressive', defensive: 'Defensive/Control',
+      midrange: 'Midrange', combo: 'Combo-Focused', tempo: 'Tempo',
+      ramp: 'Ramp/Acceleration', tribal: 'Tribal Synergy', budget: 'Budget-Friendly',
+      competitive: 'Competitive/cEDH', casual: 'Casual/Fun', thematic: 'Thematic/Flavor',
+      voltron: 'Voltron', tokens: 'Token Strategy', graveyard: 'Graveyard Synergy',
+      artifacts: 'Artifact-Focused', enchantments: 'Enchantment-Focused',
+      spellslinger: 'Spellslinger', landfall: 'Landfall', lifegain: 'Lifegain',
+      analyzeButton: 'Analyze Deck (2 🪙)', analyzing: 'Analyzing...',
+      aiSuggestions: 'AI Suggestions', overallAssessment: 'Overall Assessment',
+      manaCurveAnalysis: 'Mana Curve Analysis', synergyEvaluation: 'Synergy Evaluation',
+      cardSuggestions: 'Card Suggestions', strategicRecommendations: 'Strategic Recommendations',
+      priority: 'Priority', action: 'Action', reason: 'Reason', back: 'Back',
+      chatPlaceholder: 'Describe the deck you want to build...',
+      chatSend: 'Send',
+      chatWelcome: 'Hi! Describe the deck you want to build. You can specify format, colors, strategy, or ask me to build from your collection.',
+      chatFormat: 'Format (optional)',
+      chatColors: 'Colors (optional)',
+      chatCollection: 'Collection (optional)',
+      chatCollectionNone: 'None — any card',
+      chatDeckReady: '✅ Deck generated',
+      chatTokenCost: '5 🪙 per message',
+      chatReset: 'New conversation',
     },
     it: {
-      title: 'AI Deck Analysis',
+      title: 'AI Deck Builder',
       subtitle: 'Ottimizza i tuoi mazzi con suggerimenti AI',
+      tabOptimize: '📊 Ottimizza Mazzo',
+      tabChatBuild: '✨ Crea con AI',
       selectDeck: 'Seleziona un mazzo da ottimizzare',
       noDeck: 'Nessun mazzo trovato. Crea prima un mazzo!',
       deckStats: 'Statistiche Mazzo',
@@ -208,38 +249,28 @@ function AIBuilder({ user, onBack, language }) {
       typeDistribution: 'Distribuzione Tipi',
       colorDistribution: 'Distribuzione Colori',
       optimizationGoal: 'Obiettivo Ottimizzazione',
-      balanced: 'Bilanciato',
-      aggressive: 'Aggressivo',
-      defensive: 'Difensivo/Controllo',
-      midrange: 'Midrange',
-      combo: 'Combo',
-      tempo: 'Tempo',
-      ramp: 'Ramp/Accelerazione',
-      tribal: 'Sinergia Tribale',
-      budget: 'Economico',
-      competitive: 'Competitivo/cEDH',
-      casual: 'Casual/Divertente',
-      thematic: 'Tematico/Flavor',
-      voltron: 'Voltron',
-      tokens: 'Strategia Token',
-      graveyard: 'Sinergia Cimitero',
-      artifacts: 'Focus Artefatti',
-      enchantments: 'Focus Incantesimi',
-      spellslinger: 'Spellslinger',
-      landfall: 'Landfall',
-      lifegain: 'Guadagno Vita',
-      analyzeButton: 'Analizza Mazzo (2 🪙)',
-      analyzing: 'Analisi in corso...',
-      aiSuggestions: 'Suggerimenti AI',
-      overallAssessment: 'Valutazione Generale',
-      manaCurveAnalysis: 'Analisi Curva di Mana',
-      synergyEvaluation: 'Valutazione Sinergie',
-      cardSuggestions: 'Suggerimenti Carte',
-      strategicRecommendations: 'Raccomandazioni Strategiche',
-      priority: 'Priorità',
-      action: 'Azione',
-      reason: 'Motivazione',
-      back: 'Indietro'
+      balanced: 'Bilanciato', aggressive: 'Aggressivo', defensive: 'Difensivo/Controllo',
+      midrange: 'Midrange', combo: 'Combo', tempo: 'Tempo',
+      ramp: 'Ramp/Accelerazione', tribal: 'Sinergia Tribale', budget: 'Economico',
+      competitive: 'Competitivo/cEDH', casual: 'Casual/Divertente', thematic: 'Tematico/Flavor',
+      voltron: 'Voltron', tokens: 'Strategia Token', graveyard: 'Sinergia Cimitero',
+      artifacts: 'Focus Artefatti', enchantments: 'Focus Incantesimi',
+      spellslinger: 'Spellslinger', landfall: 'Landfall', lifegain: 'Guadagno Vita',
+      analyzeButton: 'Analizza Mazzo (2 🪙)', analyzing: 'Analisi in corso...',
+      aiSuggestions: 'Suggerimenti AI', overallAssessment: 'Valutazione Generale',
+      manaCurveAnalysis: 'Analisi Curva di Mana', synergyEvaluation: 'Valutazione Sinergie',
+      cardSuggestions: 'Suggerimenti Carte', strategicRecommendations: 'Raccomandazioni Strategiche',
+      priority: 'Priorità', action: 'Azione', reason: 'Motivazione', back: 'Indietro',
+      chatPlaceholder: 'Descrivi il mazzo che vuoi costruire...',
+      chatSend: 'Invia',
+      chatWelcome: 'Ciao! Descrivi il mazzo che vuoi costruire. Puoi specificare formato, colori, strategia, o chiedermi di costruire dalla tua collezione.',
+      chatFormat: 'Formato (opzionale)',
+      chatColors: 'Colori (opzionale)',
+      chatCollection: 'Collezione (opzionale)',
+      chatCollectionNone: 'Nessuna — qualsiasi carta',
+      chatDeckReady: '✅ Mazzo generato',
+      chatTokenCost: '5 🪙 per messaggio',
+      chatReset: 'Nuova conversazione',
     }
   }
 
@@ -262,16 +293,139 @@ function AIBuilder({ user, onBack, language }) {
           <p className="subtitle">{t.subtitle}</p>
         </div>
         <div className="token-display">
-          🪙 {user?.tokens || 0}
+          🪙 {tokens}
         </div>
       </div>
 
-      {error && (
-        <div className="error-message">
-          ⚠️ {error}
+      {/* Main view tabs */}
+      <div className="main-view-tabs">
+        <button
+          className={`main-tab-btn ${mainView === 'optimize' ? 'active' : ''}`}
+          onClick={() => setMainView('optimize')}
+        >{t.tabOptimize}</button>
+        <button
+          className={`main-tab-btn ${mainView === 'chat-build' ? 'active' : ''}`}
+          onClick={() => setMainView('chat-build')}
+        >{t.tabChatBuild}</button>
+      </div>
+
+      {error && <div className="error-message">⚠️ {error}</div>}
+
+      {/* ── Chat Build Deck view ── */}
+      {mainView === 'chat-build' && (
+        <div className="chat-build-container">
+          {/* Filters bar */}
+          <div className="chat-build-filters">
+            <select
+              value={chatFormat}
+              onChange={e => setChatFormat(e.target.value)}
+              className="chat-filter-select"
+            >
+              <option value="">{t.chatFormat}</option>
+              {['standard','modern','legacy','vintage','commander','pioneer','pauper'].map(f => (
+                <option key={f} value={f}>{f.charAt(0).toUpperCase()+f.slice(1)}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={chatColors}
+              onChange={e => setChatColors(e.target.value.toUpperCase())}
+              placeholder={t.chatColors + ' (es. WU, BRG)'}
+              className="chat-filter-input"
+              maxLength={5}
+            />
+            <select
+              value={chatCollectionId || ''}
+              onChange={e => setChatCollectionId(e.target.value ? parseInt(e.target.value) : null)}
+              className="chat-filter-select"
+            >
+              <option value="">{t.chatCollectionNone}</option>
+              {chatCollections.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <button
+              className="chat-reset-btn"
+              onClick={() => { setChatHistory([]); setChatDeck(null) }}
+              title={t.chatReset}
+            >🔄</button>
+          </div>
+
+          <div className="chat-build-body">
+            {/* Chat panel */}
+            <div className="chat-build-messages">
+              {chatHistory.length === 0 && (
+                <div className="chat-welcome-msg">
+                  <span>🤖</span>
+                  <p>{t.chatWelcome}</p>
+                  <small>{t.chatTokenCost}</small>
+                </div>
+              )}
+              {chatHistory.map((msg, i) => (
+                <div key={i} className={`chat-msg chat-msg-${msg.role}`}>
+                  <span className="chat-msg-avatar">{msg.role === 'user' ? '👤' : '🤖'}</span>
+                  <div className="chat-msg-content">{msg.content}</div>
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="chat-msg chat-msg-assistant">
+                  <span className="chat-msg-avatar">🤖</span>
+                  <div className="chat-msg-content chat-typing">
+                    <span></span><span></span><span></span>
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Deck preview panel */}
+            {chatDeck && (
+              <div className="chat-deck-preview">
+                <div className="chat-deck-header">
+                  <h3>{chatDeck.deck_name}</h3>
+                  <span className="chat-deck-meta">{chatDeck.format} · {chatDeck.colors} · {chatDeck.archetype}</span>
+                </div>
+                <p className="chat-deck-desc">{chatDeck.deck_description}</p>
+                <div className="chat-deck-cards">
+                  {chatDeck.cards?.map((c, i) => (
+                    <div key={i} className="chat-deck-card-row">
+                      <span className="chat-deck-qty">{c.quantity}x</span>
+                      <span className="chat-deck-name">{c.card_name}</span>
+                      <span className="chat-deck-role">{c.role}</span>
+                    </div>
+                  ))}
+                </div>
+                {chatDeck.key_cards?.length > 0 && (
+                  <div className="chat-deck-key-cards">
+                    🔑 {chatDeck.key_cards.join(', ')}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <div className="chat-build-input-row">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
+              placeholder={t.chatPlaceholder}
+              className="chat-build-input"
+              disabled={chatLoading}
+            />
+            <button
+              onClick={handleChatSend}
+              disabled={chatLoading || !chatInput.trim()}
+              className="chat-build-send-btn"
+            >{t.chatSend}</button>
+          </div>
         </div>
       )}
 
+      {/* ── Optimize Deck view ── */}
+      {mainView === 'optimize' && (
       <div className="ai-builder-content">
         {!selectedDeck ? (
           <div className="deck-selection-section">
@@ -585,6 +739,7 @@ function AIBuilder({ user, onBack, language }) {
           </div>
         )}
       </div>
+      )} {/* end optimize view */}
     </div>
   )
 }

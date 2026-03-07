@@ -2790,3 +2790,18 @@ div.column-mapper.column-mapper {
     display: none;
   }
 }
+
+/* Maintenance banner */
+.maintenance-banner {
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  background: #fef08a;
+  color: #713f12;
+  text-align: center;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-bottom: 2px solid #facc15;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
