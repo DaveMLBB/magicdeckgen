@@ -1236,7 +1236,6 @@ function App() {
     { id: 'collections', icon: '📚', labelIt: 'Collezioni', labelEn: 'Collections', match: ['collections', 'collection-detail'] },
     { id: 'card-search', icon: '🃏', labelIt: 'Carte', labelEn: 'Cards' },
     { id: 'saved-decks', icon: '🗂️', labelIt: 'Mazzi', labelEn: 'Decks', match: ['saved-decks', 'saved-deck-detail'] },
-    { id: 'ai-builder', icon: '🤖', labelIt: 'AI Analyzer', labelEn: 'AI Analyzer' },
     { id: 'card-synergy', icon: '✨', labelIt: 'AI Synergy', labelEn: 'AI Synergy' },
     { id: 'card-twins', icon: '🪞', labelIt: 'AI Gemelli', labelEn: 'AI Twins' },
     { id: 'ai-deck-builder', icon: '🏗️', labelIt: 'AI Builder', labelEn: 'AI Builder' },
