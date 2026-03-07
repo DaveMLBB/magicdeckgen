@@ -156,12 +156,14 @@ Se deck_modified è false, updated_deck può essere null."""
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-5-nano",
+            model="gpt-5.1",
             messages=messages,
-            max_completion_tokens=3000
+            temperature=0.7,
+            max_tokens=3000,
+            response_format={"type": "json_object"}
         )
         raw = response.choices[0].message.content
-        print(f"🔍 GPT-5.1-nano raw response: {raw[:300] if raw else 'EMPTY'}")
+        print(f"🔍 GPT-4o raw response: {raw[:300] if raw else 'EMPTY'}")
         
         if not raw or not raw.strip():
             raise ValueError("GPT-5.1-nano returned empty response")
