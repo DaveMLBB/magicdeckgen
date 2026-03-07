@@ -159,7 +159,7 @@ Se deck_modified è false, updated_deck può essere null."""
             model="gpt-5-nano",
             messages=messages,
             temperature=0.7,
-            max_tokens=3000,
+            max_completion_tokens=3000,
             response_format={"type": "json_object"}
         )
         raw = response.choices[0].message.content
