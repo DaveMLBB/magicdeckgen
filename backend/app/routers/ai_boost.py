@@ -11,7 +11,7 @@ import json
 router = APIRouter()
 
 MAX_COLLECTION_CARDS = 300
-BOOST_TOKEN_COST = 10  # Token cost per AI boost message
+BOOST_TOKEN_COST = 2  # Token cost per AI boost message
 
 class ChatMessage(BaseModel):
     role: str   # "user" | "assistant"
