@@ -156,7 +156,7 @@ Se deck_modified è false, updated_deck può essere null."""
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-5.1-nano",
+            model="gpt-5-nano",
             messages=messages,
             max_completion_tokens=3000
         )
