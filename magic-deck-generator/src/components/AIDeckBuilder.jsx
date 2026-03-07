@@ -53,6 +53,11 @@ const tr = {
     formatLabel: 'Formato', colorsLabel: 'Colori (es. WU)',
     resetBtn: '↩️ Nuova conversazione',
     deckUpdated: '✏️ Mazzo aggiornato',
+    statsTitle: '📊 Statistiche',
+    avgCmc: 'CMC Medio',
+    uniqueCardsLabel: 'Carte Uniche',
+    manaCurve: 'Curva di Mana',
+    types: 'Tipi',
     saveBtn: '💾 Salva Mazzo',
     saving: 'Salvataggio...', saved: '✅ Salvato!', saveError: 'Errore salvataggio',
     copyList: '📋 Copia Lista', copied: '✅ Copiato!',
@@ -79,6 +84,11 @@ const tr = {
     formatLabel: 'Format', colorsLabel: 'Colors (e.g. WU)',
     resetBtn: '↩️ New conversation',
     deckUpdated: '✏️ Deck updated',
+    statsTitle: '📊 Stats',
+    avgCmc: 'Avg CMC',
+    uniqueCardsLabel: 'Unique Cards',
+    manaCurve: 'Mana Curve',
+    types: 'Types',
     saveBtn: '💾 Save Deck',
     saving: 'Saving...', saved: '✅ Saved!', saveError: 'Save error',
     copyList: '📋 Copy List', copied: '✅ Copied!',
@@ -240,6 +250,30 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
   }
 
   const totalCards = currentDeck?.cards?.reduce((s, c) => s + (c.quantity || 0), 0) || 0
+  const uniqueCards = currentDeck?.cards?.length || 0
+
+  // Statistiche e curva mana calcolate dal deck
+  const deckStats = currentDeck?.cards?.length ? (() => {
+    const nonLand = currentDeck.cards.filter(c => c.category !== 'Land')
+    const totalNonLand = nonLand.reduce((s, c) => s + (c.quantity || 0), 0)
+    const avgCmc = totalNonLand > 0
+      ? nonLand.reduce((s, c) => s + (c.cmc || 0) * (c.quantity || 0), 0) / totalNonLand
+      : 0
+
+    const curve = {}
+    nonLand.forEach(c => {
+      const bucket = Math.min(c.cmc || 0, 7)
+      curve[bucket] = (curve[bucket] || 0) + (c.quantity || 0)
+    })
+
+    const typeCount = {}
+    currentDeck.cards.forEach(c => {
+      const cat = c.category || 'Other'
+      typeCount[cat] = (typeCount[cat] || 0) + (c.quantity || 0)
+    })
+
+    return { avgCmc, curve, typeCount }
+  })() : null
 
   return (
     <div className="ai-deck-boost">
@@ -331,6 +365,53 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
           </div>
           {totalCards > 0 && (
             <div className="abb-card-total">{totalCards} {t.totalCards}</div>
+          )}
+
+          {/* Statistiche e curva mana */}
+          {deckStats && (
+            <div className="adb-stats">
+              <p className="abb-panel-title">{t.statsTitle}</p>
+              <div className="adb-stats-row">
+                <div className="adb-stat"><span className="adb-stat-val">{totalCards}</span><span className="adb-stat-lbl">{t.totalCards}</span></div>
+                <div className="adb-stat"><span className="adb-stat-val">{uniqueCards}</span><span className="adb-stat-lbl">{t.uniqueCardsLabel}</span></div>
+                <div className="adb-stat"><span className="adb-stat-val">{deckStats.avgCmc.toFixed(1)}</span><span className="adb-stat-lbl">{t.avgCmc}</span></div>
+              </div>
+
+              {/* Curva mana */}
+              {Object.keys(deckStats.curve).length > 0 && (
+                <div className="adb-curve">
+                  <p className="adb-curve-title">{t.manaCurve}</p>
+                  <div className="adb-curve-bars">
+                    {[0,1,2,3,4,5,6,7].map(cmc => {
+                      const count = deckStats.curve[cmc] || 0
+                      const max = Math.max(...Object.values(deckStats.curve), 1)
+                      return (
+                        <div key={cmc} className="adb-curve-col">
+                          <span className="adb-curve-count">{count || ''}</span>
+                          <div className="adb-curve-bar" style={{ height: `${(count / max) * 48}px` }} />
+                          <span className="adb-curve-label">{cmc === 7 ? '7+' : cmc}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Distribuzione tipi */}
+              <div className="adb-types">
+                <p className="adb-curve-title">{t.types}</p>
+                {Object.entries(deckStats.typeCount).sort((a,b) => b[1]-a[1]).map(([type, count]) => (
+                  <div key={type} className="adb-type-row">
+                    <span className="adb-type-dot" style={{ background: CATEGORY_COLORS[type] || CATEGORY_COLORS.Other }} />
+                    <span className="adb-type-name">{type}</span>
+                    <div className="adb-type-bar-wrap">
+                      <div className="adb-type-bar" style={{ width: `${(count/totalCards)*100}%`, background: CATEGORY_COLORS[type] || CATEGORY_COLORS.Other }} />
+                    </div>
+                    <span className="adb-type-count">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Azioni */}

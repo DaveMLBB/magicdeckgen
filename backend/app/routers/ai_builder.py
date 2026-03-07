@@ -1451,7 +1451,7 @@ Rispondi SEMPRE con JSON valido in questo formato:
     "archetype": "archetipo",
     "strategy_notes": "note strategia",
     "cards": [
-      {{"card_name": "Nome Carta", "quantity": 4, "category": "Creature|Spell|Enchantment|Artifact|Planeswalker|Land|Other", "role": "ruolo"}}
+      {{"card_name": "Nome Carta", "quantity": 4, "cmc": 2, "category": "Creature|Spell|Enchantment|Artifact|Planeswalker|Land|Other", "role": "ruolo"}}
     ],
     "key_cards": ["Carta1", "Carta2"]
   }}
@@ -1479,6 +1479,11 @@ Se deck_updated è false, deck può essere null."""
 
         if deck_updated and deck and deck.get("cards"):
             deck = enforce_deck_size(deck, input_data.format, input_data.colors)
+            # Arricchisci con mana_value dal DB MTG (fallback al cmc fornito dall'AI)
+            for card in deck.get("cards", []):
+                mtg = db.query(MTGCard).filter(MTGCard.name == card.get("card_name")).first()
+                if mtg and mtg.mana_value is not None:
+                    card["cmc"] = int(mtg.mana_value)
 
         print(f"✅ Chat Build Deck: deck_updated={deck_updated}, msg={result.get('message','')[:60]}")
 
