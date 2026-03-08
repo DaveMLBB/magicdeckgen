@@ -33,7 +33,7 @@ async def boost_deck(
 ):
     """
     Modifica un mazzo esistente tramite chat AI con memoria della sessione.
-    Costo: 10 token per messaggio.
+    Costo: 3 token per messaggio.
     """
     user = db.query(User).filter(User.id == input_data.user_id).first()
     if not user:
