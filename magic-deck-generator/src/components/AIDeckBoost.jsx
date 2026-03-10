@@ -9,12 +9,16 @@ const API_URL = import.meta.env.PROD
 
 const CATEGORY_COLORS = {
   Creature:     '#10b981',
-  Spell:        '#6366f1',
+  Instant:      '#6366f1',
+  Sorcery:      '#8b5cf6',
   Enchantment:  '#ec4899',
+  Equipment:    '#f97316',
   Artifact:     '#94a3b8',
   Planeswalker: '#f59e0b',
   Land:         '#78716c',
   Other:        '#64748b',
+  // legacy fallback
+  Spell:        '#6366f1',
 }
 
 const t = {

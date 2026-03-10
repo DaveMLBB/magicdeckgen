@@ -1368,6 +1368,7 @@ class ChatBuildDeckInput(BaseModel):
     collection_id: Optional[int] = None
     format: Optional[str] = None
     colors: Optional[str] = None
+    current_deck: Optional[dict] = None  # stato attuale del mazzo in costruzione
 
 @router.post("/chat-build-deck")
 async def chat_build_deck(
@@ -1429,6 +1430,20 @@ Carte disponibili: {card_list}
     colors_line = f"Colori: {input_data.colors}" if input_data.colors else ""
     constraints = "\n".join(filter(None, [format_line, colors_line]))
 
+    # Stato attuale del mazzo (se già in costruzione)
+    current_deck_context = ""
+    if input_data.current_deck and input_data.current_deck.get("cards"):
+        deck_cards = input_data.current_deck["cards"]
+        total = sum(c.get("quantity", 1) for c in deck_cards)
+        deck_name = input_data.current_deck.get("deck_name", "Mazzo in costruzione")
+        current_deck_context = f"""
+
+MAZZO ATTUALE IN COSTRUZIONE: "{deck_name}"
+Totale carte: {total}
+Carte: {json.dumps(deck_cards, ensure_ascii=False)}
+- Quando l'utente chiede modifiche, parti da questo mazzo e aggiornalo
+- Mantieni il totale di {total} carte salvo diversa indicazione"""
+
     system_prompt = f"""Sei un esperto costruttore di mazzi Magic: The Gathering. Aiuti l'utente a costruire mazzi tramite conversazione.
 
 ISTRUZIONI:
@@ -1437,7 +1452,25 @@ ISTRUZIONI:
 - Se l'utente fa domande generali su MTG, rispondi senza aggiornare il mazzo
 - Mantieni la coerenza con i messaggi precedenti della conversazione
 - Spiega le tue scelte in modo chiaro e conciso
-{constraints}{collection_constraint}
+{constraints}{collection_constraint}{current_deck_context}
+
+CATEGORIE CARTE (usa ESATTAMENTE questi valori per il campo "category"):
+- "Creature" → creature
+- "Instant" → istantanei
+- "Sorcery" → stregonerie
+- "Enchantment" → incantesimi (NON Equipment)
+- "Equipment" → equipaggiamenti (sottotipo artefatto)
+- "Artifact" → artefatti generici (non Equipment)
+- "Planeswalker" → planeswalker
+- "Land" → terre
+- "Other" → altro
+
+LINEE GUIDA PROPORZIONI (adatta alla strategia, ma rispetta questi range):
+- Terre: 33-40 carte (Commander 100 carte), 20-26 (60 carte), 17-24 (40 carte)
+- Creature: bilancia in base all'archetipo (aggro: 24-30, control: 6-12, midrange: 16-24)
+- Istantanei + Stregonerie: rimozioni, draw, interazione (8-16 in 60 carte)
+- Incantesimi + Artefatti + Equipment: supporto e sinergie (4-12 in 60 carte)
+- Assicurati che le proporzioni siano coerenti con la strategia dichiarata
 
 Rispondi SEMPRE con JSON valido in questo formato:
 {{
@@ -1451,7 +1484,7 @@ Rispondi SEMPRE con JSON valido in questo formato:
     "archetype": "archetipo",
     "strategy_notes": "note strategia",
     "cards": [
-      {{"card_name": "Nome Carta", "quantity": 4, "cmc": 2, "category": "Creature|Spell|Enchantment|Artifact|Planeswalker|Land|Other", "role": "ruolo"}}
+      {{"card_name": "Nome Carta", "quantity": 4, "cmc": 2, "category": "Creature|Instant|Sorcery|Enchantment|Equipment|Artifact|Planeswalker|Land|Other", "role": "ruolo"}}
     ],
     "key_cards": ["Carta1", "Carta2"]
   }}

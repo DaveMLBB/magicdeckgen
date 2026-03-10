@@ -8,8 +8,11 @@ const API_URL = import.meta.env.PROD
   : 'http://localhost:8000'
 
 const CATEGORY_COLORS = {
-  Creature: '#10b981', Spell: '#6366f1', Enchantment: '#ec4899',
-  Artifact: '#94a3b8', Planeswalker: '#f59e0b', Land: '#78716c', Other: '#64748b',
+  Creature: '#10b981', Instant: '#6366f1', Sorcery: '#8b5cf6',
+  Enchantment: '#ec4899', Equipment: '#f97316', Artifact: '#94a3b8',
+  Planeswalker: '#f59e0b', Land: '#78716c', Other: '#64748b',
+  // legacy fallback
+  Spell: '#6366f1',
 }
 
 const SUGGESTIONS = {
@@ -152,6 +155,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
           collection_id: selectedCollectionId || null,
           format: format || null,
           colors: colors || null,
+          current_deck: currentDeck || null,
         })
       })
       const data = await res.json()

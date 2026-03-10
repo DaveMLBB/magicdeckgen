@@ -135,13 +135,30 @@ ISTRUZIONI:
 - Se l'utente fa domande senza chiedere modifiche, rispondi normalmente senza aggiornare il mazzo
 - Rispondi SEMPRE con JSON valido nel formato specificato
 
+CATEGORIE CARTE (usa ESATTAMENTE questi valori per il campo "category"):
+- "Creature" → creature
+- "Instant" → istantanei
+- "Sorcery" → stregonerie
+- "Enchantment" → incantesimi (NON Equipment)
+- "Equipment" → equipaggiamenti (sottotipo artefatto)
+- "Artifact" → artefatti generici (non Equipment)
+- "Planeswalker" → planeswalker
+- "Land" → terre
+- "Other" → altro
+
+LINEE GUIDA PROPORZIONI (rispetta questi range salvo richieste specifiche):
+- Terre: 33-40 (Commander), 20-26 (60 carte), 17-24 (40 carte)
+- Creature: aggro 24-30, control 6-12, midrange 16-24
+- Istantanei + Stregonerie: rimozioni, draw, interazione (8-16 in 60 carte)
+- Incantesimi + Artefatti + Equipment: supporto e sinergie (4-12 in 60 carte)
+
 Formato risposta JSON:
 {{
   "message": "La tua risposta testuale qui",
   "deck_modified": true/false,
   "updated_deck": {{
     "cards": [
-      {{"card_name": "Nome Carta", "quantity": 4, "category": "Creature|Spell|Enchantment|Artifact|Planeswalker|Land|Other", "role": "ruolo"}}
+      {{"card_name": "Nome Carta", "quantity": 4, "category": "Creature|Instant|Sorcery|Enchantment|Equipment|Artifact|Planeswalker|Land|Other", "role": "ruolo"}}
     ]
   }}
 }}
