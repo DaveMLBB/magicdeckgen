@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
 from app.database import get_db
-from app.models import User, SavedDeck, SavedDeckCard, Card, CardCollection
+from app.models import User, SavedDeck, SavedDeckCard, Card, CardCollection, MTGCard
 from app.routers.ai_builder import check_ai_rate_limit, enforce_deck_size
 import os
 import json
@@ -158,7 +158,7 @@ Formato risposta JSON:
   "deck_modified": true/false,
   "updated_deck": {{
     "cards": [
-      {{"card_name": "Nome Carta", "quantity": 4, "category": "Creature|Instant|Sorcery|Enchantment|Equipment|Artifact|Planeswalker|Land|Other", "role": "ruolo"}}
+      {{"card_name": "Nome Carta", "quantity": 4, "cmc": 2, "category": "Creature|Instant|Sorcery|Enchantment|Equipment|Artifact|Planeswalker|Land|Other", "role": "ruolo"}}
     ]
   }}
 }}
@@ -204,6 +204,16 @@ Se deck_modified è false, updated_deck può essere null."""
         # Se il mazzo è stato modificato, applica enforce_deck_size
         if deck_modified and updated_deck and updated_deck.get("cards"):
             updated_deck = enforce_deck_size(updated_deck, deck_format, saved_deck.colors)
+            # Arricchisci cmc dal DB MTG (fallback al valore fornito dall'AI)
+            # Costruisci lookup dalle carte originali per preservare cmc esistente
+            original_cmc = {c["card_name"]: c.get("cmc", 0) for c in deck_cards}
+            for card in updated_deck.get("cards", []):
+                mtg = db.query(MTGCard).filter(MTGCard.name == card.get("card_name")).first()
+                if mtg and mtg.mana_value is not None:
+                    card["cmc"] = int(mtg.mana_value)
+                elif card.get("cmc") is None or card.get("cmc") == 0:
+                    # fallback: usa il cmc della carta originale se era già nel mazzo
+                    card["cmc"] = original_cmc.get(card["card_name"], 0)
         else:
             # Restituisce il mazzo corrente invariato
             updated_deck = {"cards": deck_cards}

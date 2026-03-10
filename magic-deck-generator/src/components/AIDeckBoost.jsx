@@ -238,7 +238,14 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
       if (user) user.tokens = data.tokens_remaining
 
       if (data.deck_modified && data.updated_deck?.cards) {
-        setCurrentCards(data.updated_deck.cards)
+        // Preserva il cmc dalle carte originali se l'AI non lo restituisce
+        const originalCmcMap = {}
+        currentCards.forEach(c => { originalCmcMap[c.card_name] = c.cmc || 0 })
+        const enrichedCards = data.updated_deck.cards.map(c => ({
+          ...c,
+          cmc: (c.cmc != null && c.cmc !== 0) ? c.cmc : (originalCmcMap[c.card_name] || 0)
+        }))
+        setCurrentCards(enrichedCards)
         setDeckModified(true)
         setSaveStatus(null)
       }
