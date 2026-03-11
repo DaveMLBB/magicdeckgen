@@ -89,7 +89,7 @@ Reply ONLY with this JSON:
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5.2",
             messages=[{
                 "role": "user",
                 "content": [
@@ -101,7 +101,7 @@ Reply ONLY with this JSON:
                 ]
             }],
             max_completion_tokens=100,
-            temperature=0,
+            temperature=1,
             response_format={"type": "json_object"},
         )
         raw = response.choices[0].message.content or ""
@@ -184,11 +184,12 @@ Reply ONLY with this JSON:
                 "gpt_name": card_name, "gpt_collector": collector_number, "gpt_set": set_code_raw,
             }
 
-    # 3. Tutte le edizioni per nome esatto → mostra modal
+    # 3. Tutte le edizioni per nome esatto → mostra modal (max 20)
     all_editions = (
         db.query(MTGCard)
         .filter(func.lower(MTGCard.name) == card_name.lower())
         .order_by(MTGCard.released_at.desc())
+        .limit(20)
         .all()
     )
 
@@ -215,17 +216,29 @@ def lookup_card(input_data: CardLookupInput, db: Session = Depends(get_db)):
         return {"found": False, "candidates": []}
 
     collector_number = (input_data.collector_number or "").strip() or None
-    candidates = _find_by_name(db, raw)
 
-    if not candidates:
+    # Match esatto sul nome → tutte le edizioni (max 20)
+    all_editions = (
+        db.query(MTGCard)
+        .filter(func.lower(MTGCard.name) == raw.lower())
+        .order_by(MTGCard.released_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    # Fallback fuzzy
+    if not all_editions:
+        all_editions = _find_by_name(db, raw)
+
+    if not all_editions:
         return {"found": False, "candidates": [], "raw_name": raw}
 
     if collector_number:
-        matched = [c for c in candidates if c.collector_number == collector_number]
+        matched = next((c for c in all_editions if c.collector_number == collector_number), None)
         if matched:
-            return {"found": True, "exact_match": True, "candidates": [_card_to_dict(matched[0])], "raw_name": raw}
+            return {"found": True, "exact_match": True, "candidates": [_card_to_dict(matched)], "raw_name": raw}
 
-    return {"found": True, "exact_match": False, "candidates": [_card_to_dict(c) for c in candidates[:5]], "raw_name": raw}
+    return {"found": True, "exact_match": False, "candidates": [_card_to_dict(c) for c in all_editions], "raw_name": raw}
 
 
 @router.post("/add")
