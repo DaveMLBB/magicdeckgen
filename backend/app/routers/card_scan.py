@@ -96,7 +96,7 @@ If collector number is not visible, use null for that field."""
                 ]
             }],
             max_completion_tokens=100,
-            temperature=0,
+            temperature=1,
             response_format={"type": "json_object"},
         )
         raw = response.choices[0].message.content or ""
