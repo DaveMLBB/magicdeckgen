@@ -262,9 +262,7 @@ def add_card_to_collection(input_data: CardAddInput, db: Session = Depends(get_d
     if not mtg:
         raise HTTPException(status_code=404, detail="Card not found in DB")
 
-    qty = max(1, input_data.quantity)
-
-    # Upsert nella collezione
+    # Upsert nella collezione — sempre +1 per scansione
     existing = db.query(Card).filter(
         Card.user_id == input_data.user_id,
         Card.collection_id == input_data.collection_id,
@@ -272,7 +270,7 @@ def add_card_to_collection(input_data: CardAddInput, db: Session = Depends(get_d
     ).first()
 
     if existing:
-        existing.quantity_owned += qty
+        existing.quantity_owned += 1
         db.commit()
         db.refresh(existing)
         card_entry = existing
@@ -285,7 +283,7 @@ def add_card_to_collection(input_data: CardAddInput, db: Session = Depends(get_d
             colors=mtg.colors,
             rarity=mtg.rarity,
             set_code=mtg.set_code,
-            quantity_owned=qty,
+            quantity_owned=1,
             user_id=input_data.user_id,
             collection_id=input_data.collection_id,
         )
@@ -293,20 +291,18 @@ def add_card_to_collection(input_data: CardAddInput, db: Session = Depends(get_d
         db.commit()
         db.refresh(card_entry)
 
-    # Contatore scan e token
+    # Token: 1 token ogni SCANS_PER_TOKEN carte aggiunte
     if user.scan_count is None:
         user.scan_count = 0
-    prev = user.scan_count
-    user.scan_count += qty
+    user.scan_count += 1
     token_consumed = 0
-    for i in range(qty):
-        if (prev + i + 1) % SCANS_PER_TOKEN == 0 and user.tokens > 0:
-            user.tokens -= 1
-            token_consumed += 1
-            db.add(TokenTransaction(
-                user_id=user.id, amount=-1, action='card_scan',
-                description=f'📷 Scan: {prev + i + 1} carte aggiunte',
-            ))
+    if user.scan_count % SCANS_PER_TOKEN == 0 and user.tokens > 0:
+        user.tokens -= 1
+        token_consumed = 1
+        db.add(TokenTransaction(
+            user_id=user.id, amount=-1, action='card_scan',
+            description=f'📷 Scan: {user.scan_count} carte aggiunte',
+        ))
     db.commit()
 
     return {

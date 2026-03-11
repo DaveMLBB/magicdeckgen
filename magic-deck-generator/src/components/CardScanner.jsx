@@ -228,6 +228,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   const canvasRef      = useRef(null)
   const scanningRef    = useRef(false)
   const loopRunningRef = useRef(false)   // guard: un solo loop alla volta
+  const addingRef      = useRef(false)   // guard: add in corso, non scansionare
   const lastAddedName  = useRef(null)  // nome dell'ultima carta aggiunta
 
   const [isScanning, setIsScanning]     = useState(false)
@@ -264,6 +265,8 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
 
   // ── Aggiunge carta al DB e aggiorna history ──────────────────────────────
   const _addCard = useCallback(async (card, qty) => {
+    if (addingRef.current) return false  // già in corso
+    addingRef.current = true
     try {
       const res = await fetch(`${API_URL}/api/scan/add`, {
         method: 'POST',
@@ -277,18 +280,19 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       })
       const data = await res.json()
       if (data.added) {
-        setLastAdded({ ...card, qty: data.quantity_owned })
+        setLastAdded({ ...card, qty: 1 })
         onAdded()
         onHistory(prev => {
           const idx = prev.findIndex(c => c.uuid === card.uuid)
           if (idx >= 0) {
             const u = [...prev]; u[idx] = { ...u[idx], qty: data.quantity_owned, card_id: data.card_id }; return u
           }
-          return [{ ...card, qty: data.quantity_owned, card_id: data.card_id }, ...prev]
+          return [{ ...card, qty: 1, card_id: data.card_id }, ...prev]
         })
         return true
       }
     } catch (e) { console.error('Add error', e) }
+    finally { addingRef.current = false }
     return false
   }, [user, selectedCollectionId, onAdded, onHistory])
 
