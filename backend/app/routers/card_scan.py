@@ -96,7 +96,7 @@ Reply ONLY with this JSON:
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {
                         "url": f"data:{mime};base64,{img_b64}",
-                        "detail": "high"
+                        "detail": "low"
                     }}
                 ]
             }],
