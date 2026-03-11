@@ -49,9 +49,10 @@ async def recognize_card(input_data: CardScanVisionInput, db: Session = Depends(
     """
     Riceve un frame JPEG base64, chiede a GPT-4o Vision:
     - nome della carta in inglese
-    - collector number (numero in basso a sinistra)
+    - set code (codice espansione MTG)
+    - collector number
 
-    Poi cerca nel DB con nome + collector number e ritorna i candidati.
+    Poi cerca nel DB con nome + set_code + collector_number e ritorna i candidati.
     """
     openai_api_key = os.getenv("OPENAI_API_KEY", "")
     if not openai_api_key:
@@ -73,30 +74,33 @@ async def recognize_card(input_data: CardScanVisionInput, db: Session = Depends(
     print(f"[SCAN] image received: {mime}, {len(img_b64)} chars (~{len(img_b64)*3//4//1024} KB)")
 
     prompt = """This is a Magic: The Gathering card photo.
-Tell me:
-1. The card name in ENGLISH (if the card is in another language translate it and give me the English name)
-2. The collector number (bottom-left of the card, e.g. "123" or "123/456")
+Identify the card and return:
+1. The card name in ENGLISH (translate if the card is in another language)
+2. The set code (3–5 letter MTG expansion code, e.g. M12, DMU, MH2)
+3. The collector number (the number printed at the bottom of the card)
 
-Reply ONLY with this JSON, nothing else:
-{"name": "Card Name", "collector_number": "123"}
+Rules:
+- If the collector number is not visible return null
+- If the set code is not readable infer it from the card frame or symbol if possible
 
-If collector number is not visible, use null for that field."""
+Reply ONLY with this JSON:
+{"name": "Card Name", "set_code": "SET", "collector_number": "123"}"""
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-5.2",
+            model="gpt-4o",
             messages=[{
                 "role": "user",
                 "content": [
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {
                         "url": f"data:{mime};base64,{img_b64}",
-                        "detail": "high"
+                        "detail": "low"
                     }}
                 ]
             }],
             max_completion_tokens=100,
-            temperature=1,
+            temperature=0,
             response_format={"type": "json_object"},
         )
         raw = response.choices[0].message.content or ""
@@ -110,26 +114,39 @@ If collector number is not visible, use null for that field."""
         return {"found": False, "candidates": [], "error": str(e)}
 
     card_name = (gpt_data.get("name") or "").strip()
+    set_code_raw = (gpt_data.get("set_code") or "").strip().lower() or None
     collector_number = (str(gpt_data.get("collector_number") or "")).strip() or None
-    # Pulisci collector number: solo cifre
-    if collector_number and collector_number != "None":
+
+    # Pulisci collector number: solo cifre iniziali
+    if collector_number and collector_number.lower() != "null" and collector_number != "None":
         m = re.match(r'(\d+)', collector_number)
         collector_number = m.group(1) if m else None
     else:
         collector_number = None
 
-    print(f"[SCAN] card_name={card_name!r} collector_number={collector_number!r}")
+    print(f"[SCAN] card_name={card_name!r} set_code={set_code_raw!r} collector_number={collector_number!r}")
 
     if not card_name:
-        return {"found": False, "candidates": [], "gpt_name": None, "gpt_collector": collector_number}
+        return {"found": False, "candidates": [], "gpt_name": None, "gpt_collector": collector_number, "gpt_set": set_code_raw}
 
-    # Cerca nel DB
-    candidates = _find_by_name(db, card_name)
-    print(f"[SCAN] DB candidates for {card_name!r}: {[c.name for c in candidates]}")
-    if not candidates:
-        return {"found": False, "candidates": [], "gpt_name": card_name, "gpt_collector": collector_number}
+    # 1. Match esatto: nome + set_code + collector_number
+    if set_code_raw and collector_number:
+        exact = (
+            db.query(MTGCard)
+            .filter(func.lower(MTGCard.name) == card_name.lower())
+            .filter(func.lower(MTGCard.set_code) == set_code_raw)
+            .filter(MTGCard.collector_number == collector_number)
+            .first()
+        )
+        if exact:
+            print(f"[SCAN] exact match: {exact.name} [{exact.set_code}] #{exact.collector_number}")
+            return {
+                "found": True, "exact_match": True,
+                "candidates": [_card_to_dict(exact)],
+                "gpt_name": card_name, "gpt_collector": collector_number, "gpt_set": set_code_raw,
+            }
 
-    # Se abbiamo il collector number, query diretta nome + numero (non filtrare su subset)
+    # 2. Match nome + collector_number (set non trovato o non corrisponde)
     if collector_number:
         exact = (
             db.query(MTGCard)
@@ -138,20 +155,33 @@ If collector number is not visible, use null for that field."""
             .first()
         )
         if exact:
+            print(f"[SCAN] name+collector match: {exact.name} [{exact.set_code}] #{exact.collector_number}")
             return {
-                "found": True,
-                "exact_match": True,
+                "found": True, "exact_match": True,
                 "candidates": [_card_to_dict(exact)],
-                "gpt_name": card_name,
-                "gpt_collector": collector_number,
+                "gpt_name": card_name, "gpt_collector": collector_number, "gpt_set": set_code_raw,
             }
 
+    # 3. Tutte le edizioni per nome esatto → mostra modal
+    all_editions = (
+        db.query(MTGCard)
+        .filter(func.lower(MTGCard.name) == card_name.lower())
+        .order_by(MTGCard.released_at.desc())
+        .all()
+    )
+
+    # 4. Fallback fuzzy se nome esatto non trovato
+    if not all_editions:
+        all_editions = _find_by_name(db, card_name)
+
+    print(f"[SCAN] DB candidates for {card_name!r}: {len(all_editions)} editions")
+    if not all_editions:
+        return {"found": False, "candidates": [], "gpt_name": card_name, "gpt_collector": collector_number, "gpt_set": set_code_raw}
+
     return {
-        "found": True,
-        "exact_match": False,
-        "candidates": [_card_to_dict(c) for c in candidates[:5]],
-        "gpt_name": card_name,
-        "gpt_collector": collector_number,
+        "found": True, "exact_match": False,
+        "candidates": [_card_to_dict(c) for c in all_editions],
+        "gpt_name": card_name, "gpt_collector": collector_number, "gpt_set": set_code_raw,
     }
 
 
