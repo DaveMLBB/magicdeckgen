@@ -439,6 +439,11 @@
 
 /* ── Set picker autocomplete ── */
 .cs2-set-picker { position: relative; }
+.cs2-set-required {
+  border-color: rgba(245,158,11,0.6) !important;
+  background: rgba(245,158,11,0.06) !important;
+}
+.cs2-required-star { color: #f59e0b; font-size: 0.9rem; }
 .cs2-set-input-wrap { position: relative; }
 .cs2-set-input { padding-right: 28px !important; }
 .cs2-set-clear {

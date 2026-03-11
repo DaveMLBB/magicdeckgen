@@ -235,6 +235,8 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   const [scanPhase, setScanPhase]       = useState(null)
   const [lastAdded, setLastAdded]       = useState(null)
   const [duplicateName, setDuplicateName] = useState(null)
+  const [gridAddedCount, setGridAddedCount] = useState(0)
+  const [gridTotalCount, setGridTotalCount] = useState(0)
   const [candidates, setCandidates]     = useState([])
   const [error, setError]               = useState(null)
   const [manualName, setManualName]     = useState('')
@@ -303,6 +305,48 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
     const imageB64 = captureFrame(videoRef.current, canvasRef.current)
     setScanPhase('waiting')
 
+    // ── Modalità griglia ──────────────────────────────────────────────────
+    if (mode === 'grid') {
+      try {
+        const res = await fetch(`${API_URL}/api/scan/recognize-grid`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_b64: imageB64, language, forced_set_code: forcedSetRef.current }),
+        })
+        const data = await res.json()
+        if (!scanningRef.current) return
+
+        if (data.found && data.results?.length) {
+          // Ferma il loop — aggiungiamo tutte le carte trovate
+          scanningRef.current = false
+          setIsScanning(false)
+          setScanPhase('grid-adding')
+
+          let addedCount = 0
+          for (const item of data.results) {
+            if (item.found && item.card) {
+              await _addCard(item.card, 1)
+              addedCount++
+            }
+          }
+          setScanPhase(addedCount > 0 ? 'grid-done' : 'notfound')
+          setGridAddedCount(addedCount)
+          setGridTotalCount(data.results.length)
+        } else {
+          setScanPhase('notfound')
+          await new Promise(r => setTimeout(r, scanDelayRef.current))
+          if (scanningRef.current) setScanPhase(null)
+        }
+      } catch (e) {
+        console.error('Grid scan error', e)
+        setScanPhase('notfound')
+        await new Promise(r => setTimeout(r, scanDelayRef.current))
+        if (scanningRef.current) setScanPhase(null)
+      }
+      return
+    }
+
+    // ── Modalità singola ──────────────────────────────────────────────────
     try {
       const res = await fetch(`${API_URL}/api/scan/recognize`, {
         method: 'POST',
@@ -318,13 +362,11 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         if (data.exact_match) {
           const card = data.candidates[0]
           if (lastAddedName.current && lastAddedName.current === card.name) {
-            // Stessa carta — mostra avviso e riprova dopo un po'
             setDuplicateName(card.name)
             setScanPhase('duplicate')
             await new Promise(r => setTimeout(r, scanDelayRef.current))
             if (scanningRef.current) setScanPhase(null)
           } else {
-            // Ferma subito il loop PRIMA di fare la chiamata add
             scanningRef.current = false
             setIsScanning(false)
             const ok = await _addCard(card, 1)
@@ -336,7 +378,6 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
             }
           }
         } else {
-          // Più edizioni → pausa loop, mostra modal
           scanningRef.current = false
           setIsScanning(false)
           setCandidates(data.candidates)
@@ -353,11 +394,12 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       await new Promise(r => setTimeout(r, scanDelayRef.current))
       if (scanningRef.current) setScanPhase(null)
     }
-  }, [videoRef, language, _addCard])
+  }, [videoRef, language, _addCard, mode])
 
   // ── Loop principale ──────────────────────────────────────────────────────
   const startScanning = useCallback(() => {
     if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
+    if (mode === 'grid' && !forcedSetRef.current) { setError(language === 'it' ? 'Seleziona un set prima di scansionare il raccoglitore' : 'Select a set before scanning the binder'); return }
     if (loopRunningRef.current) return  // già in esecuzione
     setError(null); setLastAdded(null)
     lastAddedName.current = null
@@ -372,7 +414,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       loopRunningRef.current = false
     }
     loop()
-  }, [selectedCollectionId, tr, runOneCycle])
+  }, [selectedCollectionId, tr, runOneCycle, mode, language])
 
   const stopScanning = useCallback(() => {
     scanningRef.current = false
@@ -448,8 +490,8 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
               : collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <div className="cs2-section cs2-set-picker">
-          <label className="cs2-label">{tr.filterSet}</label>
+        <div className={`cs2-section cs2-set-picker${mode === 'grid' && !forcedSet ? ' cs2-set-required' : ''}`}>
+          <label className="cs2-label">{tr.filterSet}{mode === 'grid' && <span className="cs2-required-star"> *</span>}</label>
           <div className="cs2-set-input-wrap" ref={setInputRef}>
             <input
               className="cs2-select cs2-set-input"
@@ -551,6 +593,21 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
             <span style={{ fontSize: '1.6rem' }}>🔁</span>
             <span>{duplicateName || lastAdded?.name}</span>
             <span className="cs2-added-sub">{tr.sameCard}</span>
+          </div>
+        )}
+
+        {scanPhase === 'grid-adding' && (
+          <div className="cs2-status-overlay">
+            <div className="cs2-spinner" />
+            <span>{language === 'it' ? 'Aggiunta carte in corso...' : 'Adding cards...'}</span>
+          </div>
+        )}
+
+        {scanPhase === 'grid-done' && (
+          <div className="cs2-status-overlay added">
+            <span style={{ fontSize: '1.6rem' }}>✅</span>
+            <span>{gridAddedCount}/{gridTotalCount} {language === 'it' ? 'carte aggiunte' : 'cards added'}</span>
+            <button className="cs2-next-btn" onClick={handleNextCard}>{language === 'it' ? '📷 Prossima pagina' : '📷 Next page'}</button>
           </div>
         )}
       </div>

@@ -43,6 +43,13 @@ class CardLookupInput(BaseModel):
     language: str = "it"
 
 
+class GridScanInput(BaseModel):
+    """Frame di una pagina raccoglitore 3×3 da analizzare con GPT-4o Vision."""
+    image_b64: str
+    language: str = "it"
+    forced_set_code: str  # obbligatorio per la modalità griglia
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.post("/recognize")
@@ -205,6 +212,117 @@ Reply ONLY with this JSON:
         "candidates": [_card_to_dict(c) for c in all_editions],
         "gpt_name": card_name, "gpt_collector": collector_number, "gpt_set": set_code_raw,
     }
+
+
+@router.post("/recognize-grid")
+async def recognize_grid(input_data: GridScanInput, db: Session = Depends(get_db)):
+    """
+    Riceve un frame JPEG di una pagina raccoglitore 3×3.
+    Chiede a GPT-4o di identificare fino a 9 carte (alcune celle possono essere vuote).
+    Ritorna una lista di risultati, uno per cella occupata.
+    Il set è obbligatorio — tutte le carte vengono cercate in quel set.
+    """
+    openai_api_key = os.getenv("OPENAI_API_KEY", "")
+    if not openai_api_key:
+        raise HTTPException(status_code=503, detail="OpenAI API key non configurata")
+
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=openai_api_key)
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Libreria OpenAI non installata")
+
+    img_b64 = input_data.image_b64
+    mime = "image/jpeg"
+    if "," in img_b64:
+        header, img_b64 = img_b64.split(",", 1)
+        if "png" in header:
+            mime = "image/png"
+
+    set_code = input_data.forced_set_code.strip().lower()
+    print(f"[GRID] image received: {mime}, {len(img_b64)} chars (~{len(img_b64)*3//4//1024} KB), set={set_code}")
+
+    prompt = """This image shows a Magic: The Gathering binder page with a 3x3 grid of card slots.
+Some slots may be empty — ignore them completely.
+
+For each card you can see, identify its English name.
+Return a JSON array of up to 9 objects, one per visible card, in reading order (left to right, top to bottom).
+Skip empty slots entirely — do not include null or placeholder entries for them.
+
+Reply ONLY with this JSON array:
+[{"name": "Card Name"}, {"name": "Card Name"}, ...]
+
+If no cards are visible, return an empty array: []"""
+
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {
+                        "url": f"data:{mime};base64,{img_b64}",
+                        "detail": "high"  # griglia richiede più dettaglio
+                    }}
+                ]
+            }],
+            max_completion_tokens=300,
+            temperature=0,
+            response_format={"type": "json_object"},
+        )
+        raw = response.choices[0].message.content or ""
+        usage = response.usage
+        cost = (usage.prompt_tokens * 2.50 + usage.completion_tokens * 10.0) / 1_000_000
+        print(f"[GRID] GPT tokens — prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens}, total: {usage.total_tokens} (~${cost:.5f})")
+        print(f"[GRID] GPT raw response: {raw!r}")
+
+        # GPT con json_object wrappa sempre in un oggetto — gestiamo entrambi i casi
+        parsed = json.loads(raw) if raw.strip() else {}
+        # Potrebbe essere {"cards": [...]} o direttamente [...]
+        if isinstance(parsed, list):
+            cards_raw = parsed
+        else:
+            # Cerca la prima chiave che contiene una lista
+            cards_raw = next((v for v in parsed.values() if isinstance(v, list)), [])
+
+    except Exception as e:
+        print(f"[GRID] GPT error: {e}")
+        return {"found": False, "results": [], "error": str(e)}
+
+    print(f"[GRID] GPT identified {len(cards_raw)} cards")
+
+    results = []
+    for item in cards_raw:
+        name = (item.get("name") or "").strip()
+        if not name:
+            continue
+
+        # Cerca nel DB con nome + set obbligatorio
+        card = (
+            db.query(MTGCard)
+            .filter(func.lower(MTGCard.name) == name.lower())
+            .filter(func.lower(MTGCard.set_code) == set_code)
+            .first()
+        )
+
+        # Fallback: cerca solo per nome se non trovata nel set
+        if not card:
+            card = (
+                db.query(MTGCard)
+                .filter(func.lower(MTGCard.name) == name.lower())
+                .order_by(MTGCard.released_at.desc())
+                .first()
+            )
+
+        if card:
+            print(f"[GRID] found: {card.name} [{card.set_code}]")
+            results.append({"found": True, "card": _card_to_dict(card), "gpt_name": name})
+        else:
+            print(f"[GRID] not found: {name!r}")
+            results.append({"found": False, "card": None, "gpt_name": name})
+
+    return {"found": len(results) > 0, "results": results, "set_code": set_code}
 
 
 @router.post("/lookup")
