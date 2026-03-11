@@ -221,7 +221,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
                          onAdded, onHistory }) {
   const canvasRef      = useRef(null)
   const scanningRef    = useRef(false)
-  const lastAddedUuid  = useRef(null)
+  const lastAddedName  = useRef(null)  // nome dell'ultima carta aggiunta
 
   const [isScanning, setIsScanning]     = useState(false)
   const [scanPhase, setScanPhase]       = useState(null)
@@ -298,15 +298,15 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       if (data.found && data.candidates?.length) {
         if (data.exact_match) {
           const card = data.candidates[0]
-          if (lastAddedUuid.current === card.uuid) {
-            // Stessa carta della precedente → mostra avviso, non aggiungere
+          if (lastAddedName.current && lastAddedName.current === card.name) {
+            // Stessa carta della precedente → non aggiungere
             setScanPhase('duplicate')
             await new Promise(r => setTimeout(r, 2000))
             if (scanningRef.current) setScanPhase(null)
           } else {
             const ok = await _addCard(card, 1)
             if (ok) {
-              lastAddedUuid.current = card.uuid
+              lastAddedName.current = card.name
               setScanPhase('added')
               await new Promise(r => setTimeout(r, 2500))
               if (scanningRef.current) setScanPhase(null)
@@ -338,7 +338,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   const startScanning = useCallback(() => {
     if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
     setError(null); setLastAdded(null)
-    lastAddedUuid.current = null
+    lastAddedName.current = null
     scanningRef.current = true
     setIsScanning(true)
 
@@ -382,7 +382,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   const handleConfirm = async (card, qty) => {
     setCandidates([]); setScanPhase(null); setManualStatus(null); setManualName('')
     await _addCard(card, qty)
-    lastAddedUuid.current = card.uuid
+    lastAddedName.current = card.name
   }
 
   const displayError = error || camError
