@@ -7,6 +7,7 @@
   color: #e2e8f0;
   overflow-x: hidden;
   box-sizing: border-box;
+  width: 100%;
 }
 
 /* ── Header ── */
@@ -355,6 +356,7 @@
     grid-template-columns: 1fr;
     gap: 16px;
     width: 100%;
+    max-width: 100%;
   }
   .cs2-header h1 { font-size: 1.3rem; }
   .cs2-tabs { flex-direction: row; }

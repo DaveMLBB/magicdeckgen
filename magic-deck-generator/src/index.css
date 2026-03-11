@@ -34,6 +34,11 @@ body {
   min-height: 100vh;
   display: block;
   background-color: #0f0c29;
+  overflow-x: hidden;
+}
+
+html {
+  overflow-x: hidden;
 }
 
 #root {
