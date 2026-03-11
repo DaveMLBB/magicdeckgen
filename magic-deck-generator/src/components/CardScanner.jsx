@@ -45,6 +45,7 @@ const t = {
     removeCard: 'Rimuovi',
     nextCard: '📷 Prossima carta',
     changeCard: 'Cambia la carta...',
+    sameCard: 'Stessa carta — cambiala per continuare',
     filterSet: 'Filtra per set',
     allSets: 'Tutti i set',
   },
@@ -87,6 +88,7 @@ const t = {
     removeCard: 'Remove',
     nextCard: '📷 Next card',
     changeCard: 'Change the card...',
+    sameCard: 'Same card — change it to continue',
     filterSet: 'Filter by set',
     allSets: 'All sets',
   }
@@ -219,7 +221,8 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
                          onAdded, onHistory }) {
   const canvasRef      = useRef(null)
   const scanningRef    = useRef(false)
-  const resumeRef      = useRef(null)   // resolve della Promise di pausa
+  const resumeRef      = useRef(null)
+  const lastAddedUuid  = useRef(null)  // uuid dell'ultima carta aggiunta, per evitare duplicati
 
   const [isScanning, setIsScanning]     = useState(false)
   const [scanPhase, setScanPhase]       = useState(null)
@@ -305,13 +308,20 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
 
       if (data.found && data.candidates?.length) {
         if (data.exact_match) {
-          const ok = await _addCard(data.candidates[0], 1)
-          if (ok) {
-            // Pausa: aspetta che l'utente posizioni la prossima carta
-            setScanPhase('added')
+          const card = data.candidates[0]
+          // Stessa carta della precedente → non aggiungere, aspetta cambio
+          if (lastAddedUuid.current === card.uuid) {
+            setScanPhase('duplicate')
             await waitForResume()
           } else {
-            setScanPhase(null)
+            const ok = await _addCard(card, 1)
+            if (ok) {
+              lastAddedUuid.current = card.uuid
+              setScanPhase('added')
+              await waitForResume()
+            } else {
+              setScanPhase(null)
+            }
           }
         } else {
           // Più edizioni → pausa loop, mostra modal
@@ -338,6 +348,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
     if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
     setError(null); setLastAdded(null)
     scanningRef.current = true
+    lastAddedUuid.current = null
     setIsScanning(true)
 
     const loop = async () => {
@@ -383,13 +394,14 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   const handleConfirm = async (card, qty) => {
     setCandidates([]); setScanPhase(null); setManualStatus(null); setManualName('')
     await _addCard(card, qty)
+    lastAddedUuid.current = card.uuid
   }
 
   const displayError = error || camError
 
-  // Dopo aggiunta: auto-dismiss e riprendi loop
+  // Dopo aggiunta o duplicato: auto-dismiss e riprendi loop
   useEffect(() => {
-    if (scanPhase !== 'added') return
+    if (scanPhase !== 'added' && scanPhase !== 'duplicate') return
     const t = setTimeout(() => {
       if (resumeRef.current) { resumeRef.current(); resumeRef.current = null }
     }, 2500)
@@ -496,6 +508,14 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
             <span style={{ fontSize: '1.6rem' }}>✅</span>
             <span>{lastAdded.name}</span>
             <span className="cs2-added-sub">{tr.changeCard}</span>
+          </div>
+        )}
+
+        {scanPhase === 'duplicate' && lastAdded && (
+          <div className="cs2-status-overlay duplicate">
+            <span style={{ fontSize: '1.6rem' }}>🔁</span>
+            <span>{lastAdded.name}</span>
+            <span className="cs2-added-sub">{tr.sameCard}</span>
           </div>
         )}
       </div>

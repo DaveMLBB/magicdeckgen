@@ -478,6 +478,12 @@
   color: #34d399;
   gap: 12px;
 }
+.cs2-status-overlay.duplicate {
+  background: rgba(0,0,0,0.72);
+  pointer-events: none;
+  color: #f59e0b;
+  gap: 12px;
+}
 .cs2-added-sub {
   font-size: 0.85rem;
   color: #94a3b8;
