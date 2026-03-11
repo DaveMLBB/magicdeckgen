@@ -391,6 +391,39 @@
   .cs2-manual-input { min-width: 0; }
 }
 
+/* ── Speed slider ── */
+.cs2-speed-row {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.cs2-speed-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.cs2-speed-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+.cs2-speed-value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #a78bfa;
+  min-width: 32px;
+  text-align: right;
+}
+.cs2-speed-slider {
+  flex: 1;
+  accent-color: #6366f1;
+  cursor: pointer;
+  height: 4px;
+}
+.cs2-speed-slider:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* ── Set picker autocomplete ── */
 .cs2-set-picker { position: relative; }
 .cs2-set-input-wrap { position: relative; }
@@ -473,8 +506,8 @@
 }
 .cs2-status-overlay.notfound { color: #fca5a5; }
 .cs2-status-overlay.added {
-  background: rgba(0,0,0,0.72);
-  pointer-events: none;
+  background: rgba(0,0,0,0.82);
+  pointer-events: all;
   color: #34d399;
   gap: 12px;
 }

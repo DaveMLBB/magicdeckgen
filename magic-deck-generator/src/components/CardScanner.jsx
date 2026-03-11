@@ -48,6 +48,9 @@ const t = {
     sameCard: 'Stessa carta — cambiala per continuare',
     filterSet: 'Filtra per set',
     allSets: 'Tutti i set',
+    scanSpeed: 'Velocità scansione',
+    scanSpeedFast: 'Veloce',
+    scanSpeedSlow: 'Lento',
   },
   en: {
     title: '📷 Card Scanner',
@@ -91,6 +94,9 @@ const t = {
     sameCard: 'Same card — change it to continue',
     filterSet: 'Filter by set',
     allSets: 'All sets',
+    scanSpeed: 'Scan speed',
+    scanSpeedFast: 'Fast',
+    scanSpeedSlow: 'Slow',
   }
 }
 
@@ -234,6 +240,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   const [availableSets, setAvailableSets] = useState([])
   const [setQuery, setSetQuery]         = useState('')
   const [setDropOpen, setSetDropOpen]   = useState(false)
+  const [scanDelay, setScanDelay]       = useState(2500)
   const setInputRef = useRef(null)
 
   const { videoRef, cameraReady, error: camError, stopCamera } = useCamera(selectedCamera, tr)
@@ -299,17 +306,18 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         if (data.exact_match) {
           const card = data.candidates[0]
           if (lastAddedName.current && lastAddedName.current === card.name) {
-            // Stessa carta della precedente → non aggiungere
+            // Stessa carta — mostra avviso e riprova dopo un po'
             setScanPhase('duplicate')
-            await new Promise(r => setTimeout(r, 2000))
+            await new Promise(r => setTimeout(r, scanDelay))
             if (scanningRef.current) setScanPhase(null)
           } else {
             const ok = await _addCard(card, 1)
             if (ok) {
               lastAddedName.current = card.name
+              // Ferma il loop — l'utente deve premere "Prossima carta"
+              scanningRef.current = false
+              setIsScanning(false)
               setScanPhase('added')
-              await new Promise(r => setTimeout(r, 2500))
-              if (scanningRef.current) setScanPhase(null)
             } else {
               setScanPhase(null)
             }
@@ -323,16 +331,16 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         }
       } else {
         setScanPhase('notfound')
-        await new Promise(r => setTimeout(r, 1200))
+        await new Promise(r => setTimeout(r, scanDelay))
         if (scanningRef.current) setScanPhase(null)
       }
     } catch (e) {
       console.error('Scan error', e)
       setScanPhase('notfound')
-      await new Promise(r => setTimeout(r, 1200))
+      await new Promise(r => setTimeout(r, scanDelay))
       if (scanningRef.current) setScanPhase(null)
     }
-  }, [videoRef, language, forcedSet, _addCard])
+  }, [videoRef, language, forcedSet, scanDelay, _addCard])
 
   // ── Loop principale ──────────────────────────────────────────────────────
   const startScanning = useCallback(() => {
@@ -355,6 +363,17 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
     setIsScanning(false)
     setScanPhase(null)
   }, [])
+
+  const handleNextCard = useCallback(() => {
+    setScanPhase(null)
+    lastAddedName.current = null  // reset: la prossima carta è "nuova"
+    scanningRef.current = true
+    setIsScanning(true)
+    const loop = async () => {
+      while (scanningRef.current) { await runOneCycle() }
+    }
+    loop()
+  }, [runOneCycle])
 
   // ── Ricerca manuale ──────────────────────────────────────────────────────
   const handleManualSearch = useCallback(async () => {
@@ -464,6 +483,24 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         )}
       </div>
 
+      {/* Velocità scansione */}
+      <div className="cs2-speed-row">
+        <label className="cs2-label">{tr.scanSpeed}</label>
+        <div className="cs2-speed-control">
+          <span className="cs2-speed-label">{tr.scanSpeedFast}</span>
+          <input
+            type="range"
+            min={1000} max={5000} step={500}
+            value={scanDelay}
+            onChange={e => setScanDelay(Number(e.target.value))}
+            disabled={isScanning}
+            className="cs2-speed-slider"
+          />
+          <span className="cs2-speed-label">{tr.scanSpeedSlow}</span>
+          <span className="cs2-speed-value">{(scanDelay / 1000).toFixed(1)}s</span>
+        </div>
+      </div>
+
       {/* Video */}
       <div className="cs2-video-wrapper">
         <video ref={videoRef} autoPlay playsInline muted className="cs2-video" />
@@ -486,7 +523,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
           <div className="cs2-status-overlay added">
             <span style={{ fontSize: '1.6rem' }}>✅</span>
             <span>{lastAdded.name}</span>
-            <span className="cs2-added-sub">{tr.changeCard}</span>
+            <button className="cs2-next-btn" onClick={handleNextCard}>{tr.nextCard}</button>
           </div>
         )}
 
