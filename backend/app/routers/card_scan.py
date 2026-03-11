@@ -41,8 +41,11 @@ class CardAddInput(BaseModel):
 def lookup_card(input_data: CardLookupInput, db: Session = Depends(get_db)):
     """
     Cerca una carta nel DB Scryfall per nome grezzo (output OCR).
-    Se collector_number è presente, tenta match esatto nome+numero → exact_match=True.
-    Altrimenti restituisce le prime 5 corrispondenze per nome (utente sceglie edizione).
+
+    Logica:
+    1. Trova tutte le carte che corrispondono al nome (fuzzy, fino a 10)
+    2. Se collector_number è presente, filtra i risultati per numero → prende la prima → exact_match=True
+    3. Se non c'è collector number o nessuna corrisponde al numero → mostra tutte le edizioni (utente sceglie)
     """
     raw = input_data.raw_name.strip()
     if not raw or len(raw) < 2:
@@ -50,75 +53,23 @@ def lookup_card(input_data: CardLookupInput, db: Session = Depends(get_db)):
 
     collector_number = (input_data.collector_number or "").strip() or None
 
-    # ── Tenta match esatto: nome + collector number ──────────────────────────
-    if collector_number:
-        exact = (
-            db.query(MTGCard)
-            .filter(func.lower(MTGCard.name) == raw.lower())
-            .filter(MTGCard.collector_number == collector_number)
-            .first()
-        )
-        if not exact:
-            # Prova con nome parziale (OCR potrebbe aver letto male)
-            exact = (
-                db.query(MTGCard)
-                .filter(MTGCard.name.ilike(f"%{raw}%"))
-                .filter(MTGCard.collector_number == collector_number)
-                .first()
-            )
-        if exact:
-            return {
-                "found": True,
-                "exact_match": True,
-                "candidates": [_card_to_dict(exact)],
-                "raw_name": raw,
-            }
-
-    # ── Fallback: cerca per nome, mostra edizioni (utente sceglie) ───────────
-    # 1. Esatta
-    candidates = db.query(MTGCard).filter(
-        func.lower(MTGCard.name) == raw.lower()
-    ).limit(5).all()
-
-    # 2. Parziale (raw contenuto nel nome)
-    if not candidates:
-        candidates = db.query(MTGCard).filter(
-            MTGCard.name.ilike(f"%{raw}%")
-        ).limit(5).all()
-
-    # 3. Fuzzy: ogni parola significativa (≥3 char) deve apparire nel nome
-    if not candidates:
-        words = [w for w in raw.split() if len(w) >= 3]
-        if words:
-            q = db.query(MTGCard)
-            for w in words:
-                q = q.filter(MTGCard.name.ilike(f"%{w}%"))
-            candidates = q.limit(5).all()
-
-    # 4. Fuzzy rilassato: almeno la metà delle parole significative
-    if not candidates:
-        words = [w for w in raw.split() if len(w) >= 3]
-        if len(words) >= 2:
-            min_match = max(1, len(words) // 2)
-            # Prova tutte le combinazioni di min_match parole
-            for combo in combinations(words, min_match):
-                q = db.query(MTGCard)
-                for w in combo:
-                    q = q.filter(MTGCard.name.ilike(f"%{w}%"))
-                candidates = q.limit(5).all()
-                if candidates:
-                    break
-
-    # 5. Ultima spiaggia: prima parola lunga (≥4 char)
-    if not candidates:
-        long_words = [w for w in raw.split() if len(w) >= 4]
-        if long_words:
-            candidates = db.query(MTGCard).filter(
-                MTGCard.name.ilike(f"%{long_words[0]}%")
-            ).limit(5).all()
+    # ── Step 1: trova tutte le carte per nome (fuzzy, 5 livelli) ────────────
+    candidates = _find_by_name(db, raw)
 
     if not candidates:
         return {"found": False, "candidates": [], "raw_name": raw}
+
+    # ── Step 2: se abbiamo il collector number, cerca tra i risultati ────────
+    if collector_number:
+        matched = [c for c in candidates if c.collector_number == collector_number]
+        if matched:
+            return {
+                "found": True,
+                "exact_match": True,
+                "candidates": [_card_to_dict(matched[0])],
+                "raw_name": raw,
+            }
+        # Collector number non trovato tra i candidati → mostra comunque le edizioni
 
     return {
         "found": True,
@@ -224,6 +175,54 @@ def get_available_sets(db: Session = Depends(get_db)):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _find_by_name(db, raw: str) -> list:
+    """Cerca carte per nome con 5 livelli di fuzzy matching. Ritorna fino a 10 risultati."""
+    # 1. Esatta
+    results = db.query(MTGCard).filter(
+        func.lower(MTGCard.name) == raw.lower()
+    ).limit(10).all()
+    if results:
+        return results
+
+    # 2. Parziale (raw contenuto nel nome)
+    results = db.query(MTGCard).filter(
+        MTGCard.name.ilike(f"%{raw}%")
+    ).limit(10).all()
+    if results:
+        return results
+
+    # 3. Tutte le parole significative (≥3 char) presenti nel nome
+    words = [w for w in raw.split() if len(w) >= 3]
+    if words:
+        q = db.query(MTGCard)
+        for w in words:
+            q = q.filter(MTGCard.name.ilike(f"%{w}%"))
+        results = q.limit(10).all()
+        if results:
+            return results
+
+    # 4. Almeno metà delle parole significative
+    if len(words) >= 2:
+        min_match = max(1, len(words) // 2)
+        for combo in combinations(words, min_match):
+            q = db.query(MTGCard)
+            for w in combo:
+                q = q.filter(MTGCard.name.ilike(f"%{w}%"))
+            results = q.limit(10).all()
+            if results:
+                return results
+
+    # 5. Prima parola lunga (≥4 char)
+    long_words = [w for w in raw.split() if len(w) >= 4]
+    if long_words:
+        results = db.query(MTGCard).filter(
+            MTGCard.name.ilike(f"%{long_words[0]}%")
+        ).limit(10).all()
+        if results:
+            return results
+
+    return []
 
 def _search_by_name(db, name: str, set_code: str | None, exact: bool) -> list:
     q = db.query(MTGCard)

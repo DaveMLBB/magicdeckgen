@@ -87,138 +87,92 @@ let ocrWorker = null
 async function getOCRWorker() {
   if (!ocrWorker) {
     ocrWorker = await createWorker('eng', 1, { logger: () => {} })
+    // PSM 6 = blocco uniforme di testo, più robusto di PSM 7 (single line)
+    // Nessuna whitelist: limita troppo e causa letture sbagliate su font MTG
     await ocrWorker.setParameters({
-      // Whitelist ampio: include caratteri accentati per nomi in più lingue
-      tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ',.:-éèêëàâùûüîïôœæçÀÂÉÈÊËÎÏÔÙÛÜŒÆÇäöüÄÖÜß",
-      tessedit_pageseg_mode: '7', // single line
+      tessedit_pageseg_mode: '6',
     })
   }
   return ocrWorker
 }
 
 /**
- * Preprocessing semplice e robusto per OCR su font MTG:
- * 1. Scala 3x
- * 2. Grayscale
- * 3. Boost contrasto (stretch istogramma)
- * 4. Threshold adattivo semplice (media locale)
- *
- * Ritorna due canvas: uno con sfondo chiaro (testo scuro) e uno invertito.
- * Tesseract funziona meglio con testo scuro su sfondo chiaro.
+ * Scala il crop a 3x senza alcun preprocessing aggressivo.
+ * Tesseract moderno funziona meglio su immagini ad alta risoluzione a colori
+ * che su immagini binarizzate male.
  */
-function preprocessForOCR(src, sx, sy, sw, sh) {
-  const scale = 3
+function cropAndScale(src, sx, sy, sw, sh, scale = 3) {
   const out = document.createElement('canvas')
-  out.width = sw * scale
+  out.width  = sw * scale
   out.height = sh * scale
   const ctx = out.getContext('2d')
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(src, sx, sy, sw, sh, 0, 0, out.width, out.height)
-
-  const W = out.width, H = out.height
-  const imgData = ctx.getImageData(0, 0, W, H)
-  const d = imgData.data
-
-  // 1. Grayscale
-  const gray = new Uint8Array(W * H)
-  for (let i = 0; i < d.length; i += 4) {
-    gray[i >> 2] = (d[i] * 77 + d[i+1] * 150 + d[i+2] * 29) >> 8
-  }
-
-  // 2. Stretch contrasto (min/max)
-  let mn = 255, mx = 0
-  for (let i = 0; i < gray.length; i++) { if (gray[i] < mn) mn = gray[i]; if (gray[i] > mx) mx = gray[i] }
-  const range = mx - mn || 1
-  const stretched = new Uint8Array(W * H)
-  for (let i = 0; i < gray.length; i++) stretched[i] = ((gray[i] - mn) * 255 / range) | 0
-
-  // 3. Threshold adattivo (media su blocco 32x32, offset -15)
-  const BLOCK = 32, OFFSET = 15
-  const result = new Uint8Array(W * H)
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const y0 = Math.max(0, y - BLOCK), y1 = Math.min(H - 1, y + BLOCK)
-      const x0 = Math.max(0, x - BLOCK), x1 = Math.min(W - 1, x + BLOCK)
-      let sum = 0, cnt = 0
-      for (let yy = y0; yy <= y1; yy += 2) {
-        for (let xx = x0; xx <= x1; xx += 2) { sum += stretched[yy * W + xx]; cnt++ }
-      }
-      result[y * W + x] = stretched[y * W + x] < (sum / cnt - OFFSET) ? 0 : 255
-    }
-  }
-
-  // Scrivi canvas normale (testo scuro su bianco)
-  const out2 = document.createElement('canvas')
-  out2.width = W; out2.height = H
-  const ctx2 = out2.getContext('2d')
-  const id2 = ctx2.createImageData(W, H)
-  for (let i = 0; i < result.length; i++) {
-    id2.data[i*4] = id2.data[i*4+1] = id2.data[i*4+2] = result[i]
-    id2.data[i*4+3] = 255
-  }
-  ctx2.putImageData(id2, 0, 0)
-
-  // Scrivi canvas invertito (testo chiaro su nero → invertito = testo scuro su bianco)
-  const out3 = document.createElement('canvas')
-  out3.width = W; out3.height = H
-  const ctx3 = out3.getContext('2d')
-  const id3 = ctx3.createImageData(W, H)
-  for (let i = 0; i < result.length; i++) {
-    const v = 255 - result[i]
-    id3.data[i*4] = id3.data[i*4+1] = id3.data[i*4+2] = v
-    id3.data[i*4+3] = 255
-  }
-  ctx3.putImageData(id3, 0, 0)
-
-  return { normal: out2, inverted: out3 }
+  return out
 }
 
 /**
- * Estrae il nome della carta dal frame.
- * - Prova sia la versione normale che invertita del preprocessing
- * - Prende il risultato con confidence più alta
- * - Crop: top 15% (zona titolo MTG)
+ * Estrae il nome della carta dal frame catturato.
+ *
+ * Layout carta MTG (proporzione 5:7, CAPTURE_H=980):
+ *   - Barra titolo: circa y=4%..11% del frame (esclude il bordo superiore)
+ *   - Collector number: bottom ~6%, sinistra ~45%
+ *
+ * Strategia OCR:
+ *   1. Crop zona titolo (y 4%→12%), scala 3x, OCR diretto
+ *   2. Stesso crop ma con canvas invertito (per carte con sfondo scuro)
+ *   3. Prende il risultato con confidence più alta
  */
 async function ocrCard(canvas) {
   const w = canvas.width
   const h = canvas.height
   const worker = await getOCRWorker()
 
-  // Crop zona nome: top 15% del frame
-  const nameH = Math.floor(h * 0.15)
-  const { normal, inverted } = preprocessForOCR(canvas, 0, 0, w, nameH)
+  // Zona titolo: salta il bordo superiore (4%), prendi fino al 12%
+  const nameY  = Math.floor(h * 0.04)
+  const nameH  = Math.floor(h * 0.09)   // altezza ~9% = solo la barra del titolo
+  // Margini laterali: escludi ~8% per lato (bordo carta)
+  const nameX  = Math.floor(w * 0.08)
+  const nameW  = Math.floor(w * 0.84)
 
-  // OCR su entrambe le versioni in parallelo
+  const cropNormal = cropAndScale(canvas, nameX, nameY, nameW, nameH)
+
+  // Versione invertita (testo scuro su sfondo chiaro → per carte con titolo scuro)
+  const cropInv = document.createElement('canvas')
+  cropInv.width = cropNormal.width; cropInv.height = cropNormal.height
+  const ctxInv = cropInv.getContext('2d')
+  ctxInv.filter = 'invert(1)'
+  ctxInv.drawImage(cropNormal, 0, 0)
+
   const [r1, r2] = await Promise.all([
-    worker.recognize(normal),
-    worker.recognize(inverted),
+    worker.recognize(cropNormal),
+    worker.recognize(cropInv),
   ])
 
-  // Scegli il risultato con confidence più alta
   const conf1 = r1.data.confidence || 0
   const conf2 = r2.data.confidence || 0
-  const best = conf1 >= conf2 ? r1 : r2
-
+  const best  = conf1 >= conf2 ? r1 : r2
   const rawText = best.data.text || ''
 
-  // Pulisci: prendi la prima riga non vuota con almeno 2 caratteri
+  // Prendi la riga con più caratteri alfabetici (ignora righe di rumore)
   const cardName = rawText
     .split('\n')
-    .map(l => l.trim().replace(/[^a-zA-ZÀ-ÿ0-9 ',.:\-]/g, ' ').replace(/\s+/g, ' ').trim())
-    .find(l => l.length >= 2) || ''
+    .map(l => l.trim().replace(/[^a-zA-ZÀ-ÿ0-9 ',.:\-]/g, '').replace(/\s+/g, ' ').trim())
+    .filter(l => l.length >= 2 && /[a-zA-Z]/.test(l))
+    .sort((a, b) => b.length - a.length)[0] || ''
 
-  // Collector number: crop bottom 8%, sinistra 50%
-  const collH = Math.floor(h * 0.08)
-  const collW = Math.floor(w * 0.50)
+  // Collector number: bottom 6%, sinistra 45%
+  const collH = Math.floor(h * 0.06)
+  const collW = Math.floor(w * 0.45)
   const collY = h - collH
-  const { normal: collCanvas } = preprocessForOCR(canvas, 0, collY, collW, collH)
-  const collResult = await worker.recognize(collCanvas)
+  const collCrop = cropAndScale(canvas, 0, collY, collW, collH)
+  const collResult = await worker.recognize(collCrop)
   const collText = collResult.data.text || ''
   const collMatch = collText.match(/\b(\d{1,4})(?:\/\d{1,4})?\b/)
   const collectorNumber = collMatch ? collMatch[1] : null
 
-  return { cardName, collectorNumber, confidence: Math.max(conf1, conf2) }
+  return { cardName, collectorNumber, confidence: Math.max(conf1, conf2), rawText }
 }
 
 // ── Camera hook ───────────────────────────────────────────────────────────────
@@ -373,7 +327,8 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       const result = await ocrCard(canvas)
       cardName = result.cardName
       collectorNumber = result.collectorNumber
-      setLastOcrName(cardName || null)
+      console.log('[OCR]', { cardName, collectorNumber, confidence: result.confidence, rawText: result.rawText })
+      setLastOcrName(cardName || `(vuoto — raw: "${result.rawText?.slice(0,40)}")`)
     } catch (e) { console.error('OCR error', e) }
 
     if (!cardName) { setStatus('notfound'); return }
