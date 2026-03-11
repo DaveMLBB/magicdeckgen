@@ -74,7 +74,7 @@ async def recognize_card(input_data: CardScanVisionInput, db: Session = Depends(
 
     prompt = """This is a Magic: The Gathering card photo.
 Tell me:
-1. The card name in ENGLISH (if the card is in another language, give me the English name)
+1. The card name in ENGLISH (if the card is in another language translate it and give me the English name)
 2. The collector number (bottom-left of the card, e.g. "123" or "123/456")
 
 Reply ONLY with this JSON, nothing else:
