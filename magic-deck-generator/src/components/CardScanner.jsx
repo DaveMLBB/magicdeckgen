@@ -232,6 +232,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   const [isScanning, setIsScanning]     = useState(false)
   const [scanPhase, setScanPhase]       = useState(null)
   const [lastAdded, setLastAdded]       = useState(null)
+  const [duplicateName, setDuplicateName] = useState(null)
   const [candidates, setCandidates]     = useState([])
   const [error, setError]               = useState(null)
   const [manualName, setManualName]     = useState('')
@@ -307,6 +308,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
           const card = data.candidates[0]
           if (lastAddedName.current && lastAddedName.current === card.name) {
             // Stessa carta — mostra avviso e riprova dopo un po'
+            setDuplicateName(card.name)
             setScanPhase('duplicate')
             await new Promise(r => setTimeout(r, scanDelay))
             if (scanningRef.current) setScanPhase(null)
@@ -527,10 +529,10 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
           </div>
         )}
 
-        {scanPhase === 'duplicate' && lastAdded && (
+        {scanPhase === 'duplicate' && (
           <div className="cs2-status-overlay duplicate">
             <span style={{ fontSize: '1.6rem' }}>🔁</span>
-            <span>{lastAdded.name}</span>
+            <span>{duplicateName || lastAdded?.name}</span>
             <span className="cs2-added-sub">{tr.sameCard}</span>
           </div>
         )}

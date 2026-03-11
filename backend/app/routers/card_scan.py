@@ -78,18 +78,16 @@ async def recognize_card(input_data: CardScanVisionInput, db: Session = Depends(
 Identify the card and return:
 1. The card name in ENGLISH (translate if the card is in another language)
 2. The set code (3–5 letter MTG expansion code, e.g. M12, DMU, MH2)
-3. The collector number (the number printed at the bottom of the card)
 
 Rules:
-- If the collector number is not visible return null
 - If the set code is not readable infer it from the card frame or symbol if possible
 
 Reply ONLY with this JSON:
-{"name": "Card Name", "set_code": "SET", "collector_number": "123"}"""
+{"name": "Card Name", "set_code": "SET"}"""
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-5.2",
+            model="gpt-4o",
             messages=[{
                 "role": "user",
                 "content": [
@@ -101,11 +99,12 @@ Reply ONLY with this JSON:
                 ]
             }],
             max_completion_tokens=100,
-            temperature=1,
+            temperature=0,
             response_format={"type": "json_object"},
         )
         raw = response.choices[0].message.content or ""
         usage = response.usage
+        # gpt-4o: $2.50/1M input, $10.00/1M output
         cost = (usage.prompt_tokens * 2.50 + usage.completion_tokens * 10.0) / 1_000_000
         print(f"[SCAN] GPT tokens — prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens}, total: {usage.total_tokens} (~${cost:.5f})")
         print(f"[SCAN] GPT raw response: {raw!r}")
