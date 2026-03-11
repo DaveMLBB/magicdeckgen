@@ -137,7 +137,7 @@ const sections = {
         '↔️ Laterale — livello simile, contesti o compromessi diversi.',
         'Ogni carta mostra una barra di somiglianza (%), le differenze chiave e il prezzo stimato.',
         'Puoi filtrare per tipo di relazione e copiare tutta la lista con un click.',
-        '⚠️ Consuma 10 token per ricerca.',
+        '⚠️ Consuma 3 token per ricerca.',
       ]
     },
     {
@@ -153,7 +153,7 @@ const sections = {
         'Le carte nel risultato sono cliccabili per cercarle nel database interno.',
         'Clicca "Salva Mazzo" per salvare il mazzo generato nella tua sezione Mazzi.',
         'Puoi copiare la lista completa con un click per usarla su altri siti.',
-        '⚠️ Consuma 10 token per generazione.',
+        '⚠️ Consuma 5 token per generazione.',
       ]
     },
   ],
@@ -290,7 +290,7 @@ const sections = {
         '↔️ Lateral — similar power level, different contexts or minor tradeoffs.',
         'Each card shows a similarity bar (%), key differences, and estimated price.',
         'Filter by relationship type and copy the full list with one click.',
-        '⚠️ Costs 10 tokens per search.',
+        '⚠️ Costs 3 tokens per search.',
       ]
     },
     {
@@ -306,7 +306,7 @@ const sections = {
         'Cards in the result are clickable to search them in the internal database.',
         'Click "Save Deck" to save the generated deck to your Decks section.',
         'Copy the full list with one click to use it on other sites.',
-        '⚠️ Costs 10 tokens per generation.',
+        '⚠️ Costs 5 tokens per generation.',
       ]
     },
   ]

@@ -170,7 +170,7 @@ async def build_deck(
         raise HTTPException(status_code=400, detail="Description too short (min 10 characters)")
 
     from app.routers.tokens import consume_token
-    consume_token(user, 'ai_build_deck', f'AI build deck: {input_data.description[:60]}', db, tokens_to_consume=30)
+    consume_token(user, 'ai_build_deck', f'AI build deck: {input_data.description[:60]}', db, tokens_to_consume=5)
 
     groq_api_key = os.getenv("GROQ_API_KEY")
     if not groq_api_key:
@@ -708,7 +708,7 @@ async def find_twins(
         raise HTTPException(status_code=400, detail="Maximum 5 cards allowed")
 
     from app.routers.tokens import consume_token
-    consume_token(user, 'ai_twins', f'AI twins search: {", ".join(input_data.card_names)}', db, tokens_to_consume=10)
+    consume_token(user, 'ai_twins', f'AI twins search: {", ".join(input_data.card_names)}', db, tokens_to_consume=3)
 
     # Fetch card data from DB
     cards_data = []
@@ -859,7 +859,7 @@ async def find_synergies(
         raise HTTPException(status_code=400, detail="Maximum 5 seed cards allowed")
 
     from app.routers.tokens import consume_token
-    consume_token(user, 'ai_synergy', f'AI synergy search: {", ".join(input_data.card_names)}', db, tokens_to_consume=10)
+    consume_token(user, 'ai_synergy', f'AI synergy search: {", ".join(input_data.card_names)}', db, tokens_to_consume=3)
 
     # Fetch card data from DB to enrich the prompt
     seed_cards_data = []

@@ -119,6 +119,7 @@ def add_card_to_collection(input_data: CardAddInput, db: Session = Depends(get_d
             card_type=_extract_main_type(mtg.type_line),
             colors=mtg.colors,
             rarity=mtg.rarity,
+            set_code=mtg.set_code,
             quantity_owned=qty,
             user_id=input_data.user_id,
             collection_id=input_data.collection_id,

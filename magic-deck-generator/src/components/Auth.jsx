@@ -297,7 +297,7 @@ function Auth({ onLogin, language, setLanguage }) {
                   <span className="ai-tool-icon">🏗️</span>
                   <div>
                     <h3>{language === 'it' ? 'AI Deck Builder' : 'AI Deck Builder'}</h3>
-                    <span className="ai-token-badge">10 token</span>
+                    <span className="ai-token-badge">5 token</span>
                   </div>
                 </div>
                 <p>
@@ -311,7 +311,7 @@ function Auth({ onLogin, language, setLanguage }) {
                   <span className="ai-tool-icon">✨</span>
                   <div>
                     <h3>{language === 'it' ? 'AI Synergy Finder' : 'AI Synergy Finder'}</h3>
-                    <span className="ai-token-badge">10 token</span>
+                    <span className="ai-token-badge">3 token</span>
                   </div>
                 </div>
                 <p>
@@ -325,7 +325,7 @@ function Auth({ onLogin, language, setLanguage }) {
                   <span className="ai-tool-icon">🪞</span>
                   <div>
                     <h3>{language === 'it' ? 'AI Gemelli' : 'AI Card Twins'}</h3>
-                    <span className="ai-token-badge">10 token</span>
+                    <span className="ai-token-badge">3 token</span>
                   </div>
                 </div>
                 <p>

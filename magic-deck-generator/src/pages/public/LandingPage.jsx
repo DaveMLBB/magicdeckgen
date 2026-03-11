@@ -28,9 +28,9 @@ const LandingPage = ({ lang = 'en' }) => {
       aiTitle: '4 AI-Powered Tools to Elevate Your Game',
       aiSubtitle: 'State-of-the-art AI features that no other MTG tool offers',
       aiTools: [
-        { icon: '🏗️', title: 'AI Deck Builder', badge: '10 tokens', desc: 'Describe the deck you want in plain text — "red aggro Modern" or "Atraxa Commander with +1/+1 counters" — and AI builds a complete 60 or 100-card deck with sideboard, strategy notes, key cards, and upgrade path. Can also build using only cards from your collection.' },
-        { icon: '✨', title: 'AI Synergy Finder', badge: '10 tokens', desc: 'Enter 1–5 seed cards and AI finds the most synergistic cards to build around them. Results are grouped by role: Enabler, Payoff, Removal, Ramp, Support. Perfect for brewing new archetypes from scratch.' },
-        { icon: '🪞', title: 'AI Card Twins', badge: '10 tokens', desc: 'Find functional equivalents for any card. Discover budget replacements, upgrades, or cards that do the same thing with a different name. Each twin is rated: Functional Copy, Superior, Inferior, or Lateral.' },
+        { icon: '🏗️', title: 'AI Deck Builder', badge: '5 tokens', desc: 'Describe the deck you want in plain text — "red aggro Modern" or "Atraxa Commander with +1/+1 counters" — and AI builds a complete 60 or 100-card deck with sideboard, strategy notes, key cards, and upgrade path. Can also build using only cards from your collection.' },
+        { icon: '✨', title: 'AI Synergy Finder', badge: '3 tokens', desc: 'Enter 1–5 seed cards and AI finds the most synergistic cards to build around them. Results are grouped by role: Enabler, Payoff, Removal, Ramp, Support. Perfect for brewing new archetypes from scratch.' },
+        { icon: '🪞', title: 'AI Card Twins', badge: '3 tokens', desc: 'Find functional equivalents for any card. Discover budget replacements, upgrades, or cards that do the same thing with a different name. Each twin is rated: Functional Copy, Superior, Inferior, or Lateral.' },
         { icon: '🤖', title: 'AI Deck Analyzer', badge: '10 tokens', desc: 'Select any saved deck and choose an optimization goal (Aggro, Control, Combo, Tribal, Token…). AI analyzes mana curve, identifies synergies and combos, and suggests specific cards to add or remove.' },
       ],
       toolsTitle: 'Everything Else You Need',
@@ -81,9 +81,9 @@ const LandingPage = ({ lang = 'en' }) => {
       aiTitle: '4 Strumenti AI per Elevare il Tuo Gioco',
       aiSubtitle: 'Funzionalità AI all\'avanguardia che nessun altro strumento MTG offre',
       aiTools: [
-        { icon: '🏗️', title: 'AI Deck Builder', badge: '10 token', desc: 'Descrivi il mazzo che vuoi in testo libero — "aggro rosso Modern" o "Commander Atraxa con counter +1/+1" — e l\'AI costruisce un mazzo completo da 60 o 100 carte con sideboard, note strategiche, carte chiave e percorso di upgrade. Può anche costruire usando solo le carte della tua collezione.' },
-        { icon: '✨', title: 'AI Synergy Finder', badge: '10 token', desc: 'Inserisci 1–5 carte di partenza e l\'AI trova le carte più sinergiche per costruire attorno ad esse. Risultati raggruppati per ruolo: Enabler, Payoff, Removal, Ramp, Support. Perfetto per creare nuovi archetipi da zero.' },
-        { icon: '🪞', title: 'AI Gemelli', badge: '10 token', desc: 'Trova equivalenti funzionali per qualsiasi carta. Scopri sostituti economici, upgrade, o carte che fanno la stessa cosa con un nome diverso. Ogni gemello classificato: Copia Funzionale, Superiore, Inferiore o Laterale.' },
+        { icon: '🏗️', title: 'AI Deck Builder', badge: '5 token', desc: 'Descrivi il mazzo che vuoi in testo libero — "aggro rosso Modern" o "Commander Atraxa con counter +1/+1" — e l\'AI costruisce un mazzo completo da 60 o 100 carte con sideboard, note strategiche, carte chiave e percorso di upgrade. Può anche costruire usando solo le carte della tua collezione.' },
+        { icon: '✨', title: 'AI Synergy Finder', badge: '3 token', desc: 'Inserisci 1–5 carte di partenza e l\'AI trova le carte più sinergiche per costruire attorno ad esse. Risultati raggruppati per ruolo: Enabler, Payoff, Removal, Ramp, Support. Perfetto per creare nuovi archetipi da zero.' },
+        { icon: '🪞', title: 'AI Gemelli', badge: '3 token', desc: 'Trova equivalenti funzionali per qualsiasi carta. Scopri sostituti economici, upgrade, o carte che fanno la stessa cosa con un nome diverso. Ogni gemello classificato: Copia Funzionale, Superiore, Inferiore o Laterale.' },
       ],
       toolsTitle: 'Tutto il Resto di cui Hai Bisogno',
       tools: [

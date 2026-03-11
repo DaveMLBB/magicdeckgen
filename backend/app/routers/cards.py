@@ -516,7 +516,7 @@ def get_user_collection(
     rarity: Optional[str] = None,
     cmc_min: Optional[int] = None,
     cmc_max: Optional[int] = None,
-    sort_by: str = Query("name", regex="^(name|quantity|type|mana_cost)$"),
+    sort_by: str = Query("name", regex="^(name|quantity|type|mana_cost|price)$"),
     sort_order: str = Query("asc", regex="^(asc|desc)$"),
     db: Session = Depends(get_db)
 ):
@@ -612,7 +612,7 @@ def get_user_collection(
         limited = True
         locked_cards = total_unique_cards - unique_card_limit
     
-    # Apply sorting
+    # Apply sorting (price is sorted after enrichment)
     if sort_by == "name":
         query = query.order_by(Card.name.asc() if sort_order == "asc" else Card.name.desc())
     elif sort_by == "quantity":
@@ -628,8 +628,14 @@ def get_user_collection(
     # Enrich cards with MTG database data and apply CMC filter
     enriched_cards = []
     for card in all_cards:
-        # Get MTG card data
-        mtg_card = db.query(MTGCard).filter(MTGCard.name == card.name).first()
+        # Get MTG card data — prefer matching set_code, then card with price, then first
+        mtg_q = db.query(MTGCard).filter(MTGCard.name == card.name)
+        if card.set_code:
+            mtg_card = mtg_q.filter(MTGCard.set_code == card.set_code).first()
+            if not mtg_card:
+                mtg_card = mtg_q.filter(MTGCard.price_eur.isnot(None)).first() or mtg_q.first()
+        else:
+            mtg_card = mtg_q.filter(MTGCard.price_eur.isnot(None)).first() or mtg_q.first()
         
         # Apply CMC filter if specified
         if mtg_card:
@@ -648,6 +654,11 @@ def get_user_collection(
         })
     
     # Apply pagination on enriched cards
+    if sort_by == "price":
+        enriched_cards.sort(
+            key=lambda x: (x['mtg_card'].price_eur or x['mtg_card'].price_usd or 0) if x['mtg_card'] else 0,
+            reverse=(sort_order == "desc")
+        )
     offset = (page - 1) * page_size
     paginated_cards = enriched_cards[offset:offset + page_size]
     
@@ -668,6 +679,10 @@ def get_user_collection(
         mana_cost = card.mana_cost or ""
         rarity = card.rarity or ""
         mana_value = None
+        set_code = None
+        set_name = None
+        price_eur = None
+        price_usd = None
         
         if mtg_card:
             if mtg_card.types:
@@ -680,6 +695,10 @@ def get_user_collection(
             mana_cost = mtg_card.mana_cost or mana_cost
             rarity = mtg_card.rarity or rarity
             mana_value = mtg_card.mana_value
+            set_code = mtg_card.set_code or None
+            set_name = mtg_card.set_name or None
+            price_eur = mtg_card.price_eur
+            price_usd = mtg_card.price_usd
         
         # Nome italiano: prendi dal card, altrimenti dal mtg_card
         name_it = card.name_it or ''
@@ -696,6 +715,10 @@ def get_user_collection(
             "mana_cost": mana_cost,
             "rarity": rarity,
             "mana_value": mana_value,
+            "set_code": set_code or "—",
+            "set_name": set_name,
+            "price_eur": price_eur,
+            "price_usd": price_usd,
             "locked": is_locked
         })
     

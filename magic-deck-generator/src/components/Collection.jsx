@@ -1037,6 +1037,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
               <option value="quantity">{t.quantity}</option>
               <option value="type">{t.type}</option>
               <option value="mana_cost">{t.manaCostCol}</option>
+              <option value="price">{language === 'it' ? 'Prezzo' : 'Price'}</option>
             </select>
             <button 
               className="sort-order-btn"
@@ -1180,7 +1181,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                         checked={selectAllPages || (cards.filter(c => !c.locked).length > 0 && cards.filter(c => !c.locked).every(c => selectedCardIds.includes(c.id)))}
                       />
                     </th>
-                    <th className="actions-header">{language === 'it' ? 'Azioni' : 'Actions'}</th>
+                    <th className="actions-header"></th>
                     <th onClick={() => handleSort('name')} className="sortable">
                       {t.name} {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </th>
@@ -1192,6 +1193,10 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                     </th>
                     <th onClick={() => handleSort('mana_cost')} className="sortable">
                       {t.manaCostCol} {sortBy === 'mana_cost' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th>{language === 'it' ? 'Set' : 'Set'}</th>
+                    <th onClick={() => handleSort('price')} className="sortable">
+                      {language === 'it' ? 'Prezzo' : 'Price'} {sortBy === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </th>
                   </tr>
                 </thead>
@@ -1274,6 +1279,18 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                       </td>
                       <td className="card-mana">
                         {card.locked ? <span className="blur-text">{renderManaCost(card.mana_cost)}</span> : renderManaCost(card.mana_cost)}
+                      </td>
+                      <td className="card-set">
+                        {card.locked ? <span className="blur-text">—</span> : (card.set_code || '—')}
+                      </td>
+                      <td className="card-price">
+                        {card.locked ? <span className="blur-text">—</span> : (
+                          card.price_eur != null
+                            ? `€${Number(card.price_eur).toFixed(2)}`
+                            : card.price_usd != null
+                              ? `$${Number(card.price_usd).toFixed(2)}`
+                              : '—'
+                        )}
                       </td>
                     </tr>
                   ))}

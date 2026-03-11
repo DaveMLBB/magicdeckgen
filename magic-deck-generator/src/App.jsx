@@ -1958,10 +1958,7 @@ function App() {
     <div className="app">
       {animatedBg && <RandomArtBackground />}
 
-      {/* Maintenance banner */}
-      <div className="maintenance-banner">
-        ⚠️ Il server è attualmente in manutenzione. Alcune funzionalità potrebbero non essere disponibili.
-      </div>
+      {/* Maintenance banner — disabled */}
 
       {!isLegal && (
         <>

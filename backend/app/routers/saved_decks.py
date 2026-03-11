@@ -344,7 +344,7 @@ def get_deck_details(
             "is_owned": is_owned,
             "quantity_owned": owned_qty,
             "quantity_missing": quantity_missing,
-            "cmc": int(db.query(MTGCard).filter(MTGCard.name == card.card_name).with_entities(MTGCard.mana_value).scalar() or 0)
+            "cmc": int(db.query(MTGCard.mana_value).filter(MTGCard.name == card.card_name).limit(1).scalar() or 0)
         })
         
         # Calcolo basato sulle quantità (coerente con ricerca compatibilità)

@@ -256,32 +256,16 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
 
     const canvas = canvasRef.current
     canvas.width = CAPTURE_W; canvas.height = CAPTURE_H
-    const ctx = canvas.getContext('2d')
-    ctx.drawImage(videoRef.current, 0, 0, CAPTURE_W, CAPTURE_H)
-
-    // Per la carta singola: crop solo la zona del nome (top 15% del frame)
-    // Per la griglia: usa tutto il frame
-    let ocrCanvas = canvas
-    if (mode === 'single') {
-      ocrCanvas = document.createElement('canvas')
-      ocrCanvas.width = CAPTURE_W
-      ocrCanvas.height = Math.floor(CAPTURE_H * 0.18)
-      ocrCanvas.getContext('2d').drawImage(canvas, 0, 0, CAPTURE_W, CAPTURE_H,
-        0, 0, CAPTURE_W, ocrCanvas.height)
-    }
+    canvas.getContext('2d').drawImage(videoRef.current, 0, 0, CAPTURE_W, CAPTURE_H)
 
     setStatus('ocr')
-    let rawText = ''
+    let cardName = '', setCode = null
     try {
-      const worker = await getOCRWorker()
-      const { data } = await worker.recognize(ocrCanvas)
-      rawText = data.text || ''
+      const result = await ocrCard(canvas)
+      cardName = result.cardName
+      setCode  = result.setCode
     } catch (e) { console.error('OCR error', e) }
 
-    if (!rawText.trim()) { setStatus('notfound'); return }
-
-    const cardName = extractCardName(rawText)
-    const setCode  = extractSetCode(rawText)
     if (!cardName) { setStatus('notfound'); return }
 
     setStatus('searching')
@@ -299,7 +283,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         setStatus('notfound')
       }
     } catch { setStatus('notfound') }
-  }, [selectedCollectionId, videoRef, mode, language, tr])
+  }, [selectedCollectionId, videoRef, language, tr])
 
   const handleConfirm = async (card, qty) => {
     setCandidates([])
