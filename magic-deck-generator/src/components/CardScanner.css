@@ -5,6 +5,8 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
   color: #e2e8f0;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* ── Header ── */
@@ -114,8 +116,10 @@
   grid-template-columns: 480px 1fr;
   gap: 24px;
   align-items: start;
+  width: 100%;
+  box-sizing: border-box;
 }
-.cs2-left { display: flex; flex-direction: column; }
+.cs2-left { display: flex; flex-direction: column; min-width: 0; }
 .cs2-mode-body { display: flex; flex-direction: column; gap: 14px; }
 
 /* ── Controls row ── */
@@ -124,7 +128,7 @@
   gap: 10px;
   flex-wrap: wrap;
 }
-.cs2-controls-row .cs2-section { flex: 1; min-width: 140px; }
+.cs2-controls-row .cs2-section { flex: 1; min-width: 0; }
 
 .cs2-section {
   background: rgba(255,255,255,0.05);
@@ -149,6 +153,9 @@
   padding: 7px 10px;
   font-size: 0.9rem;
   cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .cs2-select:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -347,6 +354,7 @@
   .cs2-layout {
     grid-template-columns: 1fr;
     gap: 16px;
+    width: 100%;
   }
   .cs2-header h1 { font-size: 1.3rem; }
   .cs2-tabs { flex-direction: row; }
@@ -364,6 +372,7 @@
 }
 
 @media (max-width: 480px) {
+  .card-scanner { padding: 10px; }
   .cs2-header { gap: 8px; }
   .cs2-header h1 { font-size: 1.1rem; }
   .cs2-back-btn { padding: 8px 12px; font-size: 0.85rem; }
@@ -377,10 +386,60 @@
     font-size: 1.2rem;
   }
   .cs2-controls-row { flex-direction: column; }
-  .cs2-controls-row .cs2-section { min-width: unset; }
+  .cs2-controls-row .cs2-section { min-width: unset; width: 100%; }
+  .cs2-manual-row { flex-wrap: wrap; }
+  .cs2-manual-input { min-width: 0; }
 }
 
-/* ── OCR hint overlay ── */
+/* ── Set picker autocomplete ── */
+.cs2-set-picker { position: relative; }
+.cs2-set-input-wrap { position: relative; }
+.cs2-set-input { padding-right: 28px !important; }
+.cs2-set-clear {
+  position: absolute;
+  right: 8px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: #64748b; font-size: 0.85rem;
+  cursor: pointer; padding: 2px 4px;
+  line-height: 1;
+}
+.cs2-set-clear:hover { color: #e2e8f0; }
+.cs2-set-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: #1e1b4b;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.cs2-set-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.1s;
+}
+.cs2-set-option:hover, .cs2-set-option.active { background: rgba(99,102,241,0.25); }
+.cs2-set-option-all { color: #64748b; font-style: italic; }
+.cs2-set-code {
+  font-weight: 700;
+  color: #a78bfa;
+  min-width: 40px;
+  flex-shrink: 0;
+}
+.cs2-set-name {
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .cs2-ocr-hint {
   position: absolute;
   bottom: 10px;
@@ -599,4 +658,19 @@
   color: #94a3b8;
   margin-top: 6px;
   font-style: italic;
+}
+
+/* ── OCR hint overlay ── */
+.cs2-ocr-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.55);
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  pointer-events: none;
 }

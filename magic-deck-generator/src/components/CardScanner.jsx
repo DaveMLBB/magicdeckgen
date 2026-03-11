@@ -230,6 +230,9 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   const [manualStatus, setManualStatus] = useState(null)
   const [forcedSet, setForcedSet]       = useState('')
   const [availableSets, setAvailableSets] = useState([])
+  const [setQuery, setSetQuery]         = useState('')
+  const [setDropOpen, setSetDropOpen]   = useState(false)
+  const setInputRef = useRef(null)
 
   const { videoRef, cameraReady, error: camError, stopCamera } = useCamera(selectedCamera, tr)
   useEffect(() => () => { scanningRef.current = false; stopCamera() }, [])
@@ -241,7 +244,6 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       .then(d => setAvailableSets(d.sets || []))
       .catch(() => {})
   }, [])
-  useEffect(() => () => { scanningRef.current = false; stopCamera() }, [])
 
   // ── Pausa il loop finché l'utente non preme "Prossima carta" ────────────
   const waitForResume = useCallback(() => {
@@ -417,16 +419,45 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
               : collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <div className="cs2-section">
+        <div className="cs2-section cs2-set-picker">
           <label className="cs2-label">{tr.filterSet}</label>
-          <select className="cs2-select" value={forcedSet}
-            onChange={e => setForcedSet(e.target.value)}
-            disabled={isScanning}>
-            <option value="">{tr.allSets}</option>
-            {availableSets.map(s => (
-              <option key={s.code} value={s.code}>{s.code.toUpperCase()} — {s.name}</option>
-            ))}
-          </select>
+          <div className="cs2-set-input-wrap" ref={setInputRef}>
+            <input
+              className="cs2-select cs2-set-input"
+              type="text"
+              placeholder={tr.allSets}
+              value={setQuery}
+              disabled={isScanning}
+              onChange={e => { setSetQuery(e.target.value); setSetDropOpen(true) }}
+              onFocus={() => setSetDropOpen(true)}
+              onBlur={() => setTimeout(() => setSetDropOpen(false), 150)}
+              autoComplete="off"
+            />
+            {forcedSet && (
+              <button className="cs2-set-clear" onClick={() => { setForcedSet(''); setSetQuery('') }}>✕</button>
+            )}
+            {setDropOpen && (
+              <div className="cs2-set-dropdown">
+                <div className="cs2-set-option cs2-set-option-all"
+                  onMouseDown={() => { setForcedSet(''); setSetQuery(''); setSetDropOpen(false) }}>
+                  — {tr.allSets}
+                </div>
+                {availableSets
+                  .filter(s => {
+                    const q = setQuery.toLowerCase()
+                    return !q || s.code.toLowerCase().includes(q) || (s.name || '').toLowerCase().includes(q)
+                  })
+                  .slice(0, 80)
+                  .map(s => (
+                    <div key={s.code} className={`cs2-set-option${forcedSet === s.code ? ' active' : ''}`}
+                      onMouseDown={() => { setForcedSet(s.code); setSetQuery(`${s.code.toUpperCase()} — ${s.name}`); setSetDropOpen(false) }}>
+                      <span className="cs2-set-code">{s.code.toUpperCase()}</span>
+                      <span className="cs2-set-name">{s.name}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
         </div>
         {cameras.length > 1 && (
           <div className="cs2-section">
