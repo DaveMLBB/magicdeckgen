@@ -44,9 +44,9 @@ class CardImageCache {
   /**
    * Ottiene l'URL dell'immagine dalla cache o da Scryfall
    */
-  async getCardImage(cardName, scryfallId = null, lang = 'en') {
-    // Normalizza il nome della carta per la cache (include lingua)
-    const cacheKey = `${lang}:${cardName.toLowerCase().trim()}`
+  async getCardImage(cardName, scryfallId = null, lang = 'en', setCode = null) {
+    // Normalizza il nome della carta per la cache (include lingua e set)
+    const cacheKey = `${lang}:${setCode || ''}:${cardName.toLowerCase().trim()}`
 
     // Controlla se è già in cache
     if (this.cache.has(cacheKey)) {
@@ -61,7 +61,7 @@ class CardImageCache {
 
     // Crea una nuova richiesta
     this.cacheMisses++
-    const requestPromise = this.fetchCardImage(cardName, scryfallId, lang)
+    const requestPromise = this.fetchCardImage(cardName, scryfallId, lang, setCode)
     this.pendingRequests.set(cacheKey, requestPromise)
 
     try {
@@ -84,7 +84,7 @@ class CardImageCache {
   /**
    * Recupera l'immagine da Scryfall
    */
-  async fetchCardImage(cardName, scryfallId = null, lang = 'en') {
+  async fetchCardImage(cardName, scryfallId = null, lang = 'en', setCode = null) {
     try {
       // Normalizza il nome della carta
       let normalizedName = cardName
@@ -96,12 +96,12 @@ class CardImageCache {
 
       // Se la lingua non è inglese, cerca prima la versione localizzata
       if (lang && lang !== 'en') {
-        imageUrl = await this._searchScryfall(normalizedName, lang)
+        imageUrl = await this._searchScryfall(normalizedName, lang, setCode)
         if (imageUrl) return imageUrl
       }
 
       // Fallback: cerca in inglese
-      imageUrl = await this._searchScryfall(normalizedName, null)
+      imageUrl = await this._searchScryfall(normalizedName, null, setCode)
       if (imageUrl) return imageUrl
 
       // Ultimo tentativo con scryfallId
@@ -124,26 +124,42 @@ class CardImageCache {
   /**
    * Cerca una carta su Scryfall con lingua opzionale
    */
-  async _searchScryfall(normalizedName, lang) {
+  async _searchScryfall(normalizedName, lang, setCode = null) {
     // Per lingue non-inglesi, usa /cards/search con filtro lang
     if (lang) {
-      const searchQuery = `!"${normalizedName}" lang:${lang}`
+      let searchQuery = `!"${normalizedName}" lang:${lang}`
+      if (setCode) searchQuery += ` set:${setCode.toLowerCase()}`
       const response = await fetch(
         `https://api.scryfall.com/cards/search?q=${encodeURIComponent(searchQuery)}&unique=prints&order=released&dir=desc`
       )
       if (response.ok) {
         const data = await response.json()
-        if (data.data && data.data.length > 0) {
-          return this._extractImageUrl(data.data[0])
+        if (data.data && data.data.length > 0) return this._extractImageUrl(data.data[0])
+      }
+      // Se non trovato con set, riprova senza
+      if (setCode) {
+        const fallbackRes = await fetch(
+          `https://api.scryfall.com/cards/search?q=${encodeURIComponent(`!"${normalizedName}" lang:${lang}`)}&unique=prints&order=released&dir=desc`
+        )
+        if (fallbackRes.ok) {
+          const data = await fallbackRes.json()
+          if (data.data && data.data.length > 0) return this._extractImageUrl(data.data[0])
         }
       }
       return null
     }
 
-    // Per inglese: usa /cards/named (più veloce e preciso)
+    // Per inglese: usa /cards/named con set opzionale
+    const setParam = setCode ? `&set=${setCode.toLowerCase()}` : ''
     let response = await fetch(
-      `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(normalizedName)}`
+      `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(normalizedName)}${setParam}`
     )
+    // Se non trovato con set, riprova senza
+    if (!response.ok && setCode) {
+      response = await fetch(
+        `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(normalizedName)}`
+      )
+    }
 
     // Se non funziona, prova senza virgolette
     if (!response.ok && (normalizedName.includes('"') || normalizedName.includes('!'))) {

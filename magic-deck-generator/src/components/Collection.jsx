@@ -520,8 +520,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
               setSelectedCard(fullCard)
               
               // Load image
-              const imageUrl = await cardImageCache.getCardImage(card.name, null, language)
-              if (imageUrl) {
+              const imageUrl = await cardImageCache.getCardImage(card.name, card.set_code || null, language, card.set_code || null)              if (imageUrl) {
                 setSelectedCardImageUrl(imageUrl)
               }
               return
@@ -535,7 +534,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     
     // Fallback: just load image
     try {
-      const imageUrl = await cardImageCache.getCardImage(card.name, null, language)
+      const imageUrl = await cardImageCache.getCardImage(card.name, card.set_code || null, language, card.set_code || null)
       if (imageUrl) {
         setSelectedCardImageUrl(imageUrl)
       }
@@ -853,7 +852,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     setDeleting(false)
   }
 
-  const handleCardHover = (cardName) => {
+  const handleCardHover = (cardName, setCode) => {
     if (!cardName) return
     
     // Cancella timer precedente
@@ -869,7 +868,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     // Debounce: carica immagine solo se il mouse resta sulla riga
     hoverTimerRef.current = setTimeout(async () => {
       if (hoveredCardRef.current !== cardName) return
-      const imageUrl = await cardImageCache.getCardImage(cardName, null, language)
+      const imageUrl = await cardImageCache.getCardImage(cardName, setCode || null, language, setCode || null)
       if (hoveredCardRef.current === cardName) {
         setCardImageUrl(imageUrl)
         setImageLoading(false)
@@ -1199,7 +1198,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                     <tr
                       key={card.id}
                       className={`${card.locked ? 'locked-row' : 'clickable-row'} ${selectAllPages || selectedCardIds.includes(card.id) ? 'selected-row' : ''}`}
-                      onMouseEnter={() => !card.locked && handleCardHover(card.name)}
+                      onMouseEnter={() => !card.locked && handleCardHover(card.name, card.set_code)}
                       onMouseLeave={handleCardLeave}
                       onClick={() => handleCardClick(card)}
                     >
