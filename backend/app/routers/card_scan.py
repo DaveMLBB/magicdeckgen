@@ -84,14 +84,14 @@ If collector number is not visible, use null for that field."""
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-5.3",
+            model="gpt-5-mini",
             messages=[{
                 "role": "user",
                 "content": [
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {
                         "url": f"data:{mime};base64,{img_b64}",
-                        "detail": "low"
+                        "detail": "high"
                     }}
                 ]
             }],
