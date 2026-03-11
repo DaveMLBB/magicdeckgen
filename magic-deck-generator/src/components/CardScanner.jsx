@@ -221,8 +221,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
                          onAdded, onHistory }) {
   const canvasRef      = useRef(null)
   const scanningRef    = useRef(false)
-  const resumeRef      = useRef(null)
-  const lastAddedUuid  = useRef(null)  // uuid dell'ultima carta aggiunta, per evitare duplicati
+  const lastAddedUuid  = useRef(null)
 
   const [isScanning, setIsScanning]     = useState(false)
   const [scanPhase, setScanPhase]       = useState(null)
@@ -246,16 +245,6 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       .then(r => r.json())
       .then(d => setAvailableSets(d.sets || []))
       .catch(() => {})
-  }, [])
-
-  // ── Pausa il loop finché l'utente non preme "Prossima carta" ────────────
-  const waitForResume = useCallback(() => {
-    return new Promise(resolve => { resumeRef.current = resolve })
-  }, [])
-
-  const handleNextCard = useCallback(() => {
-    setScanPhase(null)
-    if (resumeRef.current) { resumeRef.current(); resumeRef.current = null }
   }, [])
 
   // ── Aggiunge carta al DB e aggiorna history ──────────────────────────────
@@ -309,16 +298,18 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       if (data.found && data.candidates?.length) {
         if (data.exact_match) {
           const card = data.candidates[0]
-          // Stessa carta della precedente → non aggiungere, aspetta cambio
           if (lastAddedUuid.current === card.uuid) {
+            // Stessa carta della precedente → mostra avviso, non aggiungere
             setScanPhase('duplicate')
-            await waitForResume()
+            await new Promise(r => setTimeout(r, 2000))
+            if (scanningRef.current) setScanPhase(null)
           } else {
             const ok = await _addCard(card, 1)
             if (ok) {
               lastAddedUuid.current = card.uuid
               setScanPhase('added')
-              await waitForResume()
+              await new Promise(r => setTimeout(r, 2500))
+              if (scanningRef.current) setScanPhase(null)
             } else {
               setScanPhase(null)
             }
@@ -341,20 +332,19 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       await new Promise(r => setTimeout(r, 1200))
       if (scanningRef.current) setScanPhase(null)
     }
-  }, [videoRef, language, forcedSet, _addCard, waitForResume])
+  }, [videoRef, language, forcedSet, _addCard])
 
   // ── Loop principale ──────────────────────────────────────────────────────
   const startScanning = useCallback(() => {
     if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
     setError(null); setLastAdded(null)
-    scanningRef.current = true
     lastAddedUuid.current = null
+    scanningRef.current = true
     setIsScanning(true)
 
     const loop = async () => {
       while (scanningRef.current) {
         await runOneCycle()
-        if (scanningRef.current) await new Promise(r => setTimeout(r, 300))
       }
     }
     loop()
@@ -364,8 +354,6 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
     scanningRef.current = false
     setIsScanning(false)
     setScanPhase(null)
-    // sblocca eventuale waitForResume pendente
-    if (resumeRef.current) { resumeRef.current(); resumeRef.current = null }
   }, [])
 
   // ── Ricerca manuale ──────────────────────────────────────────────────────
@@ -398,15 +386,6 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   }
 
   const displayError = error || camError
-
-  // Dopo aggiunta o duplicato: auto-dismiss e riprendi loop
-  useEffect(() => {
-    if (scanPhase !== 'added' && scanPhase !== 'duplicate') return
-    const t = setTimeout(() => {
-      if (resumeRef.current) { resumeRef.current(); resumeRef.current = null }
-    }, 2500)
-    return () => clearTimeout(t)
-  }, [scanPhase])
 
   // Testo overlay sul video
   const overlayText = () => {

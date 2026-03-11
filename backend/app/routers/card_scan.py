@@ -106,7 +106,8 @@ Reply ONLY with this JSON:
         )
         raw = response.choices[0].message.content or ""
         usage = response.usage
-        print(f"[SCAN] GPT tokens — prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens}, total: {usage.total_tokens}")
+        cost = (usage.prompt_tokens * 2.50 + usage.completion_tokens * 10.0) / 1_000_000
+        print(f"[SCAN] GPT tokens — prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens}, total: {usage.total_tokens} (~${cost:.5f})")
         print(f"[SCAN] GPT raw response: {raw!r}")
         gpt_data = json.loads(raw) if raw.strip() else {}
         print(f"[SCAN] GPT parsed: {gpt_data}")
