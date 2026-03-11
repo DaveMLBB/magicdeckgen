@@ -23,8 +23,9 @@ SCANS_PER_TOKEN = 25  # ogni 25 carte aggiunte scala 1 token
 
 class CardScanVisionInput(BaseModel):
     """Frame catturato dal frontend (JPEG base64) da analizzare con GPT-4o Vision."""
-    image_b64: str          # data:image/jpeg;base64,... oppure solo la parte base64
+    image_b64: str
     language: str = "it"
+    forced_set_code: Optional[str] = None  # se impostato, ignora il set_code di GPT
 
 
 class CardAddInput(BaseModel):
@@ -116,6 +117,10 @@ Reply ONLY with this JSON:
     card_name = (gpt_data.get("name") or "").strip()
     set_code_raw = (gpt_data.get("set_code") or "").strip().lower() or None
     collector_number = (str(gpt_data.get("collector_number") or "")).strip() or None
+
+    # Se l'utente ha forzato un set, ha priorità assoluta su quello di GPT
+    if input_data.forced_set_code:
+        set_code_raw = input_data.forced_set_code.strip().lower()
 
     # Pulisci collector number: solo cifre iniziali
     if collector_number and collector_number.lower() != "null" and collector_number != "None":

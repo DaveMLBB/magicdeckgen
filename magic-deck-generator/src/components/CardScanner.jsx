@@ -45,6 +45,8 @@ const t = {
     removeCard: 'Rimuovi',
     nextCard: '📷 Prossima carta',
     changeCard: 'Cambia la carta...',
+    filterSet: 'Filtra per set',
+    allSets: 'Tutti i set',
   },
   en: {
     title: '📷 Card Scanner',
@@ -85,6 +87,8 @@ const t = {
     removeCard: 'Remove',
     nextCard: '📷 Next card',
     changeCard: 'Change the card...',
+    filterSet: 'Filter by set',
+    allSets: 'All sets',
   }
 }
 
@@ -218,14 +222,25 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   const resumeRef      = useRef(null)   // resolve della Promise di pausa
 
   const [isScanning, setIsScanning]     = useState(false)
-  const [scanPhase, setScanPhase]       = useState(null)  // 'capturing'|'waiting'|'notfound'|'added'|'found'
+  const [scanPhase, setScanPhase]       = useState(null)
   const [lastAdded, setLastAdded]       = useState(null)
   const [candidates, setCandidates]     = useState([])
   const [error, setError]               = useState(null)
   const [manualName, setManualName]     = useState('')
   const [manualStatus, setManualStatus] = useState(null)
+  const [forcedSet, setForcedSet]       = useState('')
+  const [availableSets, setAvailableSets] = useState([])
 
   const { videoRef, cameraReady, error: camError, stopCamera } = useCamera(selectedCamera, tr)
+  useEffect(() => () => { scanningRef.current = false; stopCamera() }, [])
+
+  // Carica lista set disponibili
+  useEffect(() => {
+    fetch(`${API_URL}/api/scan/sets`)
+      .then(r => r.json())
+      .then(d => setAvailableSets(d.sets || []))
+      .catch(() => {})
+  }, [])
   useEffect(() => () => { scanningRef.current = false; stopCamera() }, [])
 
   // ── Pausa il loop finché l'utente non preme "Prossima carta" ────────────
@@ -279,7 +294,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       const res = await fetch(`${API_URL}/api/scan/recognize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_b64: imageB64, language }),
+        body: JSON.stringify({ image_b64: imageB64, language, forced_set_code: forcedSet || null }),
       })
       const data = await res.json()
       console.log(`[Scan] GPT: "${data.gpt_name}" set=${data.gpt_set} #${data.gpt_collector}`)
@@ -314,7 +329,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       await new Promise(r => setTimeout(r, 1200))
       if (scanningRef.current) setScanPhase(null)
     }
-  }, [videoRef, language, _addCard, waitForResume])
+  }, [videoRef, language, forcedSet, _addCard, waitForResume])
 
   // ── Loop principale ──────────────────────────────────────────────────────
   const startScanning = useCallback(() => {
@@ -400,6 +415,17 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
             {collections.length === 0
               ? <option value="">{tr.noCollections}</option>
               : collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <div className="cs2-section">
+          <label className="cs2-label">{tr.filterSet}</label>
+          <select className="cs2-select" value={forcedSet}
+            onChange={e => setForcedSet(e.target.value)}
+            disabled={isScanning}>
+            <option value="">{tr.allSets}</option>
+            {availableSets.map(s => (
+              <option key={s.code} value={s.code}>{s.code.toUpperCase()} — {s.name}</option>
+            ))}
           </select>
         </div>
         {cameras.length > 1 && (
