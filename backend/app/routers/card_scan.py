@@ -162,6 +162,22 @@ Reply ONLY with this JSON:
                 "gpt_name": card_name, "gpt_collector": collector_number, "gpt_set": set_code_raw,
             }
 
+    # 2b. Match nome + set_code (senza collector number)
+    if set_code_raw:
+        exact = (
+            db.query(MTGCard)
+            .filter(func.lower(MTGCard.name) == card_name.lower())
+            .filter(func.lower(MTGCard.set_code) == set_code_raw)
+            .first()
+        )
+        if exact:
+            print(f"[SCAN] name+set match: {exact.name} [{exact.set_code}]")
+            return {
+                "found": True, "exact_match": True,
+                "candidates": [_card_to_dict(exact)],
+                "gpt_name": card_name, "gpt_collector": collector_number, "gpt_set": set_code_raw,
+            }
+
     # 3. Tutte le edizioni per nome esatto → mostra modal
     all_editions = (
         db.query(MTGCard)

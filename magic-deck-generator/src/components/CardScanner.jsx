@@ -43,6 +43,8 @@ const t = {
     manualPlaceholder: 'Scrivi il nome della carta...',
     manualBtn: '🔍 Cerca',
     removeCard: 'Rimuovi',
+    nextCard: '📷 Prossima carta',
+    changeCard: 'Cambia la carta...',
   },
   en: {
     title: '📷 Card Scanner',
@@ -81,6 +83,8 @@ const t = {
     manualPlaceholder: 'Type the card name...',
     manualBtn: '🔍 Search',
     removeCard: 'Remove',
+    nextCard: '📷 Next card',
+    changeCard: 'Change the card...',
   }
 }
 
@@ -210,11 +214,11 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
                          cameras, selectedCamera, setSelectedCamera, tr,
                          onAdded, onHistory }) {
   const canvasRef      = useRef(null)
-  const scanningRef    = useRef(false)   // loop attivo
-  const lastCardRef    = useRef(null)    // ultima carta aggiunta {uuid, name}
+  const scanningRef    = useRef(false)
+  const resumeRef      = useRef(null)   // resolve della Promise di pausa
 
   const [isScanning, setIsScanning]     = useState(false)
-  const [scanPhase, setScanPhase]       = useState(null)  // 'capturing' | 'waiting' | 'notfound'
+  const [scanPhase, setScanPhase]       = useState(null)  // 'capturing'|'waiting'|'notfound'|'added'|'found'
   const [lastAdded, setLastAdded]       = useState(null)
   const [candidates, setCandidates]     = useState([])
   const [error, setError]               = useState(null)
@@ -223,6 +227,16 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
 
   const { videoRef, cameraReady, error: camError, stopCamera } = useCamera(selectedCamera, tr)
   useEffect(() => () => { scanningRef.current = false; stopCamera() }, [])
+
+  // ── Pausa il loop finché l'utente non preme "Prossima carta" ────────────
+  const waitForResume = useCallback(() => {
+    return new Promise(resolve => { resumeRef.current = resolve })
+  }, [])
+
+  const handleNextCard = useCallback(() => {
+    setScanPhase(null)
+    if (resumeRef.current) { resumeRef.current(); resumeRef.current = null }
+  }, [])
 
   // ── Aggiunge carta al DB e aggiorna history ──────────────────────────────
   const _addCard = useCallback(async (card, qty) => {
@@ -248,9 +262,10 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
           }
           return [{ ...card, qty: data.quantity_owned, card_id: data.card_id }, ...prev]
         })
-        lastCardRef.current = { uuid: card.uuid, name: card.name }
+        return true
       }
     } catch (e) { console.error('Add error', e) }
+    return false
   }, [user, selectedCollectionId, onAdded, onHistory])
 
   // ── Singolo ciclo di scansione ───────────────────────────────────────────
@@ -267,31 +282,29 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         body: JSON.stringify({ image_b64: imageB64, language }),
       })
       const data = await res.json()
-      console.log(`[Scan] GPT: "${data.gpt_name}"${data.gpt_collector ? ` #${data.gpt_collector}` : ''}`)
+      console.log(`[Scan] GPT: "${data.gpt_name}" set=${data.gpt_set} #${data.gpt_collector}`)
 
-      if (!scanningRef.current) return  // stop premuto durante attesa
+      if (!scanningRef.current) return
 
       if (data.found && data.candidates?.length) {
-        const best = data.candidates[0]
         if (data.exact_match) {
-          // Stessa carta della precedente? → incrementa qty silenziosamente
-          if (lastCardRef.current?.uuid === best.uuid) {
-            await _addCard(best, 1)
+          const ok = await _addCard(data.candidates[0], 1)
+          if (ok) {
+            // Pausa: aspetta che l'utente posizioni la prossima carta
+            setScanPhase('added')
+            await waitForResume()
           } else {
-            await _addCard(best, 1)
+            setScanPhase(null)
           }
-          setScanPhase(null)
         } else {
-          // Più edizioni → mostra modal e pausa il loop
+          // Più edizioni → pausa loop, mostra modal
           scanningRef.current = false
           setIsScanning(false)
           setCandidates(data.candidates)
           setScanPhase('found')
-          return
         }
       } else {
         setScanPhase('notfound')
-        // Breve pausa prima del prossimo tentativo
         await new Promise(r => setTimeout(r, 1200))
         if (scanningRef.current) setScanPhase(null)
       }
@@ -301,22 +314,19 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       await new Promise(r => setTimeout(r, 1200))
       if (scanningRef.current) setScanPhase(null)
     }
-  }, [videoRef, language, _addCard])
+  }, [videoRef, language, _addCard, waitForResume])
 
   // ── Loop principale ──────────────────────────────────────────────────────
   const startScanning = useCallback(() => {
     if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
-    setError(null); setLastAdded(null); lastCardRef.current = null
+    setError(null); setLastAdded(null)
     scanningRef.current = true
     setIsScanning(true)
 
     const loop = async () => {
       while (scanningRef.current) {
         await runOneCycle()
-        if (scanningRef.current) {
-          // Piccola pausa tra un ciclo e l'altro
-          await new Promise(r => setTimeout(r, 400))
-        }
+        if (scanningRef.current) await new Promise(r => setTimeout(r, 300))
       }
     }
     loop()
@@ -326,6 +336,8 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
     scanningRef.current = false
     setIsScanning(false)
     setScanPhase(null)
+    // sblocca eventuale waitForResume pendente
+    if (resumeRef.current) { resumeRef.current(); resumeRef.current = null }
   }, [])
 
   // ── Ricerca manuale ──────────────────────────────────────────────────────
@@ -358,11 +370,19 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
 
   const displayError = error || camError
 
+  // Dopo aggiunta: auto-dismiss e riprendi loop
+  useEffect(() => {
+    if (scanPhase !== 'added') return
+    const t = setTimeout(() => {
+      if (resumeRef.current) { resumeRef.current(); resumeRef.current = null }
+    }, 2500)
+    return () => clearTimeout(t)
+  }, [scanPhase])
+
   // Testo overlay sul video
   const overlayText = () => {
-    if (scanPhase === 'capturing') return { icon: '📸', text: tr.ocrReading }
-    if (scanPhase === 'waiting')   return { icon: '⏳', text: tr.waitingHint }
-    if (scanPhase === 'notfound')  return { icon: '❌', text: tr.notRecognized }
+    if (scanPhase === 'capturing' || scanPhase === 'waiting') return { spinner: true, text: scanPhase === 'capturing' ? tr.ocrReading : tr.waitingHint, cls: '' }
+    if (scanPhase === 'notfound') return { icon: '❌', text: tr.notRecognized, cls: ' notfound' }
     return null
   }
   const overlay = overlayText()
@@ -406,9 +426,19 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         )}
 
         {overlay && (
-          <div className={`cs2-status-overlay${scanPhase === 'notfound' ? ' notfound' : ''}`}>
-            <span style={{ fontSize: '1.6rem' }}>{overlay.icon}</span>
+          <div className={`cs2-status-overlay${overlay.cls}`}>
+            {overlay.spinner
+              ? <div className="cs2-spinner" />
+              : <span style={{ fontSize: '1.6rem' }}>{overlay.icon}</span>}
             <span>{overlay.text}</span>
+          </div>
+        )}
+
+        {scanPhase === 'added' && lastAdded && (
+          <div className="cs2-status-overlay added">
+            <span style={{ fontSize: '1.6rem' }}>✅</span>
+            <span>{lastAdded.name}</span>
+            <span className="cs2-added-sub">{tr.changeCard}</span>
           </div>
         )}
       </div>
