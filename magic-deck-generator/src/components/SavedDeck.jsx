@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './SavedDeck.css'
 import { cardImageCache } from '../utils/cardImageCache'
+import { exportDeckCSV, exportDeckManaBox, exportDeckXLSX, exportDeckTXT } from '../utils/exportCards'
 
 const CardDetailImage = React.memo(function CardDetailImage({ card, language }) {
   const [imageUrl, setImageUrl] = useState(null)
@@ -83,6 +84,8 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
   
   // Copy state
   const [copySuccess, setCopySuccess] = useState(false)
+  // Export
+  const [showExportMenu, setShowExportMenu] = useState(false)
   
   // Card detail modal
   const [selectedCard, setSelectedCard] = useState(null)
@@ -136,6 +139,11 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
       duplicateSuccess: 'Mazzo duplicato!',
       editSuccess: 'Mazzo aggiornato!',
       copyMTGO: 'Copia Lista MTGO',
+      exportBtn: '⬇️ Esporta',
+      exportCSV: 'CSV generico',
+      exportManaBox: 'ManaBox CSV',
+      exportXLSX: 'Excel (.xlsx)',
+      exportTXT: 'Testo MTGA/MTGO',
       copied: 'Copiato!',
       gridView: 'Griglia',
       listView: 'Lista',
@@ -192,6 +200,11 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
       duplicateSuccess: 'Deck duplicated!',
       editSuccess: 'Deck updated!',
       copyMTGO: 'Copy MTGO List',
+      exportBtn: '⬇️ Export',
+      exportCSV: 'Generic CSV',
+      exportManaBox: 'ManaBox CSV',
+      exportXLSX: 'Excel (.xlsx)',
+      exportTXT: 'MTGA/MTGO Text',
       copied: 'Copied!',
       gridView: 'Grid',
       listView: 'List',
@@ -649,6 +662,32 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
             >
               {copySuccess ? `✅ ${t.copied}` : `📋 ${t.copyMTGO}`}
             </button>
+            {/* Export dropdown */}
+            <div className="export-dropdown-wrapper">
+              <button className="export-btn" onClick={() => setShowExportMenu(v => !v)}>
+                {t.exportBtn}
+              </button>
+              {showExportMenu && (
+                <div className="export-menu">
+                  {[
+                    { key: 'csv',     label: t.exportCSV },
+                    { key: 'manabox', label: t.exportManaBox },
+                    { key: 'xlsx',    label: t.exportXLSX },
+                    { key: 'txt',     label: t.exportTXT },
+                  ].map(opt => (
+                    <button key={opt.key} onClick={() => {
+                      setShowExportMenu(false)
+                      const cards = deckDetails?.cards || []
+                      const name = deckDetails?.name || 'deck'
+                      if (opt.key === 'csv')     exportDeckCSV(cards, name)
+                      if (opt.key === 'manabox') exportDeckManaBox(cards, name)
+                      if (opt.key === 'xlsx')    exportDeckXLSX(cards, name)
+                      if (opt.key === 'txt')     exportDeckTXT(cards, name)
+                    }}>{opt.label}</button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="filter-toggle">
               <button 
                 className={`toggle-btn ${!showMissingOnly ? 'active' : ''}`}

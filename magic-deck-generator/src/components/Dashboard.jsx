@@ -83,6 +83,16 @@ const features = [
     gradient: 'linear-gradient(135deg, #e84393, #a029b0)',
   },
   {
+    id: 'card-scanner',
+    icon: '📷',
+    labelIt: 'Card Scanner',
+    labelEn: 'Card Scanner',
+    descIt: 'Scansiona le tue carte fisiche con la webcam e aggiungile alla collezione',
+    descEn: 'Scan your physical cards with the webcam and add them to your collection',
+    color: '#fd79a8',
+    gradient: 'linear-gradient(135deg, #fd79a8, #e84393)',
+  },
+  {
     id: 'community',
     icon: '💬',
     labelIt: 'Community',

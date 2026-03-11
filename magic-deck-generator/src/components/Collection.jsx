@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './Collection.css'
 import { cardImageCache } from '../utils/cardImageCache'
+import { exportCollectionCSV, exportCollectionManaBox, exportCollectionXLSX, exportCollectionTXT } from '../utils/exportCards'
 
 const API_URL = import.meta.env.PROD 
   ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
@@ -75,6 +76,10 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   const [moving, setMoving] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Export
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   // Debug: verify onShowSubscriptions is available
   //console.log('Collection mounted - onShowSubscriptions type:', typeof onShowSubscriptions, 'value:', !!onShowSubscriptions)
@@ -170,6 +175,11 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       deleting: 'Eliminazione...',
       deleteConfirm: 'Elimina',
       deleteSuccess: 'Carte eliminate con successo',
+      exportBtn: '⬇️ Esporta',
+      exportCSV: 'CSV generico',
+      exportManaBox: 'ManaBox CSV',
+      exportXLSX: 'Excel (.xlsx)',
+      exportTXT: 'Testo MTGA/MTGO',
     },
     en: {
       title: 'Collection',
@@ -261,6 +271,11 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       deleting: 'Deleting...',
       deleteConfirm: 'Delete',
       deleteSuccess: 'Cards deleted successfully',
+      exportBtn: '⬇️ Export',
+      exportCSV: 'Generic CSV',
+      exportManaBox: 'ManaBox CSV',
+      exportXLSX: 'Excel (.xlsx)',
+      exportTXT: 'MTGA/MTGO Text',
     }
   }
 
@@ -352,6 +367,28 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     } catch (err) {
       console.error('Error linking deck:', err)
     }
+  }
+
+  const loadAllForExport = async () => {
+    const params = new URLSearchParams({ page: '1', page_size: '9999', sort_by: 'name', sort_order: 'asc' })
+    if (collection) params.append('collection_id', collection.id.toString())
+    const res = await fetch(`${API_URL}/api/cards/collection/${user.userId}?${params}`)
+    const data = await res.json()
+    return data.cards || []
+  }
+
+  const handleExport = async (format) => {
+    setShowExportMenu(false)
+    setExporting(true)
+    try {
+      const allCards = await loadAllForExport()
+      const name = collection?.name || 'collection'
+      if (format === 'csv')     exportCollectionCSV(allCards, name)
+      if (format === 'manabox') exportCollectionManaBox(allCards, name)
+      if (format === 'xlsx')    exportCollectionXLSX(allCards, name)
+      if (format === 'txt')     exportCollectionTXT(allCards, name)
+    } catch (e) { console.error('Export error', e) }
+    setExporting(false)
   }
 
   const loadCollection = async () => {
@@ -888,6 +925,30 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
             <button className="upload-cards-btn" onClick={() => setShowUploadModal(true)}>
               {t.uploadCards}
             </button>
+            {/* Export dropdown */}
+            <div className="export-dropdown-wrapper">
+              <button
+                className="export-btn"
+                onClick={() => setShowExportMenu(v => !v)}
+                disabled={exporting}
+              >
+                {exporting ? '⏳' : t.exportBtn}
+              </button>
+              {showExportMenu && (
+                <div className="export-menu">
+                  {[
+                    { key: 'csv',     label: t.exportCSV },
+                    { key: 'manabox', label: t.exportManaBox },
+                    { key: 'xlsx',    label: t.exportXLSX },
+                    { key: 'txt',     label: t.exportTXT },
+                  ].map(opt => (
+                    <button key={opt.key} onClick={() => handleExport(opt.key)}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         {collection && collection.description && (
