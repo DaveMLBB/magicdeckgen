@@ -56,8 +56,20 @@
   color: #fbbf24;
   padding: 10px 16px;
   border-radius: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   font-size: 0.88rem;
+}
+
+/* ── Beta disclaimer ── */
+.cs2-beta-disclaimer {
+  background: rgba(139,92,246,0.1);
+  border: 1px solid rgba(139,92,246,0.3);
+  color: #c4b5fd;
+  padding: 8px 16px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  font-style: italic;
 }
 
 /* ── Tabs ── */
@@ -159,7 +171,11 @@
   border-radius: 14px;
   overflow: hidden;
   background: #000;
-  aspect-ratio: 4/3;
+  /* Proporzione carta MTG 5:7 */
+  aspect-ratio: 5 / 7;
+  max-height: 70vh;
+  margin: 0 auto;
+  width: 100%;
 }
 .cs2-video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
@@ -174,8 +190,18 @@
 }
 .cs2-crosshair {
   position: relative;
-  width: 55%;
+  /* La carta occupa quasi tutto il frame 5:7 */
+  width: 88%;
   aspect-ratio: 5/7;
+}
+/* Striscia nome: top ~13% della carta, evidenziata */
+.cs2-name-zone {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 13%;
+  border: 2px solid rgba(99,102,241,0.85);
+  border-radius: 6px 6px 0 0;
+  background: rgba(99,102,241,0.08);
 }
 .cs2-corner {
   position: absolute;
@@ -187,7 +213,8 @@
 .cs2-corner.tr { top:0; right:0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
 .cs2-corner.bl { bottom:0; left:0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
 .cs2-corner.br { bottom:0; right:0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
-.cs2-overlay.scanning .cs2-corner {
+.cs2-overlay.scanning .cs2-corner,
+.cs2-overlay.scanning .cs2-name-zone {
   border-color: #34d399;
   animation: cs2-pulse 1.2s ease-in-out infinite;
 }

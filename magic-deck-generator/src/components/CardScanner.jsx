@@ -6,8 +6,8 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site'
   : 'http://localhost:8000'
 
-const CAPTURE_W = 800
-const CAPTURE_H = 600
+const CAPTURE_W = 700
+const CAPTURE_H = 980  // 5:7 ratio — stessa proporzione della carta MTG
 
 const t = {
   it: {
@@ -86,54 +86,68 @@ async function getOCRWorker() {
 }
 
 /**
- * Estrae nome carta e set code da un frame OCR.
+ * Estrae il nome carta dal frame OCR.
  *
  * Layout carta MTG:
  *   - Nome: prima riga in cima (es. "Lightning Bolt")
- *   - Set code: in basso, formato "XXX · 123" o "123/281 · XXX" o solo "XXX"
+ *   - Occupa circa il 10-13% dell'altezza della carta
  *
  * Strategia:
- *   1. Crop top 20% → OCR per il nome
- *   2. Crop bottom 12% → OCR per set code + collector number
+ *   1. Crop top 13% → preprocessing (grayscale + contrasto) → OCR
+ *   2. Prima riga non vuota con almeno 2 caratteri = nome carta
  */
 async function ocrCard(canvas) {
   const w = canvas.width
   const h = canvas.height
   const worker = await getOCRWorker()
 
-  // ── Crop nome (top 20%) ──────────────────────────────────────────────────
-  const nameCanvas = document.createElement('canvas')
-  nameCanvas.width = w
-  nameCanvas.height = Math.floor(h * 0.20)
-  nameCanvas.getContext('2d').drawImage(canvas, 0, 0, w, h, 0, 0, w, nameCanvas.height)
+  // Helper: preprocessing grayscale + contrasto su un canvas crop
+  const preprocess = (src, sx, sy, sw, sh) => {
+    const scale = 2
+    const out = document.createElement('canvas')
+    out.width = sw * scale
+    out.height = sh * scale
+    const ctx = out.getContext('2d')
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(src, sx, sy, sw, sh, 0, 0, out.width, out.height)
+    const imgData = ctx.getImageData(0, 0, out.width, out.height)
+    const d = imgData.data
+    for (let i = 0; i < d.length; i += 4) {
+      const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]
+      const c = Math.min(255, Math.max(0, (gray - 128) * 1.8 + 128))
+      d[i] = d[i+1] = d[i+2] = c
+    }
+    ctx.putImageData(imgData, 0, 0)
+    return out
+  }
 
-  // ── Crop set (bottom 12%) ────────────────────────────────────────────────
-  const setCanvas = document.createElement('canvas')
-  setCanvas.width = w
-  setCanvas.height = Math.floor(h * 0.12)
-  const setY = h - setCanvas.height
-  setCanvas.getContext('2d').drawImage(canvas, 0, setY, w, setCanvas.height, 0, 0, w, setCanvas.height)
+  // ── Crop nome: top 13% ───────────────────────────────────────────────────
+  const nameH = Math.floor(h * 0.13)
+  const nameProc = preprocess(canvas, 0, 0, w, nameH)
 
-  const [nameResult, setResult] = await Promise.all([
-    worker.recognize(nameCanvas),
-    worker.recognize(setCanvas),
+  // ── Crop collector number: bottom 8%, metà sinistra ─────────────────────
+  // Il collector number (es. "123/281") è in basso a sinistra della carta
+  const collH = Math.floor(h * 0.08)
+  const collW = Math.floor(w * 0.5)
+  const collY = h - collH
+  const collProc = preprocess(canvas, 0, collY, collW, collH)
+
+  const [nameResult, collResult] = await Promise.all([
+    worker.recognize(nameProc),
+    worker.recognize(collProc),
   ])
 
-  const nameText = nameResult.data.text || ''
-  const setText  = setResult.data.text  || ''
-
-  // Prima riga non vuota con almeno 2 caratteri = nome carta
-  const cardName = nameText.split('\n')
-    .map(l => l.trim())
+  // Nome: prima riga non vuota ≥ 2 caratteri
+  const cardName = (nameResult.data.text || '').split('\n')
+    .map(l => l.trim().replace(/[^a-zA-ZÀ-ÿ0-9 ',.\-]/g, '').trim())
     .find(l => l.length >= 2) || ''
 
-  // Set code: cerca pattern 2-4 lettere maiuscole (es. "MOM", "LTR", "M21")
-  // Ignora parole comuni che non sono set code
-  const IGNORE = new Set(['THE','AND','FOR','YOU','ARE','NOT','BUT','ALL','CAN','HAS','ITS'])
-  const setMatch = setText.match(/\b([A-Z0-9]{2,4})\b/g) || []
-  const setCode = setMatch.find(s => !IGNORE.has(s) && /[A-Z]/.test(s))?.toLowerCase() || null
+  // Collector number: cerca pattern NNN o NNN/NNN (es. "123" o "123/281")
+  const collText = collResult.data.text || ''
+  const collMatch = collText.match(/\b(\d{1,4})(?:\/\d{1,4})?\b/)
+  const collectorNumber = collMatch ? collMatch[1] : null
 
-  return { cardName, setCode, nameText, setText }
+  return { cardName, collectorNumber, nameText: nameResult.data.text || '' }
 }
 
 // ── Camera hook ───────────────────────────────────────────────────────────────
@@ -259,11 +273,11 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
     canvas.getContext('2d').drawImage(videoRef.current, 0, 0, CAPTURE_W, CAPTURE_H)
 
     setStatus('ocr')
-    let cardName = '', setCode = null
+    let cardName = '', collectorNumber = null
     try {
       const result = await ocrCard(canvas)
       cardName = result.cardName
-      setCode  = result.setCode
+      collectorNumber = result.collectorNumber
     } catch (e) { console.error('OCR error', e) }
 
     if (!cardName) { setStatus('notfound'); return }
@@ -273,21 +287,36 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       const res = await fetch(`${API_URL}/api/scan/lookup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw_name: cardName, set_code: setCode, language }),
+        body: JSON.stringify({ raw_name: cardName, collector_number: collectorNumber, language }),
       })
       const data = await res.json()
       if (data.found && data.candidates?.length) {
         setCandidates(data.candidates)
-        setStatus('found')
+        // Se c'è un match esatto per collector number, auto-seleziona senza modale
+        if (data.exact_match) {
+          handleConfirmDirect(data.candidates[0])
+        } else {
+          setStatus('found')
+        }
       } else {
         setStatus('notfound')
       }
     } catch { setStatus('notfound') }
   }, [selectedCollectionId, videoRef, language, tr])
 
+  const handleConfirmDirect = async (card) => {
+    setCandidates([])
+    setStatus(null)
+    await _addCard(card, 1)
+  }
+
   const handleConfirm = async (card, qty) => {
     setCandidates([])
     setStatus(null)
+    await _addCard(card, qty)
+  }
+
+  const _addCard = async (card, qty) => {
     try {
       const res = await fetch(`${API_URL}/api/scan/add`, {
         method: 'POST',
@@ -355,6 +384,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         {mode === 'single' ? (
           <div className="cs2-overlay">
             <div className="cs2-crosshair">
+              <div className="cs2-name-zone" />
               <div className="cs2-corner tl" /><div className="cs2-corner tr" />
               <div className="cs2-corner bl" /><div className="cs2-corner br" />
             </div>
@@ -453,6 +483,10 @@ export default function CardScanner({ user, language, onBack }) {
       </div>
 
       <div className="cs2-cost-hint">ℹ️ {tr.costHint}</div>
+
+      <div className="cs2-beta-disclaimer">
+        🧪 {language === 'it' ? 'Feature in test — il riconoscimento potrebbe non essere accurato' : 'Feature in testing — recognition may not be accurate'}
+      </div>
 
       <div className="cs2-tabs">
         <button className={`cs2-tab ${mode === 'single' ? 'active' : ''}`}

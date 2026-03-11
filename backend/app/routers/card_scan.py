@@ -20,8 +20,9 @@ SCANS_PER_TOKEN = 25  # ogni 25 carte aggiunte scala 1 token
 
 class CardLookupInput(BaseModel):
     """Cerca una carta per nome (testo OCR grezzo) nel DB locale."""
-    raw_name: str              # testo letto dall'OCR, può essere sporco
-    set_code: Optional[str] = None   # set code letto dall'OCR se disponibile
+    raw_name: str
+    collector_number: Optional[str] = None
+    set_code: Optional[str] = None
     language: str = "en"
 
 
@@ -39,37 +40,66 @@ class CardAddInput(BaseModel):
 def lookup_card(input_data: CardLookupInput, db: Session = Depends(get_db)):
     """
     Cerca una carta nel DB Scryfall per nome grezzo (output OCR).
-    1. Cerca corrispondenza esatta (case-insensitive)
-    2. Se non trovata, cerca per nome italiano
-    3. Se non trovata, cerca per corrispondenza parziale
-    Restituisce le prime 5 corrispondenze con dati completi.
+    Se collector_number è presente, tenta match esatto nome+numero → exact_match=True.
+    Altrimenti restituisce le prime 5 corrispondenze per nome (utente sceglie edizione).
     """
     raw = input_data.raw_name.strip()
     if not raw or len(raw) < 2:
         return {"found": False, "candidates": []}
 
-    set_code = (input_data.set_code or "").strip().lower() or None
+    collector_number = (input_data.collector_number or "").strip() or None
 
-    # 1. Corrispondenza esatta sul nome inglese
-    candidates = _search_by_name(db, raw, set_code, exact=True)
+    # ── Tenta match esatto: nome + collector number ──────────────────────────
+    if collector_number:
+        exact = (
+            db.query(MTGCard)
+            .filter(func.lower(MTGCard.name) == raw.lower())
+            .filter(MTGCard.collector_number == collector_number)
+            .first()
+        )
+        if not exact:
+            # Prova con nome parziale (OCR potrebbe aver letto male)
+            exact = (
+                db.query(MTGCard)
+                .filter(MTGCard.name.ilike(f"%{raw}%"))
+                .filter(MTGCard.collector_number == collector_number)
+                .first()
+            )
+        if exact:
+            return {
+                "found": True,
+                "exact_match": True,
+                "candidates": [_card_to_dict(exact)],
+                "raw_name": raw,
+            }
 
-    # 2. Corrispondenza esatta sul nome italiano
+    # ── Fallback: cerca per nome, mostra edizioni (utente sceglie) ───────────
+    # 1. Esatta
+    candidates = db.query(MTGCard).filter(
+        func.lower(MTGCard.name) == raw.lower()
+    ).limit(5).all()
+
+    # 2. Parziale
     if not candidates:
-        candidates = _search_by_name_it(db, raw, set_code, exact=True)
+        candidates = db.query(MTGCard).filter(
+            MTGCard.name.ilike(f"%{raw}%")
+        ).limit(5).all()
 
-    # 3. Corrispondenza parziale inglese
+    # 3. Fuzzy: ogni parola del nome deve apparire nel nome carta
     if not candidates:
-        candidates = _search_by_name(db, raw, set_code, exact=False)
-
-    # 4. Corrispondenza parziale italiano
-    if not candidates:
-        candidates = _search_by_name_it(db, raw, set_code, exact=False)
+        words = [w for w in raw.split() if len(w) >= 3]
+        if words:
+            q = db.query(MTGCard)
+            for w in words:
+                q = q.filter(MTGCard.name.ilike(f"%{w}%"))
+            candidates = q.limit(5).all()
 
     if not candidates:
         return {"found": False, "candidates": [], "raw_name": raw}
 
     return {
         "found": True,
+        "exact_match": False,
         "candidates": [_card_to_dict(c) for c in candidates[:5]],
         "raw_name": raw,
     }
