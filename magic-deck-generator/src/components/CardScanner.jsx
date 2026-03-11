@@ -104,12 +104,12 @@ const rarityColor = r => ({ mythic:'#f97316', rare:'#f59e0b', uncommon:'#94a3b8'
 
 // ── Cattura frame e ridimensiona per GPT (max 800px, JPEG) ──────────────────
 // PNG a risoluzione piena = ~1.4MB → lento. JPEG 800px = ~80KB → veloce.
-function captureFrame(videoEl, canvas) {
+// Per la griglia usiamo risoluzione più alta: 9 carte richiedono più dettaglio.
+function captureFrame(videoEl, canvas, highRes = false) {
   const vw = videoEl.videoWidth  || 1280
   const vh = videoEl.videoHeight || 720
 
-  // Scala a max 1000px sul lato lungo mantenendo aspect ratio
-  const maxSide = 1000
+  const maxSide = highRes ? 2400 : 1000
   const scale = Math.min(1, maxSide / Math.max(vw, vh))
   canvas.width  = Math.round(vw * scale)
   canvas.height = Math.round(vh * scale)
@@ -119,8 +119,8 @@ function captureFrame(videoEl, canvas) {
   ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height)
 
-  // JPEG 0.90 — buona qualità, dimensione ~80-120KB
-  return canvas.toDataURL('image/jpeg', 0.90)
+  // Griglia: qualità più alta, singola: comprimi di più
+  return canvas.toDataURL('image/jpeg', highRes ? 0.95 : 0.90)
 }
 
 // ── Camera hook ───────────────────────────────────────────────────────────────
@@ -302,7 +302,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   const runOneCycle = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) return
     setScanPhase('capturing')
-    const imageB64 = captureFrame(videoRef.current, canvasRef.current)
+    const imageB64 = captureFrame(videoRef.current, canvasRef.current, mode === 'grid')
     setScanPhase('waiting')
 
     // ── Modalità griglia ──────────────────────────────────────────────────
