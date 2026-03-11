@@ -81,14 +81,15 @@ const t = {
 
 const rarityColor = r => ({ mythic:'#f97316', rare:'#f59e0b', uncommon:'#94a3b8', common:'#64748b' }[r] || '#64748b')
 
-// ── Cattura frame come JPEG base64 ───────────────────────────────────────────
+// ── Cattura frame alle dimensioni reali del video ────────────────────────────
+// Usa PNG per massima qualità del testo (niente artefatti JPEG)
 function captureFrame(videoEl, canvas) {
-  canvas.width  = CAPTURE_W
-  canvas.height = CAPTURE_H
-  const ctx = canvas.getContext('2d')
-  ctx.drawImage(videoEl, 0, 0, CAPTURE_W, CAPTURE_H)
-  // Qualità 0.92 — buon bilanciamento tra dimensione e leggibilità
-  return canvas.toDataURL('image/jpeg', 0.92)
+  const vw = videoEl.videoWidth  || 1280
+  const vh = videoEl.videoHeight || 720
+  canvas.width  = vw
+  canvas.height = vh
+  canvas.getContext('2d').drawImage(videoEl, 0, 0, vw, vh)
+  return canvas.toDataURL('image/png')
 }
 
 // ── Camera hook ───────────────────────────────────────────────────────────────

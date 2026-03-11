@@ -65,20 +65,22 @@ async def recognize_card(input_data: CardScanVisionInput, db: Session = Depends(
 
     # Normalizza base64 (rimuovi eventuale data URI prefix)
     img_b64 = input_data.image_b64
+    mime = "image/jpeg"
     if "," in img_b64:
-        img_b64 = img_b64.split(",", 1)[1]
-    print(f"[SCAN] image_b64 length: {len(img_b64)} chars (~{len(img_b64)*3//4//1024} KB)")
+        header, img_b64 = img_b64.split(",", 1)
+        if "png" in header:
+            mime = "image/png"
+    print(f"[SCAN] image received: {mime}, {len(img_b64)} chars (~{len(img_b64)*3//4//1024} KB)")
 
-    prompt = """You are analyzing a Magic: The Gathering card image.
-Extract EXACTLY two pieces of information:
-1. The card name in ENGLISH (even if the card is in another language, translate/identify the English name)
-2. The collector number (the number printed at the bottom-left of the card, format like "123" or "123/456")
+    prompt = """This is a Magic: The Gathering card photo.
+Tell me:
+1. The card name in ENGLISH (if the card is in another language, give me the English name)
+2. The collector number (bottom-left of the card, e.g. "123" or "123/456")
 
-Respond ONLY with valid JSON, no other text:
-{"name": "Card Name in English", "collector_number": "123"}
+Reply ONLY with this JSON, nothing else:
+{"name": "Card Name", "collector_number": "123"}
 
-If you cannot read the collector number, use null.
-If you cannot identify the card name, use null."""
+If collector number is not visible, use null for that field."""
 
     try:
         response = await client.chat.completions.create(
@@ -88,12 +90,12 @@ If you cannot identify the card name, use null."""
                 "content": [
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {
-                        "url": f"data:image/jpeg;base64,{img_b64}",
+                        "url": f"data:{mime};base64,{img_b64}",
                         "detail": "high"
                     }}
                 ]
             }],
-            max_tokens=100,
+            max_tokens=150,
             temperature=0,
         )
         raw = response.choices[0].message.content or ""
