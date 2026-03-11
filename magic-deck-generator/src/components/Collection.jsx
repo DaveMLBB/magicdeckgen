@@ -1174,62 +1174,63 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
               <table>
                 <thead>
                   <tr>
-                    <th className="checkbox-header">
-                      <input
-                        type="checkbox"
-                        onChange={toggleSelectAll}
+                    <th className="col-check">
+                      <input type="checkbox" onChange={toggleSelectAll}
                         checked={selectAllPages || (cards.filter(c => !c.locked).length > 0 && cards.filter(c => !c.locked).every(c => selectedCardIds.includes(c.id)))}
                       />
                     </th>
-                    <th className="actions-header"></th>
-                    <th onClick={() => handleSort('name')} className="sortable">
-                      {t.name} {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th onClick={() => handleSort('quantity')} className="sortable">
+                    <th className="col-qty sortable" onClick={() => handleSort('quantity')}>
                       {t.quantity} {sortBy === 'quantity' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th onClick={() => handleSort('type')} className="sortable">
-                      {t.type} {sortBy === 'type' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    <th className="col-name sortable" onClick={() => handleSort('name')}>
+                      {t.name} {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th onClick={() => handleSort('mana_cost')} className="sortable">
-                      {t.manaCostCol} {sortBy === 'mana_cost' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th>{language === 'it' ? 'Set' : 'Set'}</th>
-                    <th onClick={() => handleSort('price')} className="sortable">
+                    <th className="col-price sortable" onClick={() => handleSort('price')}>
                       {language === 'it' ? 'Prezzo' : 'Price'} {sortBy === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="col-set">Set</th>
+                    <th className="col-mana sortable" onClick={() => handleSort('mana_cost')}>
+                      {t.manaCostCol} {sortBy === 'mana_cost' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {cards.map((card) => (
-                    <tr 
-                      key={card.id} 
+                    <tr
+                      key={card.id}
                       className={`${card.locked ? 'locked-row' : 'clickable-row'} ${selectAllPages || selectedCardIds.includes(card.id) ? 'selected-row' : ''}`}
                       onMouseEnter={() => !card.locked && handleCardHover(card.name)}
                       onMouseLeave={handleCardLeave}
                       onClick={() => handleCardClick(card)}
                     >
-                      <td className="checkbox-cell" onClick={(e) => e.stopPropagation()}>
+                      <td className="col-check" onClick={e => e.stopPropagation()}>
                         {!card.locked && (
-                          <input
-                            type="checkbox"
+                          <input type="checkbox"
                             checked={selectAllPages || selectedCardIds.includes(card.id)}
                             onChange={() => toggleCardSelection(card.id)}
                           />
                         )}
                       </td>
-                      <td className="card-actions">
-                        {!card.locked && editingCardId !== card.id && (
-                          <button 
-                            className="edit-qty-btn"
-                            onClick={() => startEditQuantity(card)}
-                            title={t.editQuantity}
-                          >
-                            ✏️
-                          </button>
+                      <td className="col-qty" onClick={e => e.stopPropagation()}>
+                        {card.locked ? (
+                          <span className="blur-text">{card.quantity}</span>
+                        ) : editingCardId === card.id ? (
+                          <div className="qty-edit-inline">
+                            <input type="number" min="0" value={editQuantity}
+                              onChange={e => setEditQuantity(e.target.value)}
+                              className="qty-input-small" autoFocus
+                            />
+                            <button className="qty-save" onClick={() => handleUpdateQuantity(card.id, parseInt(editQuantity))}>✓</button>
+                            <button className="qty-cancel" onClick={cancelEditQuantity}>✕</button>
+                          </div>
+                        ) : (
+                          <div className="qty-display" onClick={() => startEditQuantity(card)}>
+                            <span className="qty-number">{card.quantity}</span>
+                            <span className="qty-edit-icon">✏️</span>
+                          </div>
                         )}
                       </td>
-                      <td className="card-name">
+                      <td className="col-name">
                         {card.locked ? (
                           <span className="locked-overlay">
                             <span className="blur-text">{card.name}</span>
@@ -1237,60 +1238,31 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                           </span>
                         ) : (
                           <>
-                            {language === 'it' && card.name_it ? card.name_it : card.name}
+                            <span className="card-name-main">{language === 'it' && card.name_it ? card.name_it : card.name}</span>
                             {language === 'it' && card.name_it && (
-                              <span className="card-name-en">{card.name}</span>
+                              <span className="card-name-sub">{card.name}</span>
                             )}
                           </>
                         )}
                       </td>
-                      <td className="card-quantity">
-                        {card.locked ? (
-                          <span className="blur-text">{card.quantity}</span>
-                        ) : editingCardId === card.id ? (
-                          <div className="quantity-edit">
-                            <input
-                              type="number"
-                              min="0"
-                              value={editQuantity}
-                              onChange={(e) => setEditQuantity(e.target.value)}
-                              className="quantity-input"
-                              autoFocus
-                            />
-                            <button 
-                              className="save-qty-btn"
-                              onClick={() => handleUpdateQuantity(card.id, parseInt(editQuantity))}
-                            >
-                              ✓
-                            </button>
-                            <button 
-                              className="cancel-qty-btn"
-                              onClick={cancelEditQuantity}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          card.quantity
-                        )}
-                      </td>
-                      <td className="card-type">
-                        {card.locked ? <span className="blur-text">{card.type}</span> : (language === 'it' ? translateType(card.type) : card.type)}
-                      </td>
-                      <td className="card-mana">
-                        {card.locked ? <span className="blur-text">{renderManaCost(card.mana_cost)}</span> : renderManaCost(card.mana_cost)}
-                      </td>
-                      <td className="card-set">
-                        {card.locked ? <span className="blur-text">—</span> : (card.set_code || '—')}
-                      </td>
-                      <td className="card-price">
+                      <td className="col-price">
                         {card.locked ? <span className="blur-text">—</span> : (
                           card.price_eur != null
-                            ? `€${Number(card.price_eur).toFixed(2)}`
+                            ? <span className="price-tag">€{Number(card.price_eur).toFixed(2)}</span>
                             : card.price_usd != null
-                              ? `$${Number(card.price_usd).toFixed(2)}`
-                              : '—'
+                              ? <span className="price-tag price-usd">${Number(card.price_usd).toFixed(2)}</span>
+                              : <span className="price-none">—</span>
                         )}
+                      </td>
+                      <td className="col-set">
+                        {card.locked ? <span className="blur-text">—</span> : (
+                          <span className="set-badge">{(card.set_code || '—').toUpperCase()}</span>
+                        )}
+                      </td>
+                      <td className="col-mana">
+                        {card.locked
+                          ? <span className="blur-text">{renderManaCost(card.mana_cost)}</span>
+                          : renderManaCost(card.mana_cost)}
                       </td>
                     </tr>
                   ))}

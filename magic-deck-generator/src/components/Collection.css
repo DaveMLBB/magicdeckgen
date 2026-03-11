@@ -582,11 +582,35 @@
   white-space: nowrap;
 }
 
-.cards-table th:nth-child(1) { width: 50px; min-width: 50px; max-width: 50px; }
-.cards-table th:nth-child(2) { width: 30%; }
-.cards-table th:nth-child(3) { width: 12%; }
-.cards-table th:nth-child(4) { width: 25%; }
-.cards-table th:nth-child(5) { width: 20%; }
+.col-check { width: 36px;  min-width: 36px; text-align: center; padding: 0 4px; }
+.col-qty   { width: 80px;  min-width: 80px; text-align: center; }
+.col-name  { width: auto; }
+.col-price { width: 72px;  min-width: 72px; text-align: right; white-space: nowrap; }
+.col-set   { width: 52px;  min-width: 52px; text-align: center; }
+.col-mana  { width: 110px; min-width: 90px; white-space: nowrap; }
+
+/* Qty cell */
+.qty-display { display: flex; align-items: center; gap: 4px; justify-content: center; cursor: pointer; }
+.qty-number  { font-weight: 700; font-size: 0.95rem; color: #fff; }
+.qty-edit-icon { font-size: 0.65rem; opacity: 0; transition: opacity 0.15s; }
+tr:hover .qty-edit-icon { opacity: 0.6; }
+.qty-edit-inline { display: flex; align-items: center; gap: 3px; }
+.qty-input-small { width: 44px; padding: 2px 4px; border-radius: 4px; border: 1px solid rgba(102,126,234,0.5); background: rgba(0,0,0,0.4); color: #fff; font-size: 0.85rem; text-align: center; }
+.qty-save   { background: rgba(72,187,120,0.2); border: 1px solid #48bb78; color: #48bb78; border-radius: 4px; padding: 2px 5px; cursor: pointer; font-size: 0.8rem; }
+.qty-cancel { background: rgba(245,101,101,0.2); border: 1px solid #f56565; color: #f56565; border-radius: 4px; padding: 2px 5px; cursor: pointer; font-size: 0.8rem; }
+
+/* Name cell */
+.card-name-main { display: block; font-weight: 500; }
+.card-name-sub  { display: block; font-size: 0.68rem; color: #718096; margin-top: 1px; }
+
+/* Price cell */
+.price-tag  { color: #68d391; font-size: 0.8rem; font-weight: 600; }
+.price-usd  { color: #90cdf4; }
+.price-none { color: #4a5568; font-size: 0.8rem; }
+
+/* Set badge */
+.set-badge { font-family: monospace; font-size: 0.72rem; color: #a0aec0; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; letter-spacing: 0.05em; }
+
 
 .cards-table th.sortable {
   cursor: pointer;
