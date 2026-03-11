@@ -509,7 +509,7 @@ def get_user_collection(
     user_id: int,
     collection_id: int = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=100),
+    page_size: int = Query(50, ge=1, le=5000),
     search: Optional[str] = None,
     colors: Optional[str] = None,
     types: Optional[str] = None,

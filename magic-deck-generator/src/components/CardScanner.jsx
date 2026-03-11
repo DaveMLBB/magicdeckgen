@@ -13,12 +13,10 @@ const t = {
     selectCollection: 'Collezione',
     noCollections: 'Nessuna collezione',
     selectCamera: 'Fotocamera',
-    capture: '📸 Scansiona',
     captureStart: '▶ Avvia Scansione',
     captureStop: '⏹ Ferma',
     ocrReading: 'Analisi...',
     waitingHint: 'Posiziona la prossima carta...',
-    searching: 'Ricerca nel DB...',
     history: 'Carte aggiunte',
     qty: 'x',
     eur: '€',
@@ -35,16 +33,11 @@ const t = {
     otherEditions: 'Altre edizioni',
     addedOk: 'Aggiunta!',
     ocrHint: 'Inquadra la carta intera',
-    modeSingle: '🃏 Carta Singola',
-    modeGrid: '📋 Raccoglitore',
-    singleDesc: 'Inquadra una carta alla volta e premi Scansiona.',
-    gridDesc: 'Inquadra una pagina del raccoglitore (3×3) e premi Scansiona.',
     manualSearch: 'Cerca manualmente',
     manualPlaceholder: 'Scrivi il nome della carta...',
     manualBtn: '🔍 Cerca',
     removeCard: 'Rimuovi',
     nextCard: '📷 Prossima carta',
-    changeCard: 'Cambia la carta...',
     sameCard: 'Stessa carta — cambiala per continuare',
     filterSet: 'Filtra per set',
     allSets: 'Tutti i set',
@@ -59,12 +52,10 @@ const t = {
     selectCollection: 'Collection',
     noCollections: 'No collections',
     selectCamera: 'Camera',
-    capture: '📸 Scan',
     captureStart: '▶ Start Scanning',
     captureStop: '⏹ Stop',
     ocrReading: 'Analyzing...',
     waitingHint: 'Place the next card...',
-    searching: 'Searching DB...',
     history: 'Added cards',
     qty: 'x',
     eur: '€',
@@ -81,16 +72,11 @@ const t = {
     otherEditions: 'Other editions',
     addedOk: 'Added!',
     ocrHint: 'Frame the full card',
-    modeSingle: '🃏 Single Card',
-    modeGrid: '📋 Binder Page',
-    singleDesc: 'Frame one card at a time and press Scan.',
-    gridDesc: 'Frame a binder page (3×3) and press Scan.',
     manualSearch: 'Search manually',
     manualPlaceholder: 'Type the card name...',
     manualBtn: '🔍 Search',
     removeCard: 'Remove',
     nextCard: '📷 Next card',
-    changeCard: 'Change the card...',
     sameCard: 'Same card — change it to continue',
     filterSet: 'Filter by set',
     allSets: 'All sets',
@@ -102,25 +88,18 @@ const t = {
 
 const rarityColor = r => ({ mythic:'#f97316', rare:'#f59e0b', uncommon:'#94a3b8', common:'#64748b' }[r] || '#64748b')
 
-// ── Cattura frame e ridimensiona per GPT (max 800px, JPEG) ──────────────────
-// PNG a risoluzione piena = ~1.4MB → lento. JPEG 800px = ~80KB → veloce.
-// Per la griglia usiamo risoluzione più alta: 9 carte richiedono più dettaglio.
-function captureFrame(videoEl, canvas, highRes = false) {
+function captureFrame(videoEl, canvas) {
   const vw = videoEl.videoWidth  || 1280
   const vh = videoEl.videoHeight || 720
-
-  const maxSide = highRes ? 2400 : 1000
+  const maxSide = 1000
   const scale = Math.min(1, maxSide / Math.max(vw, vh))
   canvas.width  = Math.round(vw * scale)
   canvas.height = Math.round(vh * scale)
-
   const ctx = canvas.getContext('2d')
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height)
-
-  // Griglia: qualità più alta, singola: comprimi di più
-  return canvas.toDataURL('image/jpeg', highRes ? 0.95 : 0.90)
+  return canvas.toDataURL('image/jpeg', 0.90)
 }
 
 // ── Camera hook ───────────────────────────────────────────────────────────────
@@ -172,7 +151,6 @@ function ConfirmModal({ candidates, tr, onConfirm, onCancel }) {
     <div className="cs2-modal-overlay" onClick={onCancel}>
       <div className="cs2-modal" onClick={e => e.stopPropagation()}>
         <h3>{tr.confirmCard}</h3>
-
         <div className="cs2-confirm-card">
           {selected.image_url
             ? <img src={selected.image_url} alt={selected.name} className="cs2-confirm-img" />
@@ -187,7 +165,6 @@ function ConfirmModal({ candidates, tr, onConfirm, onCancel }) {
             </div>
           </div>
         </div>
-
         {candidates.length > 1 && (
           <div className="cs2-editions">
             <p className="cs2-editions-label">{tr.otherEditions}</p>
@@ -202,7 +179,6 @@ function ConfirmModal({ candidates, tr, onConfirm, onCancel }) {
             </div>
           </div>
         )}
-
         <div className="cs2-qty-row">
           <label>{tr.quantity}</label>
           <div className="cs2-qty-controls">
@@ -211,7 +187,6 @@ function ConfirmModal({ candidates, tr, onConfirm, onCancel }) {
             <button onClick={() => setQty(q => q + 1)}>+</button>
           </div>
         </div>
-
         <div className="cs2-modal-actions">
           <button className="cs2-btn-cancel" onClick={onCancel}>{tr.cancel}</button>
           <button className="cs2-btn-add" onClick={() => onConfirm(selected, qty)}>{tr.add}</button>
@@ -223,41 +198,36 @@ function ConfirmModal({ candidates, tr, onConfirm, onCancel }) {
 
 // ── Scanner panel ─────────────────────────────────────────────────────────────
 function ScannerPanel({ user, language, collections, selectedCollectionId, setSelectedCollectionId,
-                         cameras, selectedCamera, setSelectedCamera, tr, mode,
-                         onAdded, onHistory }) {
+                         cameras, selectedCamera, setSelectedCamera, tr, onAdded, onHistory }) {
   const canvasRef      = useRef(null)
   const scanningRef    = useRef(false)
-  const loopRunningRef = useRef(false)   // guard: un solo loop alla volta
-  const addingRef      = useRef(false)   // guard: add in corso, non scansionare
-  const lastAddedName  = useRef(null)  // nome dell'ultima carta aggiunta
+  const loopRunningRef = useRef(false)
+  const addingRef      = useRef(false)
+  const lastAddedName  = useRef(null)
 
-  const [isScanning, setIsScanning]     = useState(false)
-  const [scanPhase, setScanPhase]       = useState(null)
-  const [lastAdded, setLastAdded]       = useState(null)
+  const [isScanning, setIsScanning]       = useState(false)
+  const [scanPhase, setScanPhase]         = useState(null)
+  const [lastAdded, setLastAdded]         = useState(null)
   const [duplicateName, setDuplicateName] = useState(null)
-  const [gridAddedCount, setGridAddedCount] = useState(0)
-  const [gridTotalCount, setGridTotalCount] = useState(0)
-  const [candidates, setCandidates]     = useState([])
-  const [error, setError]               = useState(null)
-  const [manualName, setManualName]     = useState('')
-  const [manualStatus, setManualStatus] = useState(null)
-  const [forcedSet, setForcedSet]       = useState('')
+  const [candidates, setCandidates]       = useState([])
+  const [error, setError]                 = useState(null)
+  const [manualName, setManualName]       = useState('')
+  const [manualStatus, setManualStatus]   = useState(null)
+  const [forcedSet, setForcedSet]         = useState('')
   const [availableSets, setAvailableSets] = useState([])
-  const [setQuery, setSetQuery]         = useState('')
-  const [setDropOpen, setSetDropOpen]   = useState(false)
-  const [scanDelay, setScanDelay]       = useState(2500)
+  const [setQuery, setSetQuery]           = useState('')
+  const [setDropOpen, setSetDropOpen]     = useState(false)
+  const [scanDelay, setScanDelay]         = useState(2500)
   const scanDelayRef = useRef(2500)
   const forcedSetRef = useRef('')
-  const setInputRef = useRef(null)
+  const setInputRef  = useRef(null)
 
-  // Mantieni le ref sincronizzate con lo stato
   useEffect(() => { scanDelayRef.current = scanDelay }, [scanDelay])
   useEffect(() => { forcedSetRef.current = forcedSet }, [forcedSet])
 
   const { videoRef, cameraReady, error: camError, stopCamera } = useCamera(selectedCamera, tr)
   useEffect(() => () => { scanningRef.current = false; stopCamera() }, [])
 
-  // Carica lista set disponibili
   useEffect(() => {
     fetch(`${API_URL}/api/scan/sets`)
       .then(r => r.json())
@@ -265,9 +235,9 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       .catch(() => {})
   }, [])
 
-  // ── Aggiunge carta al DB e aggiorna history ──────────────────────────────
+  // ── Add card ──────────────────────────────────────────────────────────────
   const _addCard = useCallback(async (card, qty) => {
-    if (addingRef.current) return false  // già in corso
+    if (addingRef.current) return false
     addingRef.current = true
     try {
       const res = await fetch(`${API_URL}/api/scan/add`, {
@@ -298,55 +268,12 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
     return false
   }, [user, selectedCollectionId, onAdded, onHistory])
 
-  // ── Singolo ciclo di scansione ───────────────────────────────────────────
+  // ── Scan cycle ────────────────────────────────────────────────────────────
   const runOneCycle = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) return
     setScanPhase('capturing')
-    const imageB64 = captureFrame(videoRef.current, canvasRef.current, mode === 'grid')
+    const imageB64 = captureFrame(videoRef.current, canvasRef.current)
     setScanPhase('waiting')
-
-    // ── Modalità griglia ──────────────────────────────────────────────────
-    if (mode === 'grid') {
-      try {
-        const res = await fetch(`${API_URL}/api/scan/recognize-grid`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image_b64: imageB64, language, forced_set_code: forcedSetRef.current }),
-        })
-        const data = await res.json()
-        if (!scanningRef.current) return
-
-        if (data.found && data.results?.length) {
-          // Ferma il loop — aggiungiamo tutte le carte trovate
-          scanningRef.current = false
-          setIsScanning(false)
-          setScanPhase('grid-adding')
-
-          let addedCount = 0
-          for (const item of data.results) {
-            if (item.found && item.card) {
-              await _addCard(item.card, 1)
-              addedCount++
-            }
-          }
-          setScanPhase(addedCount > 0 ? 'grid-done' : 'notfound')
-          setGridAddedCount(addedCount)
-          setGridTotalCount(data.results.length)
-        } else {
-          setScanPhase('notfound')
-          await new Promise(r => setTimeout(r, scanDelayRef.current))
-          if (scanningRef.current) setScanPhase(null)
-        }
-      } catch (e) {
-        console.error('Grid scan error', e)
-        setScanPhase('notfound')
-        await new Promise(r => setTimeout(r, scanDelayRef.current))
-        if (scanningRef.current) setScanPhase(null)
-      }
-      return
-    }
-
-    // ── Modalità singola ──────────────────────────────────────────────────
     try {
       const res = await fetch(`${API_URL}/api/scan/recognize`, {
         method: 'POST',
@@ -354,10 +281,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         body: JSON.stringify({ image_b64: imageB64, language, forced_set_code: forcedSetRef.current || null }),
       })
       const data = await res.json()
-      console.log(`[Scan] GPT: "${data.gpt_name}" set=${data.gpt_set} #${data.gpt_collector}`)
-
       if (!scanningRef.current) return
-
       if (data.found && data.candidates?.length) {
         if (data.exact_match) {
           const card = data.candidates[0]
@@ -370,12 +294,8 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
             scanningRef.current = false
             setIsScanning(false)
             const ok = await _addCard(card, 1)
-            if (ok) {
-              lastAddedName.current = card.name
-              setScanPhase('added')
-            } else {
-              setScanPhase(null)
-            }
+            if (ok) { lastAddedName.current = card.name; setScanPhase('added') }
+            else setScanPhase(null)
           }
         } else {
           scanningRef.current = false
@@ -394,27 +314,23 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       await new Promise(r => setTimeout(r, scanDelayRef.current))
       if (scanningRef.current) setScanPhase(null)
     }
-  }, [videoRef, language, _addCard, mode])
+  }, [videoRef, language, _addCard])
 
-  // ── Loop principale ──────────────────────────────────────────────────────
+  // ── Loop ──────────────────────────────────────────────────────────────────
   const startScanning = useCallback(() => {
     if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
-    if (mode === 'grid' && !forcedSetRef.current) { setError(language === 'it' ? 'Seleziona un set prima di scansionare il raccoglitore' : 'Select a set before scanning the binder'); return }
-    if (loopRunningRef.current) return  // già in esecuzione
+    if (loopRunningRef.current) return
     setError(null); setLastAdded(null)
     lastAddedName.current = null
     scanningRef.current = true
     setIsScanning(true)
-
     const loop = async () => {
       loopRunningRef.current = true
-      while (scanningRef.current) {
-        await runOneCycle()
-      }
+      while (scanningRef.current) { await runOneCycle() }
       loopRunningRef.current = false
     }
     loop()
-  }, [selectedCollectionId, tr, runOneCycle, mode, language])
+  }, [selectedCollectionId, tr, runOneCycle])
 
   const stopScanning = useCallback(() => {
     scanningRef.current = false
@@ -423,9 +339,9 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   }, [])
 
   const handleNextCard = useCallback(() => {
-    if (loopRunningRef.current) return  // già in esecuzione
+    if (loopRunningRef.current) return
     setScanPhase(null)
-    lastAddedName.current = null  // reset: la prossima carta è "nuova"
+    lastAddedName.current = null
     scanningRef.current = true
     setIsScanning(true)
     const loop = async () => {
@@ -436,7 +352,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
     loop()
   }, [runOneCycle])
 
-  // ── Ricerca manuale ──────────────────────────────────────────────────────
+  // ── Manual search ─────────────────────────────────────────────────────────
   const handleManualSearch = useCallback(async () => {
     if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
     const name = manualName.trim()
@@ -450,12 +366,8 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       })
       const data = await res.json()
       if (data.found && data.candidates?.length) {
-        setCandidates(data.candidates)
-        setScanPhase('found')
-        setManualStatus(null)
-      } else {
-        setManualStatus('notfound')
-      }
+        setCandidates(data.candidates); setScanPhase('found'); setManualStatus(null)
+      } else { setManualStatus('notfound') }
     } catch { setManualStatus('notfound') }
   }, [manualName, selectedCollectionId, language, tr])
 
@@ -466,10 +378,9 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   }
 
   const displayError = error || camError
-
-  // Testo overlay sul video
   const overlayText = () => {
-    if (scanPhase === 'capturing' || scanPhase === 'waiting') return { spinner: true, text: scanPhase === 'capturing' ? tr.ocrReading : tr.waitingHint, cls: '' }
+    if (scanPhase === 'capturing' || scanPhase === 'waiting')
+      return { spinner: true, text: scanPhase === 'capturing' ? tr.ocrReading : tr.waitingHint, cls: '' }
     if (scanPhase === 'notfound') return { icon: '❌', text: tr.notRecognized, cls: ' notfound' }
     return null
   }
@@ -490,8 +401,8 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
               : collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <div className={`cs2-section cs2-set-picker${mode === 'grid' && !forcedSet ? ' cs2-set-required' : ''}`}>
-          <label className="cs2-label">{tr.filterSet}{mode === 'grid' && <span className="cs2-required-star"> *</span>}</label>
+        <div className="cs2-section cs2-set-picker">
+          <label className="cs2-label">{tr.filterSet}</label>
           <div className="cs2-set-input-wrap" ref={setInputRef}>
             <input
               className="cs2-select cs2-set-input"
@@ -544,42 +455,31 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         )}
       </div>
 
-      {/* Velocità scansione */}
       <div className="cs2-speed-row">
         <label className="cs2-label">{tr.scanSpeed}</label>
         <div className="cs2-speed-control">
           <span className="cs2-speed-label">{tr.scanSpeedFast}</span>
-          <input
-            type="range"
-            min={1000} max={5000} step={500}
-            value={scanDelay}
+          <input type="range" min={1000} max={5000} step={500} value={scanDelay}
             onChange={e => setScanDelay(Number(e.target.value))}
-            disabled={isScanning}
-            className="cs2-speed-slider"
-          />
+            disabled={isScanning} className="cs2-speed-slider" />
           <span className="cs2-speed-label">{tr.scanSpeedSlow}</span>
           <span className="cs2-speed-value">{(scanDelay / 1000).toFixed(1)}s</span>
         </div>
       </div>
 
-      {/* Video */}
-      <div className={`cs2-video-wrapper${mode === 'grid' ? ' grid-mode' : ''}`}>
+      <div className="cs2-video-wrapper">
         <video ref={videoRef} autoPlay playsInline muted className="cs2-video" />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
         {!isScanning && !overlay && (
-          <div className="cs2-ocr-hint">{mode === 'grid' ? tr.gridDesc : tr.ocrHint}</div>
+          <div className="cs2-ocr-hint">{tr.ocrHint}</div>
         )}
-
         {overlay && (
           <div className={`cs2-status-overlay${overlay.cls}`}>
-            {overlay.spinner
-              ? <div className="cs2-spinner" />
-              : <span style={{ fontSize: '1.6rem' }}>{overlay.icon}</span>}
+            {overlay.spinner ? <div className="cs2-spinner" /> : <span style={{ fontSize: '1.6rem' }}>{overlay.icon}</span>}
             <span>{overlay.text}</span>
           </div>
         )}
-
         {scanPhase === 'added' && lastAdded && (
           <div className="cs2-status-overlay added">
             <span style={{ fontSize: '1.6rem' }}>✅</span>
@@ -587,7 +487,6 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
             <button className="cs2-next-btn" onClick={handleNextCard}>{tr.nextCard}</button>
           </div>
         )}
-
         {scanPhase === 'duplicate' && (
           <div className="cs2-status-overlay duplicate">
             <span style={{ fontSize: '1.6rem' }}>🔁</span>
@@ -595,34 +494,15 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
             <span className="cs2-added-sub">{tr.sameCard}</span>
           </div>
         )}
-
-        {scanPhase === 'grid-adding' && (
-          <div className="cs2-status-overlay">
-            <div className="cs2-spinner" />
-            <span>{language === 'it' ? 'Aggiunta carte in corso...' : 'Adding cards...'}</span>
-          </div>
-        )}
-
-        {scanPhase === 'grid-done' && (
-          <div className="cs2-status-overlay added">
-            <span style={{ fontSize: '1.6rem' }}>✅</span>
-            <span>{gridAddedCount}/{gridTotalCount} {language === 'it' ? 'carte aggiunte' : 'cards added'}</span>
-            <button className="cs2-next-btn" onClick={handleNextCard}>{language === 'it' ? '📷 Prossima pagina' : '📷 Next page'}</button>
-          </div>
-        )}
       </div>
 
-      {/* Start / Stop */}
       {!isScanning ? (
-        <button className="cs2-scan-btn start"
-          onClick={startScanning}
+        <button className="cs2-scan-btn start" onClick={startScanning}
           disabled={!cameraReady || collections.length === 0}>
           {tr.captureStart}
         </button>
       ) : (
-        <button className="cs2-scan-btn stop" onClick={stopScanning}>
-          {tr.captureStop}
-        </button>
+        <button className="cs2-scan-btn stop" onClick={stopScanning}>{tr.captureStop}</button>
       )}
 
       {lastAdded && (
@@ -635,18 +515,12 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         </div>
       )}
 
-      {/* Ricerca manuale fallback */}
       <div className="cs2-manual-search">
         <label className="cs2-label">{tr.manualSearch}</label>
         <div className="cs2-manual-row">
-          <input
-            className="cs2-manual-input"
-            type="text"
-            placeholder={tr.manualPlaceholder}
-            value={manualName}
-            onChange={e => setManualName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleManualSearch()}
-          />
+          <input className="cs2-manual-input" type="text" placeholder={tr.manualPlaceholder}
+            value={manualName} onChange={e => setManualName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleManualSearch()} />
           <button className="cs2-manual-btn" onClick={handleManualSearch}
             disabled={!manualName.trim() || manualStatus === 'searching'}>
             {manualStatus === 'searching' ? '...' : tr.manualBtn}
@@ -658,12 +532,9 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       </div>
 
       {scanPhase === 'found' && candidates.length > 0 && (
-        <ConfirmModal
-          candidates={candidates}
-          tr={tr}
+        <ConfirmModal candidates={candidates} tr={tr}
           onConfirm={handleConfirm}
-          onCancel={() => { setCandidates([]); setScanPhase(null) }}
-        />
+          onCancel={() => { setCandidates([]); setScanPhase(null) }} />
       )}
     </div>
   )
@@ -673,25 +544,19 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
 export default function CardScanner({ user, language, onBack }) {
   const tr = t[language] || t.en
 
-  const [collections, setCollections]         = useState([])
+  const [collections, setCollections]                   = useState([])
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
-  const [cameras, setCameras]                 = useState([])
-  const [selectedCamera, setSelectedCamera]   = useState(null)
-  const [totalAdded, setTotalAdded]           = useState(0)
-  const [history, setHistory]                 = useState([])
-  const [mode, setMode]                       = useState('single')
+  const [cameras, setCameras]                           = useState([])
+  const [selectedCamera, setSelectedCamera]             = useState(null)
+  const [totalAdded, setTotalAdded]                     = useState(0)
+  const [history, setHistory]                           = useState([])
 
   const handleUpdateQty = useCallback(async (cardId, newQty) => {
     try {
-      const res = await fetch(`${API_URL}/api/cards/card/${cardId}/quantity?quantity=${newQty}`, {
-        method: 'PUT',
-      })
+      const res = await fetch(`${API_URL}/api/cards/card/${cardId}/quantity?quantity=${newQty}`, { method: 'PUT' })
       const data = await res.json()
-      if (data.deleted) {
-        setHistory(prev => prev.filter(c => c.card_id !== cardId))
-      } else {
-        setHistory(prev => prev.map(c => c.card_id === cardId ? { ...c, qty: data.new_quantity } : c))
-      }
+      if (data.deleted) setHistory(prev => prev.filter(c => c.card_id !== cardId))
+      else setHistory(prev => prev.map(c => c.card_id === cardId ? { ...c, qty: data.new_quantity } : c))
     } catch (e) { console.error('Update qty error', e) }
   }, [])
 
@@ -723,7 +588,7 @@ export default function CardScanner({ user, language, onBack }) {
 
   const sharedProps = {
     user, language, collections, selectedCollectionId, setSelectedCollectionId,
-    cameras, selectedCamera, setSelectedCamera, tr, mode,
+    cameras, selectedCamera, setSelectedCamera, tr,
     onAdded: () => setTotalAdded(n => n + 1),
     onHistory: setHistory,
   }
@@ -740,15 +605,6 @@ export default function CardScanner({ user, language, onBack }) {
 
       <div className="cs2-beta-disclaimer">
         🧪 {language === 'it' ? 'Feature in test — il riconoscimento potrebbe non essere accurato' : 'Feature in testing — recognition may not be accurate'}
-      </div>
-
-      <div className="cs2-tabs">
-        <button className={`cs2-tab ${mode === 'single' ? 'active' : ''}`} onClick={() => setMode('single')}>
-          {tr.modeSingle}
-        </button>
-        <button className={`cs2-tab ${mode === 'grid' ? 'active' : ''}`} onClick={() => setMode('grid')}>
-          {tr.modeGrid}
-        </button>
       </div>
 
       <div className="cs2-layout">

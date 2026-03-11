@@ -75,7 +75,8 @@ export function exportCollectionXLSX(cards, collectionName = 'collection') {
   const ws = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Collection')
-  XLSX.writeFile(wb, `${collectionName}.xlsx`)
+  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${collectionName}.xlsx`)
 }
 
 /**
@@ -124,7 +125,8 @@ export function exportDeckXLSX(cards, deckName = 'deck') {
   const ws = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Deck')
-  XLSX.writeFile(wb, `${deckName}.xlsx`)
+  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${deckName}.xlsx`)
 }
 
 /**
