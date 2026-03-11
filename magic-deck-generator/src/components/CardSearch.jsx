@@ -689,12 +689,6 @@ function CardSearch({ user, onBack, language, onLimitError, initialQuery }) {
           </div>
         )}
 
-        <div className="info-disclaimer">
-          <span className="info-icon">ℹ️</span>
-          <span className="info-text">
-            {t.uniqueCardsDisclaimer}
-          </span>
-        </div>
         
         <form onSubmit={handleSearch} className="search-form">
           <div className="search-input-wrapper">
@@ -823,6 +817,19 @@ function CardSearch({ user, onBack, language, onLimitError, initialQuery }) {
                   ))}
                 </select>
               </div>
+
+              <div className="filter-group">
+                <label>{t.setCode}</label>
+                <input
+                  type="text"
+                  placeholder="MH3, BLB, OTJ..."
+                  value={filters.setCode}
+                  onChange={(e) => setFilters({...filters, setCode: e.target.value.toUpperCase()})}
+                  className="filter-input-small"
+                  maxLength={6}
+                  style={{ textTransform: 'uppercase' }}
+                />
+              </div>
             </div>
 
             <div className="advanced-filters-toggle">
@@ -942,17 +949,6 @@ function CardSearch({ user, onBack, language, onLimitError, initialQuery }) {
                       placeholder="Flying, Haste, Trample..."
                       value={filters.keywords}
                       onChange={(e) => setFilters({...filters, keywords: e.target.value})}
-                      className="filter-input"
-                    />
-                  </div>
-
-                  <div className="filter-group">
-                    <label>{t.setCode}</label>
-                    <input
-                      type="text"
-                      placeholder="MH3, BLB, OTJ..."
-                      value={filters.setCode}
-                      onChange={(e) => setFilters({...filters, setCode: e.target.value})}
                       className="filter-input"
                     />
                   </div>
