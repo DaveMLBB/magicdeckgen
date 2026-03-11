@@ -131,14 +131,19 @@ If collector number is not visible, use null for that field."""
     if not candidates:
         return {"found": False, "candidates": [], "gpt_name": card_name, "gpt_collector": collector_number}
 
-    # Se abbiamo il collector number, filtra
+    # Se abbiamo il collector number, query diretta nome + numero (non filtrare su subset)
     if collector_number:
-        matched = [c for c in candidates if c.collector_number == collector_number]
-        if matched:
+        exact = (
+            db.query(MTGCard)
+            .filter(func.lower(MTGCard.name) == card_name.lower())
+            .filter(MTGCard.collector_number == collector_number)
+            .first()
+        )
+        if exact:
             return {
                 "found": True,
                 "exact_match": True,
-                "candidates": [_card_to_dict(matched[0])],
+                "candidates": [_card_to_dict(exact)],
                 "gpt_name": card_name,
                 "gpt_collector": collector_number,
             }
@@ -173,8 +178,7 @@ def lookup_card(input_data: CardLookupInput, db: Session = Depends(get_db)):
     return {"found": True, "exact_match": False, "candidates": [_card_to_dict(c) for c in candidates[:5]], "raw_name": raw}
 
 
-
-def add_card_to_collection(input_data: CardAddInput, db: Session = Depends(get_db)):
+@router.post("/add")
     """
     Aggiunge N copie di una carta alla collezione.
     Incrementa se già presente, crea altrimenti.

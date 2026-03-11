@@ -61,7 +61,7 @@ const CardImage = React.memo(function CardImage({ card, language }) {
           img.onerror = async () => {
             // Se l'immagine locale non esiste, carica da Scryfall
             if (mounted && !abortController.signal.aborted) {
-              const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language)
+              const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language, card.set_code || null)
               if (mounted) {
                 setImageUrl(scryfallUrl)
                 setLoading(false)
@@ -72,7 +72,7 @@ const CardImage = React.memo(function CardImage({ card, language }) {
         } else {
           // Carica direttamente da Scryfall
           if (!abortController.signal.aborted) {
-            const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language)
+            const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language, card.set_code || null)
             if (mounted) {
               setImageUrl(scryfallUrl)
               setLoading(false)
@@ -93,7 +93,7 @@ const CardImage = React.memo(function CardImage({ card, language }) {
       mounted = false
       abortController.abort()
     }
-  }, [isVisible, card.name, card.name_en, card.image_url, card.scryfallId, language])
+  }, [isVisible, card.name, card.name_en, card.image_url, card.scryfallId, card.set_code, language])
 
   if (!isVisible || loading) {
     return (
@@ -636,7 +636,7 @@ function CardSearch({ user, onBack, language, onLimitError, initialQuery }) {
     setPage(1)
   }
 
-  const handleCardHover = (cardName) => {
+  const handleCardHover = (cardName, setCode) => {
     if (!cardName) return
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current)
@@ -646,7 +646,7 @@ function CardSearch({ user, onBack, language, onLimitError, initialQuery }) {
     setCardImageUrl(null)
     hoverTimerRef.current = setTimeout(async () => {
       if (hoveredCardRef.current !== cardName) return
-      const imageUrl = await cardImageCache.getCardImage(cardName, null, language)
+      const imageUrl = await cardImageCache.getCardImage(cardName, null, language, setCode || null)
       if (hoveredCardRef.current === cardName) {
         setCardImageUrl(imageUrl)
       }
@@ -1078,7 +1078,7 @@ function CardSearch({ user, onBack, language, onLimitError, initialQuery }) {
                     <tr 
                       key={card.uuid} 
                       onClick={() => openCardDetail(card.uuid)}
-                      onMouseEnter={() => handleCardHover(card.name_en || card.name)}
+                      onMouseEnter={() => handleCardHover(card.name_en || card.name, card.set_code)}
                       onMouseLeave={handleCardLeave}
                     >
                       <td className="search-list-actions">
@@ -1399,7 +1399,7 @@ const CardDetailImage = React.memo(function CardDetailImage({ card, language }) 
           }
           img.onerror = async () => {
             if (mounted && !abortController.signal.aborted) {
-              const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language)
+              const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language, card.set_code || null)
               if (mounted) {
                 setImageUrl(scryfallUrl)
                 setLoading(false)
@@ -1409,7 +1409,7 @@ const CardDetailImage = React.memo(function CardDetailImage({ card, language }) 
           img.src = card.image_url
         } else {
           if (!abortController.signal.aborted) {
-            const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language)
+            const scryfallUrl = await cardImageCache.getCardImage(card.name_en || card.name, card.scryfallId, language, card.set_code || null)
             if (mounted) {
               setImageUrl(scryfallUrl)
               setLoading(false)

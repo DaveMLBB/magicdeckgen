@@ -793,3 +793,63 @@ def update_card_quantity(
             "new_quantity": card.quantity_owned,
             "deleted": False
         }
+
+@router.get("/card/{card_id}/editions")
+def get_card_editions(card_id: int, db: Session = Depends(get_db)):
+    """Restituisce tutte le edizioni disponibili nel DB per la carta specificata."""
+    from app.models import MTGCard
+    card = db.query(Card).filter(Card.id == card_id).first()
+    if not card:
+        raise HTTPException(status_code=404, detail="Card not found")
+
+    editions = (
+        db.query(MTGCard.set_code, MTGCard.set_name, MTGCard.collector_number,
+                 MTGCard.rarity, MTGCard.price_eur, MTGCard.price_usd, MTGCard.image_url)
+        .filter(MTGCard.name == card.name)
+        .order_by(MTGCard.set_name)
+        .all()
+    )
+    return {
+        "card_name": card.name,
+        "current_set_code": card.set_code,
+        "editions": [
+            {
+                "set_code": e.set_code,
+                "set_name": e.set_name or e.set_code,
+                "collector_number": e.collector_number,
+                "rarity": e.rarity,
+                "price_eur": e.price_eur,
+                "price_usd": e.price_usd,
+                "image_url": e.image_url,
+            }
+            for e in editions
+        ]
+    }
+
+
+@router.put("/card/{card_id}/set")
+def update_card_set(card_id: int, set_code: str, db: Session = Depends(get_db)):
+    """Aggiorna il set_code di una carta nella collezione."""
+    from app.models import MTGCard
+    card = db.query(Card).filter(Card.id == card_id).first()
+    if not card:
+        raise HTTPException(status_code=404, detail="Card not found")
+
+    # Verifica che il set esista per questa carta
+    edition = db.query(MTGCard).filter(
+        MTGCard.name == card.name,
+        MTGCard.set_code == set_code
+    ).first()
+    if not edition:
+        raise HTTPException(status_code=404, detail="Edition not found for this card")
+
+    card.set_code = set_code
+    db.commit()
+    return {
+        "updated": True,
+        "card_id": card.id,
+        "set_code": card.set_code,
+        "set_name": edition.set_name,
+        "price_eur": edition.price_eur,
+        "price_usd": edition.price_usd,
+    }

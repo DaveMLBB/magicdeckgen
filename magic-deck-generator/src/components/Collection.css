@@ -2019,3 +2019,99 @@ tr:hover .qty-edit-icon { opacity: 0.6; }
   transition: background 0.12s;
 }
 .export-menu button:hover { background: rgba(255,255,255,0.08); }
+
+/* ── Set picker ── */
+.set-cell {
+  position: relative;
+}
+.set-badge-clickable {
+  cursor: pointer;
+  border-bottom: 1px dashed rgba(255,255,255,0.4);
+  transition: color 0.15s, border-color 0.15s;
+}
+.set-badge-clickable:hover {
+  color: #a78bfa;
+  border-color: #a78bfa;
+}
+.set-picker-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 200;
+  background: #1e1b4b;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  min-width: 240px;
+  max-width: 300px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.set-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.set-picker-close {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 2px;
+  line-height: 1;
+}
+.set-picker-close:hover { color: #e2e8f0; }
+.set-picker-loading,
+.set-picker-empty {
+  padding: 12px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+.set-picker-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+.set-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: #e2e8f0;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  font-size: 0.85rem;
+}
+.set-picker-item:hover { background: rgba(255,255,255,0.07); }
+.set-picker-item.active { background: rgba(99,102,241,0.2); }
+.set-picker-item:last-child { border-bottom: none; }
+.set-picker-code {
+  font-weight: 700;
+  color: #a78bfa;
+  min-width: 36px;
+  font-size: 0.78rem;
+}
+.set-picker-name {
+  flex: 1;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.set-picker-price {
+  color: #34d399;
+  font-weight: 600;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}

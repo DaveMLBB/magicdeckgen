@@ -77,6 +77,11 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  // Edit set states
+  const [setPickerCardId, setSetPickerCardId] = useState(null)
+  const [setPickerEditions, setSetPickerEditions] = useState([])
+  const [setPickerLoading, setSetPickerLoading] = useState(false)
+
   // Export
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -180,6 +185,8 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       exportManaBox: 'ManaBox CSV',
       exportXLSX: 'Excel (.xlsx)',
       exportTXT: 'Testo MTGA/MTGO',
+      changeSet: 'Cambia edizione',
+      noEditions: 'Nessuna edizione trovata',
     },
     en: {
       title: 'Collection',
@@ -276,6 +283,8 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       exportManaBox: 'ManaBox CSV',
       exportXLSX: 'Excel (.xlsx)',
       exportTXT: 'MTGA/MTGO Text',
+      changeSet: 'Change edition',
+      noEditions: 'No editions found',
     }
   }
 
@@ -316,6 +325,13 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
 
   const typeOptions = ['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land']
   const rarityOptions = ['common', 'uncommon', 'rare', 'mythic']
+
+  useEffect(() => {
+    if (setPickerCardId === null) return
+    const close = () => setSetPickerCardId(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [setPickerCardId])
 
   useEffect(() => {
     loadCollection()
@@ -853,6 +869,34 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     setDeleting(false)
   }
 
+  const openSetPicker = async (e, card) => {
+    e.stopPropagation()
+    if (card.locked) return
+    setSetPickerCardId(card.id)
+    setSetPickerEditions([])
+    setSetPickerLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/api/cards/card/${card.id}/editions`)
+      const data = await res.json()
+      setSetPickerEditions(data.editions || [])
+    } catch (err) { console.error(err) }
+    setSetPickerLoading(false)
+  }
+
+  const handleChangeSet = async (cardId, setCode) => {
+    try {
+      const res = await fetch(`${API_URL}/api/cards/card/${cardId}/set?set_code=${setCode}`, { method: 'PUT' })
+      if (res.ok) {
+        const data = await res.json()
+        setCards(prev => prev.map(c => c.id === cardId
+          ? { ...c, set_code: data.set_code, set_name: data.set_name, price_eur: data.price_eur, price_usd: data.price_usd }
+          : c
+        ))
+      }
+    } catch (err) { console.error(err) }
+    setSetPickerCardId(null)
+  }
+
   const handleCardHover = (cardName, setCode) => {
     if (!cardName) return
     
@@ -1254,9 +1298,46 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                               : <span className="price-none">—</span>
                         )}
                       </td>
-                      <td className="col-set">
+                      <td className="col-set" onClick={e => e.stopPropagation()}>
                         {card.locked ? <span className="blur-text">—</span> : (
-                          <span className="set-badge">{(card.set_code || '—').toUpperCase()}</span>
+                          <div className="set-cell">
+                            <span
+                              className="set-badge set-badge-clickable"
+                              title={t.changeSet}
+                              onClick={e => openSetPicker(e, card)}
+                            >
+                              {(card.set_code || '—').toUpperCase()}
+                            </span>
+                            {setPickerCardId === card.id && (
+                              <div className="set-picker-popover" onClick={e => e.stopPropagation()}>
+                                <div className="set-picker-header">
+                                  <span>{t.changeSet}</span>
+                                  <button className="set-picker-close" onClick={() => setSetPickerCardId(null)}>✕</button>
+                                </div>
+                                {setPickerLoading ? (
+                                  <div className="set-picker-loading">⏳</div>
+                                ) : setPickerEditions.length === 0 ? (
+                                  <div className="set-picker-empty">{t.noEditions}</div>
+                                ) : (
+                                  <div className="set-picker-list">
+                                    {setPickerEditions.map(ed => (
+                                      <button
+                                        key={ed.set_code + ed.collector_number}
+                                        className={`set-picker-item ${ed.set_code === card.set_code ? 'active' : ''}`}
+                                        onClick={() => handleChangeSet(card.id, ed.set_code)}
+                                      >
+                                        <span className="set-picker-code">{ed.set_code?.toUpperCase()}</span>
+                                        <span className="set-picker-name">{ed.set_name}</span>
+                                        {ed.price_eur != null && (
+                                          <span className="set-picker-price">€{Number(ed.price_eur).toFixed(2)}</span>
+                                        )}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td className="col-mana">
