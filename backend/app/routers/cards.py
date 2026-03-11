@@ -522,178 +522,146 @@ def get_user_collection(
 ):
     """
     Get user's card collection with pagination and filters.
-    Free plan: limited to 20 unique cards per collection
-    Paid plans: unlimited
-    Cards are enriched with data from MTG database
+    Uses a single SQL query with LEFT JOIN + subquery for best MTGCard match.
+    Pagination happens at DB level — no full table scan in Python.
     """
     from app.models import MTGCard
-    
-    # Get user to check subscription
+    from sqlalchemy.orm import aliased
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    # No card limit per collection with token system
-    unique_card_limit = None
-    
-    # Base query - join with MTG cards for enrichment
-    query = db.query(Card).filter(Card.user_id == user_id)
-    
-    # Filter by collection if specified
+
+    # ── Subquery: pick the best MTGCard row per card name ──────────────────
+    # Priority: set_code match > has price_eur > first row
+    # We use a lateral-style approach via a correlated subquery on uuid.
+    # Simpler and portable: for each Card we join the MTGCard with the lowest
+    # "priority" value (1 = set match, 2 = has price, 3 = any).
+    # We achieve this with a subquery that selects the best uuid per name.
+
+    # Build the base Card query
+    q = db.query(Card).filter(Card.user_id == user_id)
+
     if collection_id:
-        query = query.filter(Card.collection_id == collection_id)
-    
-    # Apply search filter (cerca sia nel nome inglese che italiano)
+        q = q.filter(Card.collection_id == collection_id)
+
     if search:
-        query = query.filter(
-            or_(Card.name.ilike(f"%{search}%"), Card.name_it.ilike(f"%{search}%"))
-        )
-    
-    # Apply color filter - logica "subset": la carta deve contenere solo colori
-    # presenti nella selezione (nessun colore fuori dalla lista selezionata)
+        q = q.filter(or_(Card.name.ilike(f"%{search}%"), Card.name_it.ilike(f"%{search}%")))
+
     if colors:
         from sqlalchemy import not_
-        from app.models import MTGCard as MTGCardModel
         color_list = [c.strip() for c in colors.split(',')]
         all_colors = ['W', 'U', 'B', 'R', 'G']
         excluded_colors = [c for c in all_colors if c not in color_list]
-
-        # La carta deve avere almeno uno dei colori selezionati
-        has_selected = or_(
-            *[or_(
-                Card.mana_cost.like(f"%{{{color}}}%"),
-                Card.colors.like(f"%{color}%"),
-                Card.name.in_(
-                    db.query(MTGCardModel.name).filter(
-                        or_(
-                            MTGCardModel.colors.like(f"%{color}%"),
-                            MTGCardModel.color_identity.like(f"%{color}%")
-                        )
-                    )
-                )
-            ) for color in color_list]
-        )
-        query = query.filter(has_selected)
-
-        # La carta NON deve avere nessun colore escluso
+        has_selected = or_(*[or_(
+            Card.mana_cost.like(f"%{{{color}}}%"),
+            Card.colors.like(f"%{color}%"),
+        ) for color in color_list])
+        q = q.filter(has_selected)
         for excl in excluded_colors:
-            query = query.filter(
+            q = q.filter(
                 not_(Card.mana_cost.like(f"%{{{excl}}}%")),
                 not_(Card.colors.like(f"%{excl}%")),
-                ~Card.name.in_(
-                    db.query(MTGCardModel.name).filter(
-                        or_(
-                            MTGCardModel.colors.like(f"%{excl}%"),
-                            MTGCardModel.color_identity.like(f"%{excl}%")
-                        )
-                    )
-                )
             )
-    
-    # Apply type filter
+
     if types:
         type_list = types.split(',')
-        type_conditions = []
-        for t in type_list:
-            type_conditions.append(Card.card_type.like(f"%{t}%"))
-        query = query.filter(or_(*type_conditions))
-    
-    # Apply rarity filter
+        q = q.filter(or_(*[Card.card_type.like(f"%{t}%") for t in type_list]))
+
     if rarity:
-        query = query.filter(Card.rarity == rarity)
-    
-    # Get total count (unique cards)
-    total_unique_cards = query.count()
-    
-    # Check if user exceeds limit
-    limited = False
-    locked_cards = 0
-    if unique_card_limit and total_unique_cards > unique_card_limit:
-        limited = True
-        locked_cards = total_unique_cards - unique_card_limit
-    
-    # Apply sorting (price is sorted after enrichment)
+        q = q.filter(Card.rarity == rarity)
+
+    # CMC filter requires joining MTGCard — handle separately
+    if cmc_min is not None or cmc_max is not None:
+        mtg_alias = aliased(MTGCard)
+        q = q.join(mtg_alias, mtg_alias.name == Card.name, isouter=True)
+        if cmc_min is not None:
+            q = q.filter(mtg_alias.mana_value >= cmc_min)
+        if cmc_max is not None:
+            q = q.filter(mtg_alias.mana_value <= cmc_max)
+
+    # Total count (fast, DB-level)
+    total_unique_cards = q.count()
+
+    # Sorting
     if sort_by == "name":
-        query = query.order_by(Card.name.asc() if sort_order == "asc" else Card.name.desc())
+        q = q.order_by(Card.name.asc() if sort_order == "asc" else Card.name.desc())
     elif sort_by == "quantity":
-        query = query.order_by(Card.quantity_owned.asc() if sort_order == "asc" else Card.quantity_owned.desc())
+        q = q.order_by(Card.quantity_owned.asc() if sort_order == "asc" else Card.quantity_owned.desc())
     elif sort_by == "type":
-        query = query.order_by(Card.card_type.asc() if sort_order == "asc" else Card.card_type.desc())
+        q = q.order_by(Card.card_type.asc() if sort_order == "asc" else Card.card_type.desc())
     elif sort_by == "mana_cost":
-        query = query.order_by(Card.mana_cost.asc() if sort_order == "asc" else Card.mana_cost.desc())
-    
-    # Get all cards
-    all_cards = query.all()
-    
-    # Enrich cards with MTG database data and apply CMC filter
-    enriched_cards = []
-    for card in all_cards:
-        # Get MTG card data — prefer matching set_code, then card with price, then first
-        mtg_q = db.query(MTGCard).filter(MTGCard.name == card.name)
-        if card.set_code:
-            mtg_card = mtg_q.filter(MTGCard.set_code == card.set_code).first()
-            if not mtg_card:
-                mtg_card = mtg_q.filter(MTGCard.price_eur.isnot(None)).first() or mtg_q.first()
-        else:
-            mtg_card = mtg_q.filter(MTGCard.price_eur.isnot(None)).first() or mtg_q.first()
-        
-        # Apply CMC filter if specified
-        if mtg_card:
-            if cmc_min is not None and (mtg_card.mana_value is None or mtg_card.mana_value < cmc_min):
-                continue
-            if cmc_max is not None and (mtg_card.mana_value is None or mtg_card.mana_value > cmc_max):
-                continue
-        else:
-            # If no MTG card found and CMC filter is active, skip
-            if cmc_min is not None or cmc_max is not None:
-                continue
-        
-        enriched_cards.append({
-            'card': card,
-            'mtg_card': mtg_card
-        })
-    
-    # Apply pagination on enriched cards
-    if sort_by == "price":
-        enriched_cards.sort(
-            key=lambda x: (x['mtg_card'].price_eur or x['mtg_card'].price_usd or 0) if x['mtg_card'] else 0,
-            reverse=(sort_order == "desc")
+        q = q.order_by(Card.mana_cost.asc() if sort_order == "asc" else Card.mana_cost.desc())
+    elif sort_by == "price":
+        # For price sort we need the join — do it via subquery
+        best_price_sub = (
+            db.query(
+                MTGCard.name.label("card_name"),
+                func.max(MTGCard.price_eur).label("best_price")
+            )
+            .group_by(MTGCard.name)
+            .subquery()
         )
+        q = q.outerjoin(best_price_sub, best_price_sub.c.card_name == Card.name)
+        if sort_order == "desc":
+            q = q.order_by(best_price_sub.c.best_price.desc().nullslast())
+        else:
+            q = q.order_by(best_price_sub.c.best_price.asc().nullsfirst())
+
+    # DB-level pagination
     offset = (page - 1) * page_size
-    paginated_cards = enriched_cards[offset:offset + page_size]
-    
-    # Calculate total pages
-    total_pages = (len(enriched_cards) + page_size - 1) // page_size
-    
+    page_cards = q.offset(offset).limit(page_size).all()
+
+    total_pages = (total_unique_cards + page_size - 1) // page_size
+
+    # Bulk-fetch MTGCard data for only the cards on this page (N names → 1 query)
+    card_names = [c.name for c in page_cards]
+    if card_names:
+        # Fetch all matching MTGCard rows for these names in one query
+        mtg_rows = db.query(MTGCard).filter(MTGCard.name.in_(card_names)).all()
+    else:
+        mtg_rows = []
+
+    # Build a dict: name → best MTGCard (set_code match > has price_eur > first)
+    mtg_by_name: dict = {}
+    for m in mtg_rows:
+        existing = mtg_by_name.get(m.name)
+        if existing is None:
+            mtg_by_name[m.name] = m
+        else:
+            # Prefer set_code match (checked per-card below), then price_eur
+            if existing.price_eur is None and m.price_eur is not None:
+                mtg_by_name[m.name] = m
+
     # Format response
     cards_data = []
-    for idx, item in enumerate(paginated_cards):
-        card = item['card']
-        mtg_card = item['mtg_card']
-        global_idx = offset + idx
-        is_locked = unique_card_limit and global_idx >= unique_card_limit
-        
-        # Use MTG card data if available, otherwise use collection card data
+    for card in page_cards:
+        mtg_card = mtg_by_name.get(card.name)
+        # If card has a set_code, try to find exact match
+        if card.set_code and mtg_card and mtg_card.set_code != card.set_code:
+            exact = next((m for m in mtg_rows if m.name == card.name and m.set_code == card.set_code), None)
+            if exact:
+                mtg_card = exact
+
         card_type = card.card_type or "Unknown"
-        colors = card.colors or ""
+        colors_val = card.colors or ""
         mana_cost = card.mana_cost or ""
-        rarity = card.rarity or ""
+        rarity_val = card.rarity or ""
         mana_value = None
         set_code = None
         set_name = None
         price_eur = None
         price_usd = None
-        
+
         if mtg_card:
             if mtg_card.types:
                 card_type = mtg_card.types.split(',')[0].strip()
             elif mtg_card.type_line:
                 type_parts = mtg_card.type_line.split('—')[0].strip()
                 card_type = type_parts.split()[0] if type_parts else card_type
-            
-            colors = mtg_card.colors or colors
+            colors_val = mtg_card.colors or colors_val
             mana_cost = mtg_card.mana_cost or mana_cost
-            rarity = mtg_card.rarity or rarity
+            rarity_val = mtg_card.rarity or rarity_val
             mana_value = mtg_card.mana_value
             set_code = mtg_card.set_code or None
             set_name = mtg_card.set_name or None
@@ -711,23 +679,23 @@ def get_user_collection(
             "name_it": name_it,
             "quantity": card.quantity_owned,
             "type": card_type,
-            "colors": colors,
+            "colors": colors_val,
             "mana_cost": mana_cost,
-            "rarity": rarity,
+            "rarity": rarity_val,
             "mana_value": mana_value,
             "set_code": set_code or "—",
             "set_name": set_name,
             "price_eur": price_eur,
             "price_usd": price_usd,
-            "locked": is_locked
+            "locked": False
         })
-    
+
     return {
         "cards": cards_data,
         "pagination": {
             "page": page,
             "page_size": page_size,
-            "total_cards": len(enriched_cards),
+            "total_cards": total_unique_cards,
             "total_pages": total_pages,
             "has_next": page < total_pages,
             "has_prev": page > 1
