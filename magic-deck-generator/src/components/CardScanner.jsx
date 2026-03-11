@@ -243,10 +243,16 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         body: JSON.stringify({ image_b64: imageB64, language }),
       })
       const data = await res.json()
-      console.log('[Scan]', data)
+      console.log('[Scan] full response:', data)
 
       const gptName = data.gpt_name || null
-      setLastOcrName(gptName ? `${gptName}${data.gpt_collector ? ` #${data.gpt_collector}` : ''}` : '(non riconosciuta)')
+      const gptCollector = data.gpt_collector || null
+      const debugLabel = gptName
+        ? `GPT: "${gptName}"${gptCollector ? ` #${gptCollector}` : ''}`
+        : data.error
+          ? `Errore: ${data.error}`
+          : '(GPT non ha riconosciuto la carta)'
+      setLastOcrName(debugLabel)
 
       if (data.found && data.candidates?.length) {
         setCandidates(data.candidates)

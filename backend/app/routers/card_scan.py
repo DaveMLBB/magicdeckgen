@@ -67,6 +67,7 @@ async def recognize_card(input_data: CardScanVisionInput, db: Session = Depends(
     img_b64 = input_data.image_b64
     if "," in img_b64:
         img_b64 = img_b64.split(",", 1)[1]
+    print(f"[SCAN] image_b64 length: {len(img_b64)} chars (~{len(img_b64)*3//4//1024} KB)")
 
     prompt = """You are analyzing a Magic: The Gathering card image.
 Extract EXACTLY two pieces of information:
@@ -96,26 +97,35 @@ If you cannot identify the card name, use null."""
             temperature=0,
         )
         raw = response.choices[0].message.content or ""
+        print(f"[SCAN] GPT raw response: {raw!r}")
         # Estrai JSON
         json_match = re.search(r'\{.*\}', raw, re.DOTALL)
         if not json_match:
+            print(f"[SCAN] No JSON in GPT response: {raw!r}")
             return {"found": False, "candidates": [], "error": "GPT non ha restituito JSON valido", "raw": raw}
         gpt_data = json.loads(json_match.group(0))
+        print(f"[SCAN] GPT parsed: {gpt_data}")
     except Exception as e:
+        print(f"[SCAN] GPT error: {e}")
         return {"found": False, "candidates": [], "error": str(e)}
 
     card_name = (gpt_data.get("name") or "").strip()
     collector_number = (str(gpt_data.get("collector_number") or "")).strip() or None
     # Pulisci collector number: solo cifre
-    if collector_number:
+    if collector_number and collector_number != "None":
         m = re.match(r'(\d+)', collector_number)
         collector_number = m.group(1) if m else None
+    else:
+        collector_number = None
+
+    print(f"[SCAN] card_name={card_name!r} collector_number={collector_number!r}")
 
     if not card_name:
         return {"found": False, "candidates": [], "gpt_name": None, "gpt_collector": collector_number}
 
     # Cerca nel DB
     candidates = _find_by_name(db, card_name)
+    print(f"[SCAN] DB candidates for {card_name!r}: {[c.name for c in candidates]}")
     if not candidates:
         return {"found": False, "candidates": [], "gpt_name": card_name, "gpt_collector": collector_number}
 
