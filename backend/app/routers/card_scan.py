@@ -91,7 +91,7 @@ If collector number is not visible, use null for that field."""
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {
                         "url": f"data:{mime};base64,{img_b64}",
-                        "detail": "high"
+                        "detail": "low"
                     }}
                 ]
             }],
@@ -247,6 +247,7 @@ def add_card_to_collection(input_data: CardAddInput, db: Session = Depends(get_d
 
     return {
         "added": True,
+        "card_id": card_entry.id,
         "card_name": mtg.name,
         "set_code": mtg.set_code,
         "set_name": mtg.set_name,

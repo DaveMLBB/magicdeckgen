@@ -98,19 +98,6 @@
   box-shadow: 0 4px 14px rgba(99,102,241,0.4);
 }
 
-/* ── Mode description ── */
-.cs2-mode-desc {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 0.88rem;
-  color: #94a3b8;
-  line-height: 1.5;
-  margin-bottom: 14px;
-}
-.cs2-mode-desc strong { color: #e2e8f0; }
-
 /* ── Error ── */
 .cs2-error {
   background: rgba(239,68,68,0.15);
@@ -178,98 +165,6 @@
   width: 100%;
 }
 .cs2-video { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-/* ── Single card overlay ── */
-.cs2-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-.cs2-crosshair {
-  position: relative;
-  /* La carta occupa quasi tutto il frame 5:7 */
-  width: 88%;
-  aspect-ratio: 5/7;
-}
-/* Striscia nome: top ~13% della carta, evidenziata */
-.cs2-name-zone {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 13%;
-  border: 2px solid rgba(99,102,241,0.85);
-  border-radius: 6px 6px 0 0;
-  background: rgba(99,102,241,0.08);
-}
-.cs2-corner {
-  position: absolute;
-  width: 22px; height: 22px;
-  border-color: rgba(99,102,241,0.9);
-  border-style: solid;
-}
-.cs2-corner.tl { top:0; left:0;  border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
-.cs2-corner.tr { top:0; right:0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
-.cs2-corner.bl { bottom:0; left:0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
-.cs2-corner.br { bottom:0; right:0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
-.cs2-overlay.scanning .cs2-corner,
-.cs2-overlay.scanning .cs2-name-zone {
-  border-color: #34d399;
-  animation: cs2-pulse 1.2s ease-in-out infinite;
-}
-
-/* ── Grid overlay (3x3) ── */
-.cs2-grid-overlay {
-  /* flex per centrare la griglia nel video */
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-}
-.cs2-grid-inner {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 5px;
-  /* larghezza tale che 3 celle 5:7 stiano in 3 righe nel video 4:3 */
-  width: 92%;
-}
-.cs2-grid-cell {
-  position: relative;
-  border-radius: 5px;
-  aspect-ratio: 5 / 7;
-}
-.cs2-grid-corner {
-  position: absolute;
-  width: 12px; height: 12px;
-  border-color: rgba(99,102,241,0.85);
-  border-style: solid;
-}
-.cs2-grid-corner.tl { top:0; left:0;  border-width: 2px 0 0 2px; border-radius: 3px 0 0 0; }
-.cs2-grid-corner.tr { top:0; right:0; border-width: 2px 2px 0 0; border-radius: 0 3px 0 0; }
-.cs2-grid-corner.bl { bottom:0; left:0;  border-width: 0 0 2px 2px; border-radius: 0 0 0 3px; }
-.cs2-grid-corner.br { bottom:0; right:0; border-width: 0 2px 2px 0; border-radius: 0 0 3px 0; }
-.cs2-grid-overlay.scanning .cs2-grid-corner {
-  border-color: #34d399;
-  animation: cs2-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes cs2-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-.cs2-processing-dot {
-  position: absolute;
-  top: 10px; right: 10px;
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  background: #f59e0b;
-  animation: cs2-blink 0.6s ease-in-out infinite;
-}
-@keyframes cs2-blink {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.3; transform: scale(0.7); }
-}
 
 /* ── Scan button ── */
 .cs2-scan-btn {
@@ -401,11 +296,88 @@
 .cs2-price { color: #34d399; font-weight: 600; }
 .cs2-card-qty { font-size: 0.95rem; font-weight: 700; color: #a78bfa; flex-shrink: 0; min-width: 28px; text-align: right; }
 
+/* ── History card actions ── */
+.cs2-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.cs2-qty-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cs2-qty-inline button {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+  line-height: 1;
+}
+.cs2-qty-inline button:hover { background: rgba(255,255,255,0.18); }
+.cs2-qty-inline span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #a78bfa;
+  min-width: 20px;
+  text-align: center;
+}
+.cs2-remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  opacity: 0.45;
+  transition: opacity 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+.cs2-remove-btn:hover { opacity: 1; }
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  .cs2-layout { grid-template-columns: 1fr; }
-  .cs2-header h1 { font-size: 1.4rem; }
-  .cs2-tabs { flex-direction: column; }
+  .card-scanner { padding: 12px; }
+  .cs2-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .cs2-header h1 { font-size: 1.3rem; }
+  .cs2-tabs { flex-direction: row; }
+  .cs2-video-wrapper {
+    aspect-ratio: 3 / 4;
+    max-height: 60vh;
+  }
+  .cs2-scan-btn {
+    padding: 16px;
+    font-size: 1.15rem;
+  }
+  .cs2-right {
+    min-height: unset;
+  }
+}
+
+@media (max-width: 480px) {
+  .cs2-header { gap: 8px; }
+  .cs2-header h1 { font-size: 1.1rem; }
+  .cs2-back-btn { padding: 8px 12px; font-size: 0.85rem; }
+  .cs2-stats-badge { font-size: 0.85rem; padding: 6px 12px; }
+  .cs2-video-wrapper {
+    aspect-ratio: 3 / 4;
+    max-height: 55vh;
+  }
+  .cs2-scan-btn {
+    padding: 18px;
+    font-size: 1.2rem;
+  }
+  .cs2-controls-row { flex-direction: column; }
+  .cs2-controls-row .cs2-section { min-width: unset; }
 }
 
 /* ── OCR hint overlay ── */
@@ -428,13 +400,17 @@
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   background: rgba(0,0,0,0.45);
   color: #e2e8f0;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   pointer-events: none;
+  text-align: center;
+  padding: 16px;
 }
 .cs2-status-overlay.notfound { color: #fca5a5; }
 

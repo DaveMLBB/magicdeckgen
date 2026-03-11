@@ -5,9 +5,6 @@ const API_URL = import.meta.env.PROD
   ? 'https://api.magicdeckbuilder.app.cloudsw.site'
   : 'http://localhost:8000'
 
-const CAPTURE_W = 700
-const CAPTURE_H = 980  // 5:7 ratio — stessa proporzione della carta MTG
-
 const t = {
   it: {
     title: '📷 Card Scanner',
@@ -17,7 +14,10 @@ const t = {
     noCollections: 'Nessuna collezione',
     selectCamera: 'Fotocamera',
     capture: '📸 Scansiona',
-    ocrReading: 'Analisi AI...',
+    captureStart: '▶ Avvia Scansione',
+    captureStop: '⏹ Ferma',
+    ocrReading: 'Analisi...',
+    waitingHint: 'Posiziona la prossima carta...',
     searching: 'Ricerca nel DB...',
     history: 'Carte aggiunte',
     qty: 'x',
@@ -34,14 +34,15 @@ const t = {
     cancel: 'Annulla',
     otherEditions: 'Altre edizioni',
     addedOk: 'Aggiunta!',
-    ocrHint: 'Inquadra la carta intera — GPT riconoscerà nome e set',
+    ocrHint: 'Inquadra la carta intera',
     modeSingle: '🃏 Carta Singola',
     modeGrid: '📋 Raccoglitore',
-    singleDesc: 'Inquadra una carta alla volta. Premi Scansiona per leggere il nome con OCR e cercarla nel database.',
-    gridDesc: 'Inquadra una pagina del raccoglitore (3×3). Premi Scansiona per leggere tutte le carte visibili.',
+    singleDesc: 'Inquadra una carta alla volta e premi Scansiona.',
+    gridDesc: 'Inquadra una pagina del raccoglitore (3×3) e premi Scansiona.',
     manualSearch: 'Cerca manualmente',
     manualPlaceholder: 'Scrivi il nome della carta...',
     manualBtn: '🔍 Cerca',
+    removeCard: 'Rimuovi',
   },
   en: {
     title: '📷 Card Scanner',
@@ -51,7 +52,10 @@ const t = {
     noCollections: 'No collections',
     selectCamera: 'Camera',
     capture: '📸 Scan',
-    ocrReading: 'AI Analysis...',
+    captureStart: '▶ Start Scanning',
+    captureStop: '⏹ Stop',
+    ocrReading: 'Analyzing...',
+    waitingHint: 'Place the next card...',
     searching: 'Searching DB...',
     history: 'Added cards',
     qty: 'x',
@@ -68,14 +72,15 @@ const t = {
     cancel: 'Cancel',
     otherEditions: 'Other editions',
     addedOk: 'Added!',
-    ocrHint: 'Frame the full card — GPT will identify name and set',
+    ocrHint: 'Frame the full card',
     modeSingle: '🃏 Single Card',
     modeGrid: '📋 Binder Page',
-    singleDesc: 'Frame one card at a time. Press Scan to read the name with OCR and search the database.',
-    gridDesc: 'Frame a binder page (3×3). Press Scan to read all visible cards.',
+    singleDesc: 'Frame one card at a time and press Scan.',
+    gridDesc: 'Frame a binder page (3×3) and press Scan.',
     manualSearch: 'Search manually',
     manualPlaceholder: 'Type the card name...',
     manualBtn: '🔍 Search',
+    removeCard: 'Remove',
   }
 }
 
@@ -202,104 +207,25 @@ function ConfirmModal({ candidates, tr, onConfirm, onCancel }) {
 
 // ── Scanner panel ─────────────────────────────────────────────────────────────
 function ScannerPanel({ user, language, collections, selectedCollectionId, setSelectedCollectionId,
-                         cameras, selectedCamera, setSelectedCamera, tr, mode,
+                         cameras, selectedCamera, setSelectedCamera, tr,
                          onAdded, onHistory }) {
-  const canvasRef   = useRef(null)
-  const [status, setStatus]         = useState(null)
-  const [candidates, setCandidates] = useState([])
-  const [error, setError]           = useState(null)
-  const [lastAdded, setLastAdded]   = useState(null)
-  const [manualName, setManualName] = useState('')
-  const [lastOcrName, setLastOcrName] = useState(null)
+  const canvasRef      = useRef(null)
+  const scanningRef    = useRef(false)   // loop attivo
+  const lastCardRef    = useRef(null)    // ultima carta aggiunta {uuid, name}
+
+  const [isScanning, setIsScanning]     = useState(false)
+  const [scanPhase, setScanPhase]       = useState(null)  // 'capturing' | 'waiting' | 'notfound'
+  const [lastAdded, setLastAdded]       = useState(null)
+  const [candidates, setCandidates]     = useState([])
+  const [error, setError]               = useState(null)
+  const [manualName, setManualName]     = useState('')
+  const [manualStatus, setManualStatus] = useState(null)
 
   const { videoRef, cameraReady, error: camError, stopCamera } = useCamera(selectedCamera, tr)
-  useEffect(() => () => stopCamera(), [])
+  useEffect(() => () => { scanningRef.current = false; stopCamera() }, [])
 
-  // Ricerca comune (usata sia da OCR che da input manuale)
-  const searchCard = useCallback(async (cardName, collectorNumber = null) => {
-    if (!cardName || cardName.length < 2) { setStatus('notfound'); return }
-    setStatus('searching')
-    try {
-      const res = await fetch(`${API_URL}/api/scan/lookup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw_name: cardName, collector_number: collectorNumber, language }),
-      })
-      const data = await res.json()
-      if (data.found && data.candidates?.length) {
-        setCandidates(data.candidates)
-        if (data.exact_match) {
-          handleConfirmDirect(data.candidates[0])
-        } else {
-          setStatus('found')
-        }
-      } else {
-        setStatus('notfound')
-      }
-    } catch { setStatus('notfound') }
-  }, [language])
-
-  const handleScan = useCallback(async () => {
-    if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
-    if (!videoRef.current || !canvasRef.current) return
-    setError(null); setCandidates([]); setLastAdded(null); setLastOcrName(null)
-
-    const imageB64 = captureFrame(videoRef.current, canvasRef.current)
-
-    setStatus('ocr')
-    try {
-      const res = await fetch(`${API_URL}/api/scan/recognize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_b64: imageB64, language }),
-      })
-      const data = await res.json()
-      console.log('[Scan] full response:', data)
-
-      const gptName = data.gpt_name || null
-      const gptCollector = data.gpt_collector || null
-      const debugLabel = gptName
-        ? `GPT: "${gptName}"${gptCollector ? ` #${gptCollector}` : ''}`
-        : data.error
-          ? `Errore: ${data.error}`
-          : '(GPT non ha riconosciuto la carta)'
-      setLastOcrName(debugLabel)
-
-      if (data.found && data.candidates?.length) {
-        setCandidates(data.candidates)
-        if (data.exact_match) {
-          handleConfirmDirect(data.candidates[0])
-        } else {
-          setStatus('found')
-        }
-      } else {
-        setStatus('notfound')
-      }
-    } catch (e) {
-      console.error('Scan error', e)
-      setStatus('notfound')
-    }
-  }, [selectedCollectionId, videoRef, language, tr])
-
-  const handleManualSearch = useCallback(async () => {
-    if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
-    const name = manualName.trim()
-    if (!name) return
-    setError(null); setCandidates([]); setLastAdded(null)
-    await searchCard(name)
-  }, [manualName, selectedCollectionId, searchCard, tr])
-
-  const handleConfirmDirect = async (card) => {
-    setCandidates([]); setStatus(null)
-    await _addCard(card, 1)
-  }
-
-  const handleConfirm = async (card, qty) => {
-    setCandidates([]); setStatus(null)
-    await _addCard(card, qty)
-  }
-
-  const _addCard = async (card, qty) => {
+  // ── Aggiunge carta al DB e aggiorna history ──────────────────────────────
+  const _addCard = useCallback(async (card, qty) => {
     try {
       const res = await fetch(`${API_URL}/api/scan/add`, {
         method: 'POST',
@@ -314,34 +240,143 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       const data = await res.json()
       if (data.added) {
         setLastAdded({ ...card, qty: data.quantity_owned })
-        setManualName('')
         onAdded()
         onHistory(prev => {
           const idx = prev.findIndex(c => c.uuid === card.uuid)
           if (idx >= 0) {
-            const u = [...prev]; u[idx] = { ...u[idx], qty: data.quantity_owned }; return u
+            const u = [...prev]; u[idx] = { ...u[idx], qty: data.quantity_owned, card_id: data.card_id }; return u
           }
-          return [{ ...card, qty: data.quantity_owned }, ...prev]
+          return [{ ...card, qty: data.quantity_owned, card_id: data.card_id }, ...prev]
         })
+        lastCardRef.current = { uuid: card.uuid, name: card.name }
       }
     } catch (e) { console.error('Add error', e) }
+  }, [user, selectedCollectionId, onAdded, onHistory])
+
+  // ── Singolo ciclo di scansione ───────────────────────────────────────────
+  const runOneCycle = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current) return
+    setScanPhase('capturing')
+    const imageB64 = captureFrame(videoRef.current, canvasRef.current)
+    setScanPhase('waiting')
+
+    try {
+      const res = await fetch(`${API_URL}/api/scan/recognize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_b64: imageB64, language }),
+      })
+      const data = await res.json()
+      console.log(`[Scan] GPT: "${data.gpt_name}"${data.gpt_collector ? ` #${data.gpt_collector}` : ''}`)
+
+      if (!scanningRef.current) return  // stop premuto durante attesa
+
+      if (data.found && data.candidates?.length) {
+        const best = data.candidates[0]
+        if (data.exact_match) {
+          // Stessa carta della precedente? → incrementa qty silenziosamente
+          if (lastCardRef.current?.uuid === best.uuid) {
+            await _addCard(best, 1)
+          } else {
+            await _addCard(best, 1)
+          }
+          setScanPhase(null)
+        } else {
+          // Più edizioni → mostra modal e pausa il loop
+          scanningRef.current = false
+          setIsScanning(false)
+          setCandidates(data.candidates)
+          setScanPhase('found')
+          return
+        }
+      } else {
+        setScanPhase('notfound')
+        // Breve pausa prima del prossimo tentativo
+        await new Promise(r => setTimeout(r, 1200))
+        if (scanningRef.current) setScanPhase(null)
+      }
+    } catch (e) {
+      console.error('Scan error', e)
+      setScanPhase('notfound')
+      await new Promise(r => setTimeout(r, 1200))
+      if (scanningRef.current) setScanPhase(null)
+    }
+  }, [videoRef, language, _addCard])
+
+  // ── Loop principale ──────────────────────────────────────────────────────
+  const startScanning = useCallback(() => {
+    if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
+    setError(null); setLastAdded(null); lastCardRef.current = null
+    scanningRef.current = true
+    setIsScanning(true)
+
+    const loop = async () => {
+      while (scanningRef.current) {
+        await runOneCycle()
+        if (scanningRef.current) {
+          // Piccola pausa tra un ciclo e l'altro
+          await new Promise(r => setTimeout(r, 400))
+        }
+      }
+    }
+    loop()
+  }, [selectedCollectionId, tr, runOneCycle])
+
+  const stopScanning = useCallback(() => {
+    scanningRef.current = false
+    setIsScanning(false)
+    setScanPhase(null)
+  }, [])
+
+  // ── Ricerca manuale ──────────────────────────────────────────────────────
+  const handleManualSearch = useCallback(async () => {
+    if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
+    const name = manualName.trim()
+    if (!name) return
+    setError(null); setManualStatus('searching')
+    try {
+      const res = await fetch(`${API_URL}/api/scan/lookup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_name: name, collector_number: null, language }),
+      })
+      const data = await res.json()
+      if (data.found && data.candidates?.length) {
+        setCandidates(data.candidates)
+        setScanPhase('found')
+        setManualStatus(null)
+      } else {
+        setManualStatus('notfound')
+      }
+    } catch { setManualStatus('notfound') }
+  }, [manualName, selectedCollectionId, language, tr])
+
+  const handleConfirm = async (card, qty) => {
+    setCandidates([]); setScanPhase(null); setManualStatus(null); setManualName('')
+    await _addCard(card, qty)
   }
 
   const displayError = error || camError
 
+  // Testo overlay sul video
+  const overlayText = () => {
+    if (scanPhase === 'capturing') return { icon: '📸', text: tr.ocrReading }
+    if (scanPhase === 'waiting')   return { icon: '⏳', text: tr.waitingHint }
+    if (scanPhase === 'notfound')  return { icon: '❌', text: tr.notRecognized }
+    return null
+  }
+  const overlay = overlayText()
+
   return (
     <div className="cs2-mode-body">
-      <div className="cs2-mode-desc">
-        {mode === 'single' ? tr.singleDesc : tr.gridDesc}
-      </div>
-
       {displayError && <div className="cs2-error">⚠️ {displayError}</div>}
 
       <div className="cs2-controls-row">
         <div className="cs2-section">
           <label className="cs2-label">{tr.selectCollection}</label>
           <select className="cs2-select" value={selectedCollectionId || ''}
-            onChange={e => setSelectedCollectionId(Number(e.target.value))}>
+            onChange={e => setSelectedCollectionId(Number(e.target.value))}
+            disabled={isScanning}>
             {collections.length === 0
               ? <option value="">{tr.noCollections}</option>
               : collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -351,7 +386,8 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
           <div className="cs2-section">
             <label className="cs2-label">{tr.selectCamera}</label>
             <select className="cs2-select" value={selectedCamera || ''}
-              onChange={e => setSelectedCamera(e.target.value)}>
+              onChange={e => setSelectedCamera(e.target.value)}
+              disabled={isScanning}>
               {cameras.map((cam, i) => (
                 <option key={cam.deviceId} value={cam.deviceId}>{cam.label || `Camera ${i+1}`}</option>
               ))}
@@ -365,43 +401,40 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         <video ref={videoRef} autoPlay playsInline muted className="cs2-video" />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-        {mode === 'single' ? (
-          <div className="cs2-overlay">
-            <div className="cs2-crosshair">
-              <div className="cs2-name-zone" />
-              <div className="cs2-corner tl" /><div className="cs2-corner tr" />
-              <div className="cs2-corner bl" /><div className="cs2-corner br" />
-            </div>
-            <div className="cs2-ocr-hint">{tr.ocrHint}</div>
-          </div>
-        ) : (
-          <div className="cs2-overlay cs2-grid-overlay">
-            <div className="cs2-grid-inner">
-              {Array.from({ length: 9 }, (_, i) => (
-                <div key={i} className="cs2-grid-cell">
-                  <div className="cs2-grid-corner tl" /><div className="cs2-grid-corner tr" />
-                  <div className="cs2-grid-corner bl" /><div className="cs2-grid-corner br" />
-                </div>
-              ))}
-            </div>
-          </div>
+        {!isScanning && !overlay && (
+          <div className="cs2-ocr-hint">{tr.ocrHint}</div>
         )}
 
-        {status === 'ocr' && <div className="cs2-status-overlay">🔍 {tr.ocrReading}</div>}
-        {status === 'searching' && <div className="cs2-status-overlay">⏳ {tr.searching}</div>}
-        {status === 'notfound' && (
-          <div className="cs2-status-overlay notfound">
-            ❌ {tr.notRecognized}
-            {lastOcrName && <div className="cs2-ocr-debug">OCR: "{lastOcrName}"</div>}
+        {overlay && (
+          <div className={`cs2-status-overlay${scanPhase === 'notfound' ? ' notfound' : ''}`}>
+            <span style={{ fontSize: '1.6rem' }}>{overlay.icon}</span>
+            <span>{overlay.text}</span>
           </div>
         )}
       </div>
 
-      <button className="cs2-scan-btn start"
-        onClick={handleScan}
-        disabled={!cameraReady || collections.length === 0 || status === 'ocr' || status === 'searching'}>
-        {status === 'ocr' ? tr.ocrReading : status === 'searching' ? tr.searching : tr.capture}
-      </button>
+      {/* Start / Stop */}
+      {!isScanning ? (
+        <button className="cs2-scan-btn start"
+          onClick={startScanning}
+          disabled={!cameraReady || collections.length === 0}>
+          {tr.captureStart}
+        </button>
+      ) : (
+        <button className="cs2-scan-btn stop" onClick={stopScanning}>
+          {tr.captureStop}
+        </button>
+      )}
+
+      {lastAdded && (
+        <div className="cs2-last-result found">
+          <div className="cs2-last-name">✅ {tr.addedOk} {lastAdded.name}</div>
+          <div className="cs2-last-meta">
+            <span>{lastAdded.set_code?.toUpperCase()}</span>
+            {lastAdded.price_eur && <span>{tr.eur}{Number(lastAdded.price_eur).toFixed(2)}</span>}
+          </div>
+        </div>
+      )}
 
       {/* Ricerca manuale fallback */}
       <div className="cs2-manual-search">
@@ -416,28 +449,21 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
             onKeyDown={e => e.key === 'Enter' && handleManualSearch()}
           />
           <button className="cs2-manual-btn" onClick={handleManualSearch}
-            disabled={!manualName.trim() || status === 'searching'}>
-            {tr.manualBtn}
+            disabled={!manualName.trim() || manualStatus === 'searching'}>
+            {manualStatus === 'searching' ? '...' : tr.manualBtn}
           </button>
         </div>
+        {manualStatus === 'notfound' && (
+          <div style={{ fontSize: '0.82rem', color: '#f87171', marginTop: 6 }}>❌ {tr.notRecognized}</div>
+        )}
       </div>
 
-      {lastAdded && (
-        <div className="cs2-last-result found">
-          <div className="cs2-last-name">✅ {tr.addedOk} {lastAdded.name}</div>
-          <div className="cs2-last-meta">
-            <span>{lastAdded.set_code?.toUpperCase()}</span>
-            {lastAdded.price_eur && <span>{tr.eur}{lastAdded.price_eur.toFixed(2)}</span>}
-          </div>
-        </div>
-      )}
-
-      {status === 'found' && candidates.length > 0 && (
+      {scanPhase === 'found' && candidates.length > 0 && (
         <ConfirmModal
           candidates={candidates}
           tr={tr}
           onConfirm={handleConfirm}
-          onCancel={() => { setCandidates([]); setStatus(null) }}
+          onCancel={() => { setCandidates([]); setScanPhase(null) }}
         />
       )}
     </div>
@@ -448,13 +474,33 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
 export default function CardScanner({ user, language, onBack }) {
   const tr = t[language] || t.en
 
-  const [mode, setMode]                       = useState('single')
   const [collections, setCollections]         = useState([])
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
   const [cameras, setCameras]                 = useState([])
   const [selectedCamera, setSelectedCamera]   = useState(null)
   const [totalAdded, setTotalAdded]           = useState(0)
   const [history, setHistory]                 = useState([])
+
+  const handleUpdateQty = useCallback(async (cardId, newQty) => {
+    try {
+      const res = await fetch(`${API_URL}/api/cards/card/${cardId}/quantity?quantity=${newQty}`, {
+        method: 'PUT',
+      })
+      const data = await res.json()
+      if (data.deleted) {
+        setHistory(prev => prev.filter(c => c.card_id !== cardId))
+      } else {
+        setHistory(prev => prev.map(c => c.card_id === cardId ? { ...c, qty: data.new_quantity } : c))
+      }
+    } catch (e) { console.error('Update qty error', e) }
+  }, [])
+
+  const handleRemove = useCallback(async (cardId) => {
+    try {
+      await fetch(`${API_URL}/api/cards/card/${cardId}/quantity?quantity=0`, { method: 'PUT' })
+      setHistory(prev => prev.filter(c => c.card_id !== cardId))
+    } catch (e) { console.error('Remove error', e) }
+  }, [])
 
   useEffect(() => {
     if (!user?.userId) return
@@ -477,7 +523,7 @@ export default function CardScanner({ user, language, onBack }) {
 
   const sharedProps = {
     user, language, collections, selectedCollectionId, setSelectedCollectionId,
-    cameras, selectedCamera, setSelectedCamera, tr, mode,
+    cameras, selectedCamera, setSelectedCamera, tr,
     onAdded: () => setTotalAdded(n => n + 1),
     onHistory: setHistory,
   }
@@ -496,16 +542,9 @@ export default function CardScanner({ user, language, onBack }) {
         🧪 {language === 'it' ? 'Feature in test — il riconoscimento potrebbe non essere accurato' : 'Feature in testing — recognition may not be accurate'}
       </div>
 
-      <div className="cs2-tabs">
-        <button className={`cs2-tab ${mode === 'single' ? 'active' : ''}`}
-          onClick={() => setMode('single')}>{tr.modeSingle}</button>
-        <button className={`cs2-tab ${mode === 'grid' ? 'active' : ''}`}
-          onClick={() => setMode('grid')}>{tr.modeGrid}</button>
-      </div>
-
       <div className="cs2-layout">
         <div className="cs2-left">
-          <ScannerPanel key={mode} {...sharedProps} />
+          <ScannerPanel {...sharedProps} />
         </div>
 
         <div className="cs2-right">
@@ -528,7 +567,18 @@ export default function CardScanner({ user, language, onBack }) {
                     {!card.price_eur && card.price_usd && <span className="cs2-price">{tr.usd}{Number(card.price_usd).toFixed(2)}</span>}
                   </div>
                 </div>
-                <div className="cs2-card-qty">{tr.qty}{card.qty}</div>
+                {card.card_id ? (
+                  <div className="cs2-card-actions">
+                    <div className="cs2-qty-inline">
+                      <button onClick={() => handleUpdateQty(card.card_id, Math.max(1, card.qty - 1))}>−</button>
+                      <span>{card.qty}</span>
+                      <button onClick={() => handleUpdateQty(card.card_id, card.qty + 1)}>+</button>
+                    </div>
+                    <button className="cs2-remove-btn" onClick={() => handleRemove(card.card_id)} title={tr.removeCard}>🗑</button>
+                  </div>
+                ) : (
+                  <div className="cs2-card-qty">{tr.qty}{card.qty}</div>
+                )}
               </div>
             ))}
           </div>
