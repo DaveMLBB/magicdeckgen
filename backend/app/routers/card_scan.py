@@ -95,7 +95,7 @@ If collector number is not visible, use null for that field."""
                     }}
                 ]
             }],
-            max_completion_tokens=150,
+            max_completion_tokens=500,
             temperature=0,
         )
         raw = response.choices[0].message.content or ""
