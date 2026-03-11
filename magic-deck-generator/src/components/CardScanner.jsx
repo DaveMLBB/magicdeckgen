@@ -87,8 +87,8 @@ function captureFrame(videoEl, canvas) {
   const vw = videoEl.videoWidth  || 1280
   const vh = videoEl.videoHeight || 720
 
-  // Scala a max 800px sul lato lungo mantenendo aspect ratio
-  const maxSide = 800
+  // Scala a max 1000px sul lato lungo mantenendo aspect ratio
+  const maxSide = 1000
   const scale = Math.min(1, maxSide / Math.max(vw, vh))
   canvas.width  = Math.round(vw * scale)
   canvas.height = Math.round(vh * scale)
