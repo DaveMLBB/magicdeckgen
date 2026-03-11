@@ -84,7 +84,7 @@ If collector number is not visible, use null for that field."""
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-5-nano",
+            model="gpt-5.2",
             messages=[{
                 "role": "user",
                 "content": [
@@ -95,7 +95,7 @@ If collector number is not visible, use null for that field."""
                     }}
                 ]
             }],
-            max_completion_tokens=1200,
+            max_completion_tokens=100,
             temperature=1,
             response_format={"type": "json_object"},
         )
