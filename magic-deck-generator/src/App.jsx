@@ -14,6 +14,7 @@ import CardTwins from './components/CardTwins'
 import AIDeckBuilder from './components/AIDeckBuilder'
 import AIDeckBoost from './components/AIDeckBoost'
 import ArenaImport from './components/ArenaImport'
+import CardScanner from './components/CardScanner'
 import UserGuide, { GUIDE_VERSION } from './components/UserGuide'
 import CookieConsentBanner from './components/CookieConsentBanner'
 import PrivacySettings from './components/PrivacySettings'
@@ -1178,6 +1179,7 @@ function App() {
       'card-synergy': '✨ AI Synergy',
       'card-twins': '🪞 AI Gemelli',
       'ai-deck-builder': '🏗️ AI Deck Builder',
+      'card-scanner': '📷 Scanner',
       subscriptions: '🪙 Token Shop',
       'privacy-settings': '🔒 Privacy',
       'privacy-policy': 'Privacy Policy',
@@ -1186,8 +1188,6 @@ function App() {
       'email-preferences': 'Email',
     },
     en: {
-      dashboard: '🏠 Home',
-      main: '🔍 Deck Compare',
       collections: '📚 Collections',
       'collection-detail': '📁 Collection',
       'card-search': '🃏 Card Search',
@@ -1197,6 +1197,7 @@ function App() {
       'card-synergy': '✨ AI Synergy',
       'card-twins': '🪞 AI Twins',
       'ai-deck-builder': '🏗️ AI Deck Builder',
+      'card-scanner': '📷 Scanner',
       subscriptions: '🪙 Token Shop',
       'privacy-settings': '🔒 Privacy',
       'privacy-policy': 'Privacy Policy',
@@ -1241,6 +1242,7 @@ function App() {
     { id: 'ai-deck-builder', icon: '🏗️', labelIt: 'AI Builder', labelEn: 'AI Builder' },
     { id: 'ai-deck-boost', icon: '⚡', labelIt: 'AI Deck Boost', labelEn: 'AI Deck Boost' },
     { id: 'arena-import', icon: '🎮', labelIt: 'Arena Import', labelEn: 'Arena Import' },
+    { id: 'card-scanner', icon: '📷', labelIt: 'Scanner', labelEn: 'Scanner' },
     { id: 'community', icon: '💬', labelIt: 'Community', labelEn: 'Community' },
     { id: 'subscriptions', icon: '🪙', labelIt: 'Token', labelEn: 'Tokens' },
   ]
@@ -1341,6 +1343,9 @@ function App() {
     }
     if (currentView === 'arena-import') {
       return <ArenaImport user={user} language={language} onNavigate={setCurrentView} />
+    }
+    if (currentView === 'card-scanner') {
+      return <CardScanner user={user} language={language} onBack={() => setCurrentView('dashboard')} />
     }
     if (currentView === 'community') {
       return <Chat user={user} language={language} />

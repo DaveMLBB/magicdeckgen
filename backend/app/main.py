@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import engine, Base, get_db
 from app.routers import cards, decks, auth, subscriptions, collections, mtg_cards, saved_decks, gdpr, tokens, ai_builder, ai_boost, feedback, chat, arena_import
+from app.routers import card_scan
 from app.models import SiteVisit
 from app.services.scheduler import start_scheduler, stop_scheduler
 from sqlalchemy.orm import Session
@@ -57,6 +58,7 @@ app.include_router(ai_boost.router, prefix="/api/ai", tags=["ai"])
 app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(arena_import.router, prefix="/api/arena", tags=["arena"])
+app.include_router(card_scan.router, prefix="/api/scan", tags=["scan"])
 
 @app.get("/")
 def root():

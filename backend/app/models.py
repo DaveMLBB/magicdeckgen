@@ -33,6 +33,7 @@ class User(Base):
     
     # Token system
     tokens = Column(Integer, default=100)  # Current token balance (100 free on registration)
+    scan_count = Column(Integer, default=0)  # contatore scansioni (ogni 100 scala 1 token)
     
     # Stripe
     stripe_customer_id = Column(String, nullable=True, unique=True)
