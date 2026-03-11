@@ -212,7 +212,12 @@ def search_cards(
             "image_url": card.image_url,
             "legalities": legalities,
             "keywords": card.keywords,
-            "layout": card.layout
+            "layout": card.layout,
+            "price_usd": card.price_usd,
+            "price_usd_foil": card.price_usd_foil,
+            "price_eur": card.price_eur,
+            "price_eur_foil": card.price_eur_foil,
+            "price_tix": card.price_tix,
         })
     
     return {
@@ -274,7 +279,12 @@ def get_card_detail(uuid: str, language: str = "en", db: Session = Depends(get_d
         "image_url": card.image_url,
         "legalities": legalities,
         "keywords": card.keywords,
-        "layout": card.layout
+        "layout": card.layout,
+        "price_usd": card.price_usd,
+        "price_usd_foil": card.price_usd_foil,
+        "price_eur": card.price_eur,
+        "price_eur_foil": card.price_eur_foil,
+        "price_tix": card.price_tix,
     }
 
 @router.get("/random")

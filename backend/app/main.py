@@ -1,15 +1,23 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from app.database import engine, Base, get_db
 from app.routers import cards, decks, auth, subscriptions, collections, mtg_cards, saved_decks, gdpr, tokens, ai_builder, ai_boost, feedback, chat, arena_import
 from app.models import SiteVisit
+from app.services.scheduler import start_scheduler, stop_scheduler
 from sqlalchemy.orm import Session
 from datetime import datetime
 import os
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Magic Deck Generator API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+    yield
+    stop_scheduler()
+
+app = FastAPI(title="Magic Deck Generator API", lifespan=lifespan)
 
 # CORS Configuration - supports both development and production
 allowed_origins = [

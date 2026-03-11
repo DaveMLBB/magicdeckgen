@@ -19,18 +19,19 @@ SQLALCHEMY_DATABASE_URL = os.environ.get(
 
 # Log per debug
 print(f"🔍 Backend directory: {BACKEND_DIR}")
-print(f"🔍 Database URL: {SQLALCHEMY_DATABASE_URL.split('@')[0]}@***")
+print(f"🔍 Database URL: {SQLALCHEMY_DATABASE_URL.split('@')[0] if '@' in SQLALCHEMY_DATABASE_URL else SQLALCHEMY_DATABASE_URL}")
 print(f"🔍 Current working directory: {os.getcwd()}")
 
 # Configurazione engine in base al tipo di database
 connect_args = {}
-if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+is_sqlite = SQLALCHEMY_DATABASE_URL.startswith("sqlite")
+if is_sqlite:
     connect_args["check_same_thread"] = False
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args=connect_args,
-    pool_pre_ping=True,
+    pool_pre_ping=not is_sqlite,
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

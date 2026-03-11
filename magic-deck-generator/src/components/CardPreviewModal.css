@@ -276,3 +276,43 @@
     font-size: 1.4rem;
   }
 }
+
+/* ── Prices ── */
+.card-preview-modal .detail-prices {
+  margin-top: 0.75rem;
+}
+
+.card-preview-modal .detail-prices strong {
+  display: block;
+  color: #a0aec0;
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+}
+
+.card-preview-modal .prices-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.card-preview-modal .price-badge {
+  font-size: 0.78rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  font-weight: 600;
+}
+
+.card-preview-modal .price-badge.price-foil {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.card-preview-modal .price-badge.price-tix {
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.25);
+}

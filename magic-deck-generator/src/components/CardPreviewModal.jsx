@@ -103,8 +103,8 @@ function CardPreviewModal({ cardName, language, onClose }) {
   }, [cardName, language])
 
   const t = language === 'it'
-    ? { rarity: 'Rarità', set: 'Set', artist: 'Artista', legalities: 'Legalità' }
-    : { rarity: 'Rarity', set: 'Set', artist: 'Artist', legalities: 'Legalities' }
+    ? { rarity: 'Rarità', set: 'Set', artist: 'Artista', legalities: 'Legalità', prices: 'Prezzi', foil: 'Foil', tix: 'MTGO Tix' }
+    : { rarity: 'Rarity', set: 'Set', artist: 'Artist', legalities: 'Legalities', prices: 'Prices', foil: 'Foil', tix: 'MTGO Tix' }
 
   return ReactDOM.createPortal(
     <div className="card-preview-modal-overlay" onClick={onClose}>
@@ -163,6 +163,28 @@ function CardPreviewModal({ cardName, language, onClose }) {
                         {fmt}: {status}
                       </span>
                     ))}
+                  </div>
+                </div>
+              )}
+              {(card.price_usd || card.price_eur || card.price_tix) && (
+                <div className="detail-prices">
+                  <strong>{t.prices}:</strong>
+                  <div className="prices-grid">
+                    {card.price_usd != null && (
+                      <span className="price-badge">$ {card.price_usd.toFixed(2)}</span>
+                    )}
+                    {card.price_usd_foil != null && (
+                      <span className="price-badge price-foil">$ {card.price_usd_foil.toFixed(2)} {t.foil}</span>
+                    )}
+                    {card.price_eur != null && (
+                      <span className="price-badge">€ {card.price_eur.toFixed(2)}</span>
+                    )}
+                    {card.price_eur_foil != null && (
+                      <span className="price-badge price-foil">€ {card.price_eur_foil.toFixed(2)} {t.foil}</span>
+                    )}
+                    {card.price_tix != null && (
+                      <span className="price-badge price-tix">{card.price_tix.toFixed(2)} {t.tix}</span>
+                    )}
                   </div>
                 </div>
               )}

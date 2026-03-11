@@ -1035,6 +1035,12 @@ function CardSearch({ user, onBack, language, onLimitError, initialQuery }) {
                     )}
                     {card.type && <p className="card-type">{card.type}</p>}
                     {card.mana_cost && <p className="mana-cost">{renderManaCost(card.mana_cost)}</p>}
+                    {(card.price_eur != null || card.price_usd != null) && (
+                      <p className="card-price">
+                        {card.price_eur != null && <span>€{card.price_eur.toFixed(2)}</span>}
+                        {card.price_usd != null && <span>${card.price_usd.toFixed(2)}</span>}
+                      </p>
+                    )}
                   </div>
                   <button 
                     className="add-to-collection-btn"
@@ -1204,6 +1210,18 @@ function CardSearch({ user, onBack, language, onLimitError, initialQuery }) {
                           {format}: {status}
                         </span>
                       ))}
+                    </div>
+                  </div>
+                )}
+                {(selectedCard.price_usd || selectedCard.price_eur || selectedCard.price_tix) && (
+                  <div className="detail-prices">
+                    <strong>{t.prices || 'Prices'}:</strong>
+                    <div className="prices-grid">
+                      {selectedCard.price_eur != null && <span className="price-badge">€ {selectedCard.price_eur.toFixed(2)}</span>}
+                      {selectedCard.price_eur_foil != null && <span className="price-badge price-foil">€ {selectedCard.price_eur_foil.toFixed(2)} Foil</span>}
+                      {selectedCard.price_usd != null && <span className="price-badge">$ {selectedCard.price_usd.toFixed(2)}</span>}
+                      {selectedCard.price_usd_foil != null && <span className="price-badge price-foil">$ {selectedCard.price_usd_foil.toFixed(2)} Foil</span>}
+                      {selectedCard.price_tix != null && <span className="price-badge price-tix">{selectedCard.price_tix.toFixed(2)} Tix</span>}
                     </div>
                   </div>
                 )}

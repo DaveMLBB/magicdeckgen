@@ -1,0 +1,3 @@
+# Dipendenze per sviluppo locale (SQLite, no PostgreSQL)
+-r requirements.txt
+# SQLite è built-in in Python, nessuna dipendenza extra necessaria

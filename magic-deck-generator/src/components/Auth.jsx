@@ -105,7 +105,11 @@ function Auth({ onLogin, language, setLanguage }) {
       console.log('📥 Risposta data:', data)
 
       if (!res.ok) {
-        setMessage(data.detail || (isLogin ? t.loginError : t.registerError))
+        const detail = data.detail
+        const msg = Array.isArray(detail)
+          ? detail.map(e => e.msg).join(', ')
+          : (typeof detail === 'string' ? detail : (isLogin ? t.loginError : t.registerError))
+        setMessage(msg)
         setMessageType('error')
         setLoading(false)
         return
