@@ -520,7 +520,8 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
               setSelectedCard(fullCard)
               
               // Load image
-              const imageUrl = await cardImageCache.getCardImage(card.name, card.set_code || null, language, card.set_code || null)              if (imageUrl) {
+              const imageUrl = await cardImageCache.getCardImage(card.name, card.set_code || null, language, card.set_code || null)
+              if (imageUrl) {
                 setSelectedCardImageUrl(imageUrl)
               }
               return
