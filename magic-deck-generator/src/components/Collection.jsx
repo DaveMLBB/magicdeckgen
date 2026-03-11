@@ -386,7 +386,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   }
 
   const loadAllForExport = async () => {
-    const params = new URLSearchParams({ page: '1', page_size: '9999', sort_by: 'name', sort_order: 'asc' })
+    const params = new URLSearchParams({ page: '1', page_size: '5000', sort_by: 'name', sort_order: 'asc' })
     if (collection) params.append('collection_id', collection.id.toString())
     const res = await fetch(`${API_URL}/api/cards/collection/${user.userId}?${params}`)
     const data = await res.json()
