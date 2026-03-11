@@ -39,25 +39,21 @@ function toCSV(rows, columns) {
  */
 export function exportCollectionCSV(cards, collectionName = 'collection') {
   const cols = [
-    { key: 'name',          label: 'Name' },
-    { key: 'quantity_owned',label: 'Quantity' },
-    { key: 'card_type',     label: 'Type' },
-    { key: 'mana_cost',     label: 'Mana Cost' },
-    { key: 'colors',        label: 'Colors' },
-    { key: 'rarity',        label: 'Rarity' },
-    { key: 'name_it',       label: 'Name (IT)' },
+    { key: 'name',     label: 'Name' },
+    { key: 'quantity', label: 'Quantity' },
+    { key: 'type',     label: 'Type' },
+    { key: 'mana_cost',label: 'Mana Cost' },
+    { key: 'colors',   label: 'Colors' },
+    { key: 'rarity',   label: 'Rarity' },
+    { key: 'name_it',  label: 'Name (IT)' },
   ]
   downloadText(toCSV(cards, cols), `${collectionName}.csv`, 'text/csv')
 }
 
-/**
- * ManaBox CSV format:
- * Name,Set code,Quantity,Foil,Condition,Language
- */
 export function exportCollectionManaBox(cards, collectionName = 'collection') {
   const header = 'Name,Set code,Quantity,Foil,Condition,Language'
   const lines = cards.map(c =>
-    `"${(c.name || '').replace(/"/g, '""')}","${c.set_code || ''}",${c.quantity_owned || 1},false,NM,en`
+    `"${(c.name || '').replace(/"/g, '""')}","${c.set_code || ''}",${c.quantity || 1},false,NM,en`
   )
   downloadText([header, ...lines].join('\r\n'), `${collectionName}_manabox.csv`, 'text/csv')
 }
@@ -65,11 +61,12 @@ export function exportCollectionManaBox(cards, collectionName = 'collection') {
 export function exportCollectionXLSX(cards, collectionName = 'collection') {
   const rows = cards.map(c => ({
     Name: c.name,
-    Quantity: c.quantity_owned,
-    Type: c.card_type,
+    Quantity: c.quantity,
+    Type: c.type,
     'Mana Cost': c.mana_cost,
     Colors: c.colors,
     Rarity: c.rarity,
+    'Set': c.set_code,
     'Name (IT)': c.name_it,
   }))
   const ws = XLSX.utils.json_to_sheet(rows)
@@ -79,11 +76,8 @@ export function exportCollectionXLSX(cards, collectionName = 'collection') {
   downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${collectionName}.xlsx`)
 }
 
-/**
- * TXT — plain list "4 Lightning Bolt" (MTGA/MTGO compatible)
- */
 export function exportCollectionTXT(cards, collectionName = 'collection') {
-  const lines = cards.map(c => `${c.quantity_owned} ${c.name}`)
+  const lines = cards.map(c => `${c.quantity} ${c.name}`)
   downloadText(lines.join('\n'), `${collectionName}.txt`)
 }
 
