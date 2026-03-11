@@ -3,6 +3,7 @@ Card Scanner endpoint — ricerca per nome nel DB Scryfall locale.
 Nessuna AI esterna: il frontend fa OCR con Tesseract.js e manda il testo grezzo.
 """
 
+from itertools import combinations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
@@ -79,13 +80,13 @@ def lookup_card(input_data: CardLookupInput, db: Session = Depends(get_db)):
         func.lower(MTGCard.name) == raw.lower()
     ).limit(5).all()
 
-    # 2. Parziale
+    # 2. Parziale (raw contenuto nel nome)
     if not candidates:
         candidates = db.query(MTGCard).filter(
             MTGCard.name.ilike(f"%{raw}%")
         ).limit(5).all()
 
-    # 3. Fuzzy: ogni parola del nome deve apparire nel nome carta
+    # 3. Fuzzy: ogni parola significativa (≥3 char) deve apparire nel nome
     if not candidates:
         words = [w for w in raw.split() if len(w) >= 3]
         if words:
@@ -93,6 +94,28 @@ def lookup_card(input_data: CardLookupInput, db: Session = Depends(get_db)):
             for w in words:
                 q = q.filter(MTGCard.name.ilike(f"%{w}%"))
             candidates = q.limit(5).all()
+
+    # 4. Fuzzy rilassato: almeno la metà delle parole significative
+    if not candidates:
+        words = [w for w in raw.split() if len(w) >= 3]
+        if len(words) >= 2:
+            min_match = max(1, len(words) // 2)
+            # Prova tutte le combinazioni di min_match parole
+            for combo in combinations(words, min_match):
+                q = db.query(MTGCard)
+                for w in combo:
+                    q = q.filter(MTGCard.name.ilike(f"%{w}%"))
+                candidates = q.limit(5).all()
+                if candidates:
+                    break
+
+    # 5. Ultima spiaggia: prima parola lunga (≥4 char)
+    if not candidates:
+        long_words = [w for w in raw.split() if len(w) >= 4]
+        if long_words:
+            candidates = db.query(MTGCard).filter(
+                MTGCard.name.ilike(f"%{long_words[0]}%")
+            ).limit(5).all()
 
     if not candidates:
         return {"found": False, "candidates": [], "raw_name": raw}

@@ -40,6 +40,9 @@ const t = {
     modeGrid: '📋 Raccoglitore',
     singleDesc: 'Inquadra una carta alla volta. Premi Scansiona per leggere il nome con OCR e cercarla nel database.',
     gridDesc: 'Inquadra una pagina del raccoglitore (3×3). Premi Scansiona per leggere tutte le carte visibili.',
+    manualSearch: 'Cerca manualmente',
+    manualPlaceholder: 'Scrivi il nome della carta...',
+    manualBtn: '🔍 Cerca',
   },
   en: {
     title: '📷 Card Scanner',
@@ -71,6 +74,9 @@ const t = {
     modeGrid: '📋 Binder Page',
     singleDesc: 'Frame one card at a time. Press Scan to read the name with OCR and search the database.',
     gridDesc: 'Frame a binder page (3×3). Press Scan to read all visible cards.',
+    manualSearch: 'Search manually',
+    manualPlaceholder: 'Type the card name...',
+    manualBtn: '🔍 Search',
   }
 }
 
@@ -80,74 +86,139 @@ const rarityColor = r => ({ mythic:'#f97316', rare:'#f59e0b', uncommon:'#94a3b8'
 let ocrWorker = null
 async function getOCRWorker() {
   if (!ocrWorker) {
-    ocrWorker = await createWorker('eng+ita', 1, { logger: () => {} })
+    ocrWorker = await createWorker('eng', 1, { logger: () => {} })
+    await ocrWorker.setParameters({
+      // Whitelist ampio: include caratteri accentati per nomi in più lingue
+      tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ',.:-éèêëàâùûüîïôœæçÀÂÉÈÊËÎÏÔÙÛÜŒÆÇäöüÄÖÜß",
+      tessedit_pageseg_mode: '7', // single line
+    })
   }
   return ocrWorker
 }
 
 /**
- * Estrae il nome carta dal frame OCR.
+ * Preprocessing semplice e robusto per OCR su font MTG:
+ * 1. Scala 3x
+ * 2. Grayscale
+ * 3. Boost contrasto (stretch istogramma)
+ * 4. Threshold adattivo semplice (media locale)
  *
- * Layout carta MTG:
- *   - Nome: prima riga in cima (es. "Lightning Bolt")
- *   - Occupa circa il 10-13% dell'altezza della carta
- *
- * Strategia:
- *   1. Crop top 13% → preprocessing (grayscale + contrasto) → OCR
- *   2. Prima riga non vuota con almeno 2 caratteri = nome carta
+ * Ritorna due canvas: uno con sfondo chiaro (testo scuro) e uno invertito.
+ * Tesseract funziona meglio con testo scuro su sfondo chiaro.
+ */
+function preprocessForOCR(src, sx, sy, sw, sh) {
+  const scale = 3
+  const out = document.createElement('canvas')
+  out.width = sw * scale
+  out.height = sh * scale
+  const ctx = out.getContext('2d')
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(src, sx, sy, sw, sh, 0, 0, out.width, out.height)
+
+  const W = out.width, H = out.height
+  const imgData = ctx.getImageData(0, 0, W, H)
+  const d = imgData.data
+
+  // 1. Grayscale
+  const gray = new Uint8Array(W * H)
+  for (let i = 0; i < d.length; i += 4) {
+    gray[i >> 2] = (d[i] * 77 + d[i+1] * 150 + d[i+2] * 29) >> 8
+  }
+
+  // 2. Stretch contrasto (min/max)
+  let mn = 255, mx = 0
+  for (let i = 0; i < gray.length; i++) { if (gray[i] < mn) mn = gray[i]; if (gray[i] > mx) mx = gray[i] }
+  const range = mx - mn || 1
+  const stretched = new Uint8Array(W * H)
+  for (let i = 0; i < gray.length; i++) stretched[i] = ((gray[i] - mn) * 255 / range) | 0
+
+  // 3. Threshold adattivo (media su blocco 32x32, offset -15)
+  const BLOCK = 32, OFFSET = 15
+  const result = new Uint8Array(W * H)
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const y0 = Math.max(0, y - BLOCK), y1 = Math.min(H - 1, y + BLOCK)
+      const x0 = Math.max(0, x - BLOCK), x1 = Math.min(W - 1, x + BLOCK)
+      let sum = 0, cnt = 0
+      for (let yy = y0; yy <= y1; yy += 2) {
+        for (let xx = x0; xx <= x1; xx += 2) { sum += stretched[yy * W + xx]; cnt++ }
+      }
+      result[y * W + x] = stretched[y * W + x] < (sum / cnt - OFFSET) ? 0 : 255
+    }
+  }
+
+  // Scrivi canvas normale (testo scuro su bianco)
+  const out2 = document.createElement('canvas')
+  out2.width = W; out2.height = H
+  const ctx2 = out2.getContext('2d')
+  const id2 = ctx2.createImageData(W, H)
+  for (let i = 0; i < result.length; i++) {
+    id2.data[i*4] = id2.data[i*4+1] = id2.data[i*4+2] = result[i]
+    id2.data[i*4+3] = 255
+  }
+  ctx2.putImageData(id2, 0, 0)
+
+  // Scrivi canvas invertito (testo chiaro su nero → invertito = testo scuro su bianco)
+  const out3 = document.createElement('canvas')
+  out3.width = W; out3.height = H
+  const ctx3 = out3.getContext('2d')
+  const id3 = ctx3.createImageData(W, H)
+  for (let i = 0; i < result.length; i++) {
+    const v = 255 - result[i]
+    id3.data[i*4] = id3.data[i*4+1] = id3.data[i*4+2] = v
+    id3.data[i*4+3] = 255
+  }
+  ctx3.putImageData(id3, 0, 0)
+
+  return { normal: out2, inverted: out3 }
+}
+
+/**
+ * Estrae il nome della carta dal frame.
+ * - Prova sia la versione normale che invertita del preprocessing
+ * - Prende il risultato con confidence più alta
+ * - Crop: top 15% (zona titolo MTG)
  */
 async function ocrCard(canvas) {
   const w = canvas.width
   const h = canvas.height
   const worker = await getOCRWorker()
 
-  // Helper: preprocessing grayscale + contrasto su un canvas crop
-  const preprocess = (src, sx, sy, sw, sh) => {
-    const scale = 2
-    const out = document.createElement('canvas')
-    out.width = sw * scale
-    out.height = sh * scale
-    const ctx = out.getContext('2d')
-    ctx.imageSmoothingEnabled = false
-    ctx.drawImage(src, sx, sy, sw, sh, 0, 0, out.width, out.height)
-    const imgData = ctx.getImageData(0, 0, out.width, out.height)
-    const d = imgData.data
-    for (let i = 0; i < d.length; i += 4) {
-      const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]
-      const c = Math.min(255, Math.max(0, (gray - 128) * 1.8 + 128))
-      d[i] = d[i+1] = d[i+2] = c
-    }
-    ctx.putImageData(imgData, 0, 0)
-    return out
-  }
+  // Crop zona nome: top 15% del frame
+  const nameH = Math.floor(h * 0.15)
+  const { normal, inverted } = preprocessForOCR(canvas, 0, 0, w, nameH)
 
-  // ── Crop nome: top 13% ───────────────────────────────────────────────────
-  const nameH = Math.floor(h * 0.13)
-  const nameProc = preprocess(canvas, 0, 0, w, nameH)
-
-  // ── Crop collector number: bottom 8%, metà sinistra ─────────────────────
-  // Il collector number (es. "123/281") è in basso a sinistra della carta
-  const collH = Math.floor(h * 0.08)
-  const collW = Math.floor(w * 0.5)
-  const collY = h - collH
-  const collProc = preprocess(canvas, 0, collY, collW, collH)
-
-  const [nameResult, collResult] = await Promise.all([
-    worker.recognize(nameProc),
-    worker.recognize(collProc),
+  // OCR su entrambe le versioni in parallelo
+  const [r1, r2] = await Promise.all([
+    worker.recognize(normal),
+    worker.recognize(inverted),
   ])
 
-  // Nome: prima riga non vuota ≥ 2 caratteri
-  const cardName = (nameResult.data.text || '').split('\n')
-    .map(l => l.trim().replace(/[^a-zA-ZÀ-ÿ0-9 ',.\-]/g, '').trim())
+  // Scegli il risultato con confidence più alta
+  const conf1 = r1.data.confidence || 0
+  const conf2 = r2.data.confidence || 0
+  const best = conf1 >= conf2 ? r1 : r2
+
+  const rawText = best.data.text || ''
+
+  // Pulisci: prendi la prima riga non vuota con almeno 2 caratteri
+  const cardName = rawText
+    .split('\n')
+    .map(l => l.trim().replace(/[^a-zA-ZÀ-ÿ0-9 ',.:\-]/g, ' ').replace(/\s+/g, ' ').trim())
     .find(l => l.length >= 2) || ''
 
-  // Collector number: cerca pattern NNN o NNN/NNN (es. "123" o "123/281")
+  // Collector number: crop bottom 8%, sinistra 50%
+  const collH = Math.floor(h * 0.08)
+  const collW = Math.floor(w * 0.50)
+  const collY = h - collH
+  const { normal: collCanvas } = preprocessForOCR(canvas, 0, collY, collW, collH)
+  const collResult = await worker.recognize(collCanvas)
   const collText = collResult.data.text || ''
   const collMatch = collText.match(/\b(\d{1,4})(?:\/\d{1,4})?\b/)
   const collectorNumber = collMatch ? collMatch[1] : null
 
-  return { cardName, collectorNumber, nameText: nameResult.data.text || '' }
+  return { cardName, collectorNumber, confidence: Math.max(conf1, conf2) }
 }
 
 // ── Camera hook ───────────────────────────────────────────────────────────────
@@ -167,9 +238,11 @@ function useCamera(selectedCamera, tr) {
     stopCamera()
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: deviceId ? { exact: deviceId } : undefined,
-                 width: { ideal: 1280 }, height: { ideal: 720 },
-                 facingMode: deviceId ? undefined : 'environment' }
+        video: {
+          deviceId: deviceId ? { exact: deviceId } : undefined,
+          width: { ideal: 1280 }, height: { ideal: 720 },
+          facingMode: deviceId ? undefined : 'environment',
+        }
       })
       streamRef.current = stream
       if (videoRef.current) {
@@ -198,7 +271,6 @@ function ConfirmModal({ candidates, tr, onConfirm, onCancel }) {
       <div className="cs2-modal" onClick={e => e.stopPropagation()}>
         <h3>{tr.confirmCard}</h3>
 
-        {/* Card preview */}
         <div className="cs2-confirm-card">
           {selected.image_url
             ? <img src={selected.image_url} alt={selected.name} className="cs2-confirm-img" />
@@ -214,7 +286,6 @@ function ConfirmModal({ candidates, tr, onConfirm, onCancel }) {
           </div>
         </div>
 
-        {/* Altre edizioni */}
         {candidates.length > 1 && (
           <div className="cs2-editions">
             <p className="cs2-editions-label">{tr.otherEditions}</p>
@@ -230,7 +301,6 @@ function ConfirmModal({ candidates, tr, onConfirm, onCancel }) {
           </div>
         )}
 
-        {/* Quantità */}
         <div className="cs2-qty-row">
           <label>{tr.quantity}</label>
           <div className="cs2-qty-controls">
@@ -249,24 +319,49 @@ function ConfirmModal({ candidates, tr, onConfirm, onCancel }) {
   )
 }
 
-// ── Scanner panel (shared for single/grid) ────────────────────────────────────
+// ── Scanner panel ─────────────────────────────────────────────────────────────
 function ScannerPanel({ user, language, collections, selectedCollectionId, setSelectedCollectionId,
                          cameras, selectedCamera, setSelectedCamera, tr, mode,
                          onAdded, onHistory }) {
   const canvasRef   = useRef(null)
-  const [status, setStatus]         = useState(null)   // null | 'ocr' | 'searching' | 'found' | 'notfound'
+  const [status, setStatus]         = useState(null)
   const [candidates, setCandidates] = useState([])
   const [error, setError]           = useState(null)
   const [lastAdded, setLastAdded]   = useState(null)
+  const [manualName, setManualName] = useState('')
+  const [lastOcrName, setLastOcrName] = useState(null)
 
   const { videoRef, cameraReady, error: camError, stopCamera } = useCamera(selectedCamera, tr)
   useEffect(() => () => stopCamera(), [])
 
-  // Cattura frame e avvia OCR
+  // Ricerca comune (usata sia da OCR che da input manuale)
+  const searchCard = useCallback(async (cardName, collectorNumber = null) => {
+    if (!cardName || cardName.length < 2) { setStatus('notfound'); return }
+    setStatus('searching')
+    try {
+      const res = await fetch(`${API_URL}/api/scan/lookup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_name: cardName, collector_number: collectorNumber, language }),
+      })
+      const data = await res.json()
+      if (data.found && data.candidates?.length) {
+        setCandidates(data.candidates)
+        if (data.exact_match) {
+          handleConfirmDirect(data.candidates[0])
+        } else {
+          setStatus('found')
+        }
+      } else {
+        setStatus('notfound')
+      }
+    } catch { setStatus('notfound') }
+  }, [language])
+
   const handleScan = useCallback(async () => {
     if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
     if (!videoRef.current || !canvasRef.current) return
-    setError(null); setCandidates([]); setLastAdded(null)
+    setError(null); setCandidates([]); setLastAdded(null); setLastOcrName(null)
 
     const canvas = canvasRef.current
     canvas.width = CAPTURE_W; canvas.height = CAPTURE_H
@@ -278,41 +373,28 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       const result = await ocrCard(canvas)
       cardName = result.cardName
       collectorNumber = result.collectorNumber
+      setLastOcrName(cardName || null)
     } catch (e) { console.error('OCR error', e) }
 
     if (!cardName) { setStatus('notfound'); return }
+    await searchCard(cardName, collectorNumber)
+  }, [selectedCollectionId, videoRef, searchCard, tr])
 
-    setStatus('searching')
-    try {
-      const res = await fetch(`${API_URL}/api/scan/lookup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw_name: cardName, collector_number: collectorNumber, language }),
-      })
-      const data = await res.json()
-      if (data.found && data.candidates?.length) {
-        setCandidates(data.candidates)
-        // Se c'è un match esatto per collector number, auto-seleziona senza modale
-        if (data.exact_match) {
-          handleConfirmDirect(data.candidates[0])
-        } else {
-          setStatus('found')
-        }
-      } else {
-        setStatus('notfound')
-      }
-    } catch { setStatus('notfound') }
-  }, [selectedCollectionId, videoRef, language, tr])
+  const handleManualSearch = useCallback(async () => {
+    if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
+    const name = manualName.trim()
+    if (!name) return
+    setError(null); setCandidates([]); setLastAdded(null)
+    await searchCard(name)
+  }, [manualName, selectedCollectionId, searchCard, tr])
 
   const handleConfirmDirect = async (card) => {
-    setCandidates([])
-    setStatus(null)
+    setCandidates([]); setStatus(null)
     await _addCard(card, 1)
   }
 
   const handleConfirm = async (card, qty) => {
-    setCandidates([])
-    setStatus(null)
+    setCandidates([]); setStatus(null)
     await _addCard(card, qty)
   }
 
@@ -331,6 +413,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       const data = await res.json()
       if (data.added) {
         setLastAdded({ ...card, qty: data.quantity_owned })
+        setManualName('')
         onAdded()
         onHistory(prev => {
           const idx = prev.findIndex(c => c.uuid === card.uuid)
@@ -405,7 +488,12 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
 
         {status === 'ocr' && <div className="cs2-status-overlay">🔍 {tr.ocrReading}</div>}
         {status === 'searching' && <div className="cs2-status-overlay">⏳ {tr.searching}</div>}
-        {status === 'notfound' && <div className="cs2-status-overlay notfound">❌ {tr.notRecognized}</div>}
+        {status === 'notfound' && (
+          <div className="cs2-status-overlay notfound">
+            ❌ {tr.notRecognized}
+            {lastOcrName && <div className="cs2-ocr-debug">OCR: "{lastOcrName}"</div>}
+          </div>
+        )}
       </div>
 
       <button className="cs2-scan-btn start"
@@ -413,6 +501,25 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         disabled={!cameraReady || collections.length === 0 || status === 'ocr' || status === 'searching'}>
         {status === 'ocr' ? tr.ocrReading : status === 'searching' ? tr.searching : tr.capture}
       </button>
+
+      {/* Ricerca manuale fallback */}
+      <div className="cs2-manual-search">
+        <label className="cs2-label">{tr.manualSearch}</label>
+        <div className="cs2-manual-row">
+          <input
+            className="cs2-manual-input"
+            type="text"
+            placeholder={tr.manualPlaceholder}
+            value={manualName}
+            onChange={e => setManualName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleManualSearch()}
+          />
+          <button className="cs2-manual-btn" onClick={handleManualSearch}
+            disabled={!manualName.trim() || status === 'searching'}>
+            {tr.manualBtn}
+          </button>
+        </div>
+      </div>
 
       {lastAdded && (
         <div className="cs2-last-result found">

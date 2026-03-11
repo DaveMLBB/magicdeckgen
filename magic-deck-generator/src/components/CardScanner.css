@@ -538,3 +538,51 @@
   cursor: pointer; transition: opacity 0.15s;
 }
 .cs2-btn-add:hover { opacity: 0.9; }
+
+/* ── Manual search fallback ── */
+.cs2-manual-search {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.cs2-manual-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.cs2-manual-input {
+  flex: 1;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  color: #e2e8f0;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.cs2-manual-input:focus { border-color: #6366f1; }
+.cs2-manual-input::placeholder { color: #475569; }
+.cs2-manual-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.cs2-manual-btn:hover { opacity: 0.85; }
+.cs2-manual-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── OCR debug text (shown when not found) ── */
+.cs2-ocr-debug {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 6px;
+  font-style: italic;
+}
