@@ -179,6 +179,7 @@ def lookup_card(input_data: CardLookupInput, db: Session = Depends(get_db)):
 
 
 @router.post("/add")
+def add_card_to_collection(input_data: CardAddInput, db: Session = Depends(get_db)):
     """
     Aggiunge N copie di una carta alla collezione.
     Incrementa se già presente, crea altrimenti.
