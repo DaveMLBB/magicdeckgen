@@ -91,7 +91,7 @@ If collector number is not visible, use null for that field."""
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {
                         "url": f"data:{mime};base64,{img_b64}",
-                        "detail": "low"
+                        "detail": "high"
                     }}
                 ]
             }],
