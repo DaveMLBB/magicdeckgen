@@ -32,8 +32,8 @@ from app.models import User
 
 db = SessionLocal()
 users = db.query(User).filter(
-    User.is_verified == True,
     User.email.isnot(None),
+    User.marketing_emails_enabled == True,
 ).all()
 db.close()
 
@@ -178,7 +178,7 @@ failed = 0
 for user in users:
     payload = {
         "sender": {"name": FROM_NAME, "email": FROM_EMAIL},
-        "to": [{"email": user.email, "name": user.username or user.email}],
+        "to": [{"email": user.email, "name": user.email}],
         "subject": SUBJECT,
         "htmlContent": HTML_BODY,
         "textContent": TEXT_BODY,
