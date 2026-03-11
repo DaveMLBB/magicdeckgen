@@ -84,30 +84,26 @@ If collector number is not visible, use null for that field."""
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-4.1",
             messages=[{
                 "role": "user",
                 "content": [
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {
                         "url": f"data:{mime};base64,{img_b64}",
-                        "detail": "auto"
+                        "detail": "low"
                     }}
                 ]
             }],
-            max_completion_tokens=500,
-            temperature=1,
+            max_completion_tokens=100,
+            temperature=0,
+            response_format={"type": "json_object"},
         )
         raw = response.choices[0].message.content or ""
         usage = response.usage
         print(f"[SCAN] GPT tokens — prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens}, total: {usage.total_tokens}")
         print(f"[SCAN] GPT raw response: {raw!r}")
-        # Estrai JSON
-        json_match = re.search(r'\{.*\}', raw, re.DOTALL)
-        if not json_match:
-            print(f"[SCAN] No JSON in GPT response: {raw!r}")
-            return {"found": False, "candidates": [], "error": "GPT non ha restituito JSON valido", "raw": raw}
-        gpt_data = json.loads(json_match.group(0))
+        gpt_data = json.loads(raw) if raw.strip() else {}
         print(f"[SCAN] GPT parsed: {gpt_data}")
     except Exception as e:
         print(f"[SCAN] GPT error: {e}")
