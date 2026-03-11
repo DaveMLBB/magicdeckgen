@@ -95,7 +95,7 @@ If collector number is not visible, use null for that field."""
                     }}
                 ]
             }],
-            max_completion_tokens=300,
+            max_completion_tokens=1200,
             temperature=1,
             response_format={"type": "json_object"},
         )
