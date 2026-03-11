@@ -227,6 +227,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
                          onAdded, onHistory }) {
   const canvasRef      = useRef(null)
   const scanningRef    = useRef(false)
+  const loopRunningRef = useRef(false)   // guard: un solo loop alla volta
   const lastAddedName  = useRef(null)  // nome dell'ultima carta aggiunta
 
   const [isScanning, setIsScanning]     = useState(false)
@@ -242,7 +243,13 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   const [setQuery, setSetQuery]         = useState('')
   const [setDropOpen, setSetDropOpen]   = useState(false)
   const [scanDelay, setScanDelay]       = useState(2500)
+  const scanDelayRef = useRef(2500)
+  const forcedSetRef = useRef('')
   const setInputRef = useRef(null)
+
+  // Mantieni le ref sincronizzate con lo stato
+  useEffect(() => { scanDelayRef.current = scanDelay }, [scanDelay])
+  useEffect(() => { forcedSetRef.current = forcedSet }, [forcedSet])
 
   const { videoRef, cameraReady, error: camError, stopCamera } = useCamera(selectedCamera, tr)
   useEffect(() => () => { scanningRef.current = false; stopCamera() }, [])
@@ -296,7 +303,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       const res = await fetch(`${API_URL}/api/scan/recognize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_b64: imageB64, language, forced_set_code: forcedSet || null }),
+        body: JSON.stringify({ image_b64: imageB64, language, forced_set_code: forcedSetRef.current || null }),
       })
       const data = await res.json()
       console.log(`[Scan] GPT: "${data.gpt_name}" set=${data.gpt_set} #${data.gpt_collector}`)
@@ -310,15 +317,15 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
             // Stessa carta — mostra avviso e riprova dopo un po'
             setDuplicateName(card.name)
             setScanPhase('duplicate')
-            await new Promise(r => setTimeout(r, scanDelay))
+            await new Promise(r => setTimeout(r, scanDelayRef.current))
             if (scanningRef.current) setScanPhase(null)
           } else {
+            // Ferma subito il loop PRIMA di fare la chiamata add
+            scanningRef.current = false
+            setIsScanning(false)
             const ok = await _addCard(card, 1)
             if (ok) {
               lastAddedName.current = card.name
-              // Ferma il loop — l'utente deve premere "Prossima carta"
-              scanningRef.current = false
-              setIsScanning(false)
               setScanPhase('added')
             } else {
               setScanPhase(null)
@@ -333,29 +340,32 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
         }
       } else {
         setScanPhase('notfound')
-        await new Promise(r => setTimeout(r, scanDelay))
+        await new Promise(r => setTimeout(r, scanDelayRef.current))
         if (scanningRef.current) setScanPhase(null)
       }
     } catch (e) {
       console.error('Scan error', e)
       setScanPhase('notfound')
-      await new Promise(r => setTimeout(r, scanDelay))
+      await new Promise(r => setTimeout(r, scanDelayRef.current))
       if (scanningRef.current) setScanPhase(null)
     }
-  }, [videoRef, language, forcedSet, scanDelay, _addCard])
+  }, [videoRef, language, _addCard])
 
   // ── Loop principale ──────────────────────────────────────────────────────
   const startScanning = useCallback(() => {
     if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
+    if (loopRunningRef.current) return  // già in esecuzione
     setError(null); setLastAdded(null)
     lastAddedName.current = null
     scanningRef.current = true
     setIsScanning(true)
 
     const loop = async () => {
+      loopRunningRef.current = true
       while (scanningRef.current) {
         await runOneCycle()
       }
+      loopRunningRef.current = false
     }
     loop()
   }, [selectedCollectionId, tr, runOneCycle])
@@ -367,12 +377,15 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   }, [])
 
   const handleNextCard = useCallback(() => {
+    if (loopRunningRef.current) return  // già in esecuzione
     setScanPhase(null)
     lastAddedName.current = null  // reset: la prossima carta è "nuova"
     scanningRef.current = true
     setIsScanning(true)
     const loop = async () => {
+      loopRunningRef.current = true
       while (scanningRef.current) { await runOneCycle() }
+      loopRunningRef.current = false
     }
     loop()
   }, [runOneCycle])
