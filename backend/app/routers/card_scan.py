@@ -84,7 +84,7 @@ If collector number is not visible, use null for that field."""
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-5.3",
+            model="gpt-5-mini",
             messages=[{
                 "role": "user",
                 "content": [
