@@ -367,6 +367,10 @@
     aspect-ratio: 3 / 4;
     max-height: 60vh;
   }
+  .cs2-video-wrapper.grid-mode {
+    aspect-ratio: 210 / 297;
+    max-height: 80vh;
+  }
   .cs2-scan-btn {
     padding: 16px;
     font-size: 1.15rem;
@@ -385,6 +389,10 @@
   .cs2-video-wrapper {
     aspect-ratio: 3 / 4;
     max-height: 55vh;
+  }
+  .cs2-video-wrapper.grid-mode {
+    aspect-ratio: 210 / 297;
+    max-height: 80vh;
   }
   .cs2-scan-btn {
     padding: 18px;
