@@ -223,7 +223,7 @@ function ConfirmModal({ candidates, tr, onConfirm, onCancel }) {
 
 // ── Scanner panel ─────────────────────────────────────────────────────────────
 function ScannerPanel({ user, language, collections, selectedCollectionId, setSelectedCollectionId,
-                         cameras, selectedCamera, setSelectedCamera, tr,
+                         cameras, selectedCamera, setSelectedCamera, tr, mode,
                          onAdded, onHistory }) {
   const canvasRef      = useRef(null)
   const scanningRef    = useRef(false)
@@ -521,12 +521,12 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
       </div>
 
       {/* Video */}
-      <div className="cs2-video-wrapper">
+      <div className={`cs2-video-wrapper${mode === 'grid' ? ' grid-mode' : ''}`}>
         <video ref={videoRef} autoPlay playsInline muted className="cs2-video" />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
         {!isScanning && !overlay && (
-          <div className="cs2-ocr-hint">{tr.ocrHint}</div>
+          <div className="cs2-ocr-hint">{mode === 'grid' ? tr.gridDesc : tr.ocrHint}</div>
         )}
 
         {overlay && (
@@ -622,6 +622,7 @@ export default function CardScanner({ user, language, onBack }) {
   const [selectedCamera, setSelectedCamera]   = useState(null)
   const [totalAdded, setTotalAdded]           = useState(0)
   const [history, setHistory]                 = useState([])
+  const [mode, setMode]                       = useState('single')
 
   const handleUpdateQty = useCallback(async (cardId, newQty) => {
     try {
@@ -665,7 +666,7 @@ export default function CardScanner({ user, language, onBack }) {
 
   const sharedProps = {
     user, language, collections, selectedCollectionId, setSelectedCollectionId,
-    cameras, selectedCamera, setSelectedCamera, tr,
+    cameras, selectedCamera, setSelectedCamera, tr, mode,
     onAdded: () => setTotalAdded(n => n + 1),
     onHistory: setHistory,
   }
@@ -682,6 +683,15 @@ export default function CardScanner({ user, language, onBack }) {
 
       <div className="cs2-beta-disclaimer">
         🧪 {language === 'it' ? 'Feature in test — il riconoscimento potrebbe non essere accurato' : 'Feature in testing — recognition may not be accurate'}
+      </div>
+
+      <div className="cs2-tabs">
+        <button className={`cs2-tab ${mode === 'single' ? 'active' : ''}`} onClick={() => setMode('single')}>
+          {tr.modeSingle}
+        </button>
+        <button className={`cs2-tab ${mode === 'grid' ? 'active' : ''}`} onClick={() => setMode('grid')}>
+          {tr.modeGrid}
+        </button>
       </div>
 
       <div className="cs2-layout">
