@@ -91,7 +91,7 @@ If collector number is not visible, use null for that field."""
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {
                         "url": f"data:{mime};base64,{img_b64}",
-                        "detail": "high"
+                        "detail": "low"
                     }}
                 ]
             }],
@@ -99,6 +99,8 @@ If collector number is not visible, use null for that field."""
             temperature=0,
         )
         raw = response.choices[0].message.content or ""
+        usage = response.usage
+        print(f"[SCAN] GPT tokens — prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens}, total: {usage.total_tokens}")
         print(f"[SCAN] GPT raw response: {raw!r}")
         # Estrai JSON
         json_match = re.search(r'\{.*\}', raw, re.DOTALL)

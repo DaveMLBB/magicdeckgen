@@ -81,15 +81,25 @@ const t = {
 
 const rarityColor = r => ({ mythic:'#f97316', rare:'#f59e0b', uncommon:'#94a3b8', common:'#64748b' }[r] || '#64748b')
 
-// ── Cattura frame alle dimensioni reali del video ────────────────────────────
-// Usa PNG per massima qualità del testo (niente artefatti JPEG)
+// ── Cattura frame e ridimensiona per GPT (max 800px, JPEG) ──────────────────
+// PNG a risoluzione piena = ~1.4MB → lento. JPEG 800px = ~80KB → veloce.
 function captureFrame(videoEl, canvas) {
   const vw = videoEl.videoWidth  || 1280
   const vh = videoEl.videoHeight || 720
-  canvas.width  = vw
-  canvas.height = vh
-  canvas.getContext('2d').drawImage(videoEl, 0, 0, vw, vh)
-  return canvas.toDataURL('image/png')
+
+  // Scala a max 800px sul lato lungo mantenendo aspect ratio
+  const maxSide = 800
+  const scale = Math.min(1, maxSide / Math.max(vw, vh))
+  canvas.width  = Math.round(vw * scale)
+  canvas.height = Math.round(vh * scale)
+
+  const ctx = canvas.getContext('2d')
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height)
+
+  // JPEG 0.90 — buona qualità, dimensione ~80-120KB
+  return canvas.toDataURL('image/jpeg', 0.90)
 }
 
 // ── Camera hook ───────────────────────────────────────────────────────────────
