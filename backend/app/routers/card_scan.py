@@ -1,14 +1,16 @@
 """
-Card Scanner endpoint — ricerca per nome nel DB Scryfall locale.
-Nessuna AI esterna: il frontend fa OCR con Tesseract.js e manda il testo grezzo.
+Card Scanner endpoint — riconoscimento carta via GPT-4o Vision.
+Il frontend manda il frame come base64, il backend chiede a GPT nome EN + collector number,
+poi cerca nel DB Scryfall locale con nome + collector number.
 """
 
 from itertools import combinations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
+from sqlalchemy import func
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
+import os, base64, json, re
 from app.database import get_db
 from app.models import User, Card, CardCollection, MTGCard, TokenTransaction
 
@@ -19,47 +21,105 @@ SCANS_PER_TOKEN = 25  # ogni 25 carte aggiunte scala 1 token
 
 # ── Input models ──────────────────────────────────────────────────────────────
 
-class CardLookupInput(BaseModel):
-    """Cerca una carta per nome (testo OCR grezzo) nel DB locale."""
-    raw_name: str
-    collector_number: Optional[str] = None
-    set_code: Optional[str] = None
-    language: str = "en"
+class CardScanVisionInput(BaseModel):
+    """Frame catturato dal frontend (JPEG base64) da analizzare con GPT-4o Vision."""
+    image_b64: str          # data:image/jpeg;base64,... oppure solo la parte base64
+    language: str = "it"
 
 
 class CardAddInput(BaseModel):
     """Aggiunge una carta alla collezione con quantità scelta dall'utente."""
     user_id: int
     collection_id: int
-    card_uuid: str             # uuid della carta trovata nel DB
+    card_uuid: str
     quantity: int = 1
+
+
+class CardLookupInput(BaseModel):
+    """Cerca una carta per nome nel DB locale (usato anche dalla ricerca manuale)."""
+    raw_name: str
+    collector_number: Optional[str] = None
+    language: str = "it"
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
-@router.post("/lookup")
-def lookup_card(input_data: CardLookupInput, db: Session = Depends(get_db)):
+@router.post("/recognize")
+async def recognize_card(input_data: CardScanVisionInput, db: Session = Depends(get_db)):
     """
-    Cerca una carta nel DB Scryfall per nome grezzo (output OCR).
+    Riceve un frame JPEG base64, chiede a GPT-4o Vision:
+    - nome della carta in inglese
+    - collector number (numero in basso a sinistra)
 
-    Logica:
-    1. Trova tutte le carte che corrispondono al nome (fuzzy, fino a 10)
-    2. Se collector_number è presente, filtra i risultati per numero → prende la prima → exact_match=True
-    3. Se non c'è collector number o nessuna corrisponde al numero → mostra tutte le edizioni (utente sceglie)
+    Poi cerca nel DB con nome + collector number e ritorna i candidati.
     """
-    raw = input_data.raw_name.strip()
-    if not raw or len(raw) < 2:
-        return {"found": False, "candidates": []}
+    openai_api_key = os.getenv("OPENAI_API_KEY", "")
+    if not openai_api_key:
+        raise HTTPException(status_code=503, detail="OpenAI API key non configurata")
 
-    collector_number = (input_data.collector_number or "").strip() or None
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=openai_api_key)
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Libreria OpenAI non installata")
 
-    # ── Step 1: trova tutte le carte per nome (fuzzy, 5 livelli) ────────────
-    candidates = _find_by_name(db, raw)
+    # Normalizza base64 (rimuovi eventuale data URI prefix)
+    img_b64 = input_data.image_b64
+    if "," in img_b64:
+        img_b64 = img_b64.split(",", 1)[1]
 
+    prompt = """You are analyzing a Magic: The Gathering card image.
+Extract EXACTLY two pieces of information:
+1. The card name in ENGLISH (even if the card is in another language, translate/identify the English name)
+2. The collector number (the number printed at the bottom-left of the card, format like "123" or "123/456")
+
+Respond ONLY with valid JSON, no other text:
+{"name": "Card Name in English", "collector_number": "123"}
+
+If you cannot read the collector number, use null.
+If you cannot identify the card name, use null."""
+
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {
+                        "url": f"data:image/jpeg;base64,{img_b64}",
+                        "detail": "high"
+                    }}
+                ]
+            }],
+            max_tokens=100,
+            temperature=0,
+        )
+        raw = response.choices[0].message.content or ""
+        # Estrai JSON
+        json_match = re.search(r'\{.*\}', raw, re.DOTALL)
+        if not json_match:
+            return {"found": False, "candidates": [], "error": "GPT non ha restituito JSON valido", "raw": raw}
+        gpt_data = json.loads(json_match.group(0))
+    except Exception as e:
+        return {"found": False, "candidates": [], "error": str(e)}
+
+    card_name = (gpt_data.get("name") or "").strip()
+    collector_number = (str(gpt_data.get("collector_number") or "")).strip() or None
+    # Pulisci collector number: solo cifre
+    if collector_number:
+        m = re.match(r'(\d+)', collector_number)
+        collector_number = m.group(1) if m else None
+
+    if not card_name:
+        return {"found": False, "candidates": [], "gpt_name": None, "gpt_collector": collector_number}
+
+    # Cerca nel DB
+    candidates = _find_by_name(db, card_name)
     if not candidates:
-        return {"found": False, "candidates": [], "raw_name": raw}
+        return {"found": False, "candidates": [], "gpt_name": card_name, "gpt_collector": collector_number}
 
-    # ── Step 2: se abbiamo il collector number, cerca tra i risultati ────────
+    # Se abbiamo il collector number, filtra
     if collector_number:
         matched = [c for c in candidates if c.collector_number == collector_number]
         if matched:
@@ -67,19 +127,41 @@ def lookup_card(input_data: CardLookupInput, db: Session = Depends(get_db)):
                 "found": True,
                 "exact_match": True,
                 "candidates": [_card_to_dict(matched[0])],
-                "raw_name": raw,
+                "gpt_name": card_name,
+                "gpt_collector": collector_number,
             }
-        # Collector number non trovato tra i candidati → mostra comunque le edizioni
 
     return {
         "found": True,
         "exact_match": False,
         "candidates": [_card_to_dict(c) for c in candidates[:5]],
-        "raw_name": raw,
+        "gpt_name": card_name,
+        "gpt_collector": collector_number,
     }
 
 
-@router.post("/add")
+@router.post("/lookup")
+def lookup_card(input_data: CardLookupInput, db: Session = Depends(get_db)):
+    """Ricerca manuale per nome (fallback quando la scansione non funziona)."""
+    raw = input_data.raw_name.strip()
+    if not raw or len(raw) < 2:
+        return {"found": False, "candidates": []}
+
+    collector_number = (input_data.collector_number or "").strip() or None
+    candidates = _find_by_name(db, raw)
+
+    if not candidates:
+        return {"found": False, "candidates": [], "raw_name": raw}
+
+    if collector_number:
+        matched = [c for c in candidates if c.collector_number == collector_number]
+        if matched:
+            return {"found": True, "exact_match": True, "candidates": [_card_to_dict(matched[0])], "raw_name": raw}
+
+    return {"found": True, "exact_match": False, "candidates": [_card_to_dict(c) for c in candidates[:5]], "raw_name": raw}
+
+
+
 def add_card_to_collection(input_data: CardAddInput, db: Session = Depends(get_db)):
     """
     Aggiunge N copie di una carta alla collezione.

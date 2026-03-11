@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { createWorker } from 'tesseract.js'
 import './CardScanner.css'
 
 const API_URL = import.meta.env.PROD
@@ -18,7 +17,7 @@ const t = {
     noCollections: 'Nessuna collezione',
     selectCamera: 'Fotocamera',
     capture: '📸 Scansiona',
-    ocrReading: 'Lettura OCR...',
+    ocrReading: 'Analisi AI...',
     searching: 'Ricerca nel DB...',
     history: 'Carte aggiunte',
     qty: 'x',
@@ -35,7 +34,7 @@ const t = {
     cancel: 'Annulla',
     otherEditions: 'Altre edizioni',
     addedOk: 'Aggiunta!',
-    ocrHint: 'Inquadra il nome della carta in alto al centro',
+    ocrHint: 'Inquadra la carta intera — GPT riconoscerà nome e set',
     modeSingle: '🃏 Carta Singola',
     modeGrid: '📋 Raccoglitore',
     singleDesc: 'Inquadra una carta alla volta. Premi Scansiona per leggere il nome con OCR e cercarla nel database.',
@@ -52,7 +51,7 @@ const t = {
     noCollections: 'No collections',
     selectCamera: 'Camera',
     capture: '📸 Scan',
-    ocrReading: 'Reading OCR...',
+    ocrReading: 'AI Analysis...',
     searching: 'Searching DB...',
     history: 'Added cards',
     qty: 'x',
@@ -69,7 +68,7 @@ const t = {
     cancel: 'Cancel',
     otherEditions: 'Other editions',
     addedOk: 'Added!',
-    ocrHint: 'Frame the card name at the top center',
+    ocrHint: 'Frame the full card — GPT will identify name and set',
     modeSingle: '🃏 Single Card',
     modeGrid: '📋 Binder Page',
     singleDesc: 'Frame one card at a time. Press Scan to read the name with OCR and search the database.',
@@ -82,97 +81,14 @@ const t = {
 
 const rarityColor = r => ({ mythic:'#f97316', rare:'#f59e0b', uncommon:'#94a3b8', common:'#64748b' }[r] || '#64748b')
 
-// ── OCR worker (singleton) ────────────────────────────────────────────────────
-let ocrWorker = null
-async function getOCRWorker() {
-  if (!ocrWorker) {
-    ocrWorker = await createWorker('eng', 1, { logger: () => {} })
-    // PSM 6 = blocco uniforme di testo, più robusto di PSM 7 (single line)
-    // Nessuna whitelist: limita troppo e causa letture sbagliate su font MTG
-    await ocrWorker.setParameters({
-      tessedit_pageseg_mode: '6',
-    })
-  }
-  return ocrWorker
-}
-
-/**
- * Scala il crop a 3x senza alcun preprocessing aggressivo.
- * Tesseract moderno funziona meglio su immagini ad alta risoluzione a colori
- * che su immagini binarizzate male.
- */
-function cropAndScale(src, sx, sy, sw, sh, scale = 3) {
-  const out = document.createElement('canvas')
-  out.width  = sw * scale
-  out.height = sh * scale
-  const ctx = out.getContext('2d')
-  ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'high'
-  ctx.drawImage(src, sx, sy, sw, sh, 0, 0, out.width, out.height)
-  return out
-}
-
-/**
- * Estrae il nome della carta dal frame catturato.
- *
- * Layout carta MTG (proporzione 5:7, CAPTURE_H=980):
- *   - Barra titolo: circa y=4%..11% del frame (esclude il bordo superiore)
- *   - Collector number: bottom ~6%, sinistra ~45%
- *
- * Strategia OCR:
- *   1. Crop zona titolo (y 4%→12%), scala 3x, OCR diretto
- *   2. Stesso crop ma con canvas invertito (per carte con sfondo scuro)
- *   3. Prende il risultato con confidence più alta
- */
-async function ocrCard(canvas) {
-  const w = canvas.width
-  const h = canvas.height
-  const worker = await getOCRWorker()
-
-  // Zona titolo: salta il bordo superiore (4%), prendi fino al 12%
-  const nameY  = Math.floor(h * 0.04)
-  const nameH  = Math.floor(h * 0.09)   // altezza ~9% = solo la barra del titolo
-  // Margini laterali: escludi ~8% per lato (bordo carta)
-  const nameX  = Math.floor(w * 0.08)
-  const nameW  = Math.floor(w * 0.84)
-
-  const cropNormal = cropAndScale(canvas, nameX, nameY, nameW, nameH)
-
-  // Versione invertita (testo scuro su sfondo chiaro → per carte con titolo scuro)
-  const cropInv = document.createElement('canvas')
-  cropInv.width = cropNormal.width; cropInv.height = cropNormal.height
-  const ctxInv = cropInv.getContext('2d')
-  ctxInv.filter = 'invert(1)'
-  ctxInv.drawImage(cropNormal, 0, 0)
-
-  const [r1, r2] = await Promise.all([
-    worker.recognize(cropNormal),
-    worker.recognize(cropInv),
-  ])
-
-  const conf1 = r1.data.confidence || 0
-  const conf2 = r2.data.confidence || 0
-  const best  = conf1 >= conf2 ? r1 : r2
-  const rawText = best.data.text || ''
-
-  // Prendi la riga con più caratteri alfabetici (ignora righe di rumore)
-  const cardName = rawText
-    .split('\n')
-    .map(l => l.trim().replace(/[^a-zA-ZÀ-ÿ0-9 ',.:\-]/g, '').replace(/\s+/g, ' ').trim())
-    .filter(l => l.length >= 2 && /[a-zA-Z]/.test(l))
-    .sort((a, b) => b.length - a.length)[0] || ''
-
-  // Collector number: bottom 6%, sinistra 45%
-  const collH = Math.floor(h * 0.06)
-  const collW = Math.floor(w * 0.45)
-  const collY = h - collH
-  const collCrop = cropAndScale(canvas, 0, collY, collW, collH)
-  const collResult = await worker.recognize(collCrop)
-  const collText = collResult.data.text || ''
-  const collMatch = collText.match(/\b(\d{1,4})(?:\/\d{1,4})?\b/)
-  const collectorNumber = collMatch ? collMatch[1] : null
-
-  return { cardName, collectorNumber, confidence: Math.max(conf1, conf2), rawText }
+// ── Cattura frame come JPEG base64 ───────────────────────────────────────────
+function captureFrame(videoEl, canvas) {
+  canvas.width  = CAPTURE_W
+  canvas.height = CAPTURE_H
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(videoEl, 0, 0, CAPTURE_W, CAPTURE_H)
+  // Qualità 0.92 — buon bilanciamento tra dimensione e leggibilità
+  return canvas.toDataURL('image/jpeg', 0.92)
 }
 
 // ── Camera hook ───────────────────────────────────────────────────────────────
@@ -317,23 +233,36 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
     if (!videoRef.current || !canvasRef.current) return
     setError(null); setCandidates([]); setLastAdded(null); setLastOcrName(null)
 
-    const canvas = canvasRef.current
-    canvas.width = CAPTURE_W; canvas.height = CAPTURE_H
-    canvas.getContext('2d').drawImage(videoRef.current, 0, 0, CAPTURE_W, CAPTURE_H)
+    const imageB64 = captureFrame(videoRef.current, canvasRef.current)
 
     setStatus('ocr')
-    let cardName = '', collectorNumber = null
     try {
-      const result = await ocrCard(canvas)
-      cardName = result.cardName
-      collectorNumber = result.collectorNumber
-      console.log('[OCR]', { cardName, collectorNumber, confidence: result.confidence, rawText: result.rawText })
-      setLastOcrName(cardName || `(vuoto — raw: "${result.rawText?.slice(0,40)}")`)
-    } catch (e) { console.error('OCR error', e) }
+      const res = await fetch(`${API_URL}/api/scan/recognize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_b64: imageB64, language }),
+      })
+      const data = await res.json()
+      console.log('[Scan]', data)
 
-    if (!cardName) { setStatus('notfound'); return }
-    await searchCard(cardName, collectorNumber)
-  }, [selectedCollectionId, videoRef, searchCard, tr])
+      const gptName = data.gpt_name || null
+      setLastOcrName(gptName ? `${gptName}${data.gpt_collector ? ` #${data.gpt_collector}` : ''}` : '(non riconosciuta)')
+
+      if (data.found && data.candidates?.length) {
+        setCandidates(data.candidates)
+        if (data.exact_match) {
+          handleConfirmDirect(data.candidates[0])
+        } else {
+          setStatus('found')
+        }
+      } else {
+        setStatus('notfound')
+      }
+    } catch (e) {
+      console.error('Scan error', e)
+      setStatus('notfound')
+    }
+  }, [selectedCollectionId, videoRef, language, tr])
 
   const handleManualSearch = useCallback(async () => {
     if (!selectedCollectionId) { setError(tr.errorNoCollection); return }
