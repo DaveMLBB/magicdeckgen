@@ -73,6 +73,16 @@ const features = [
     gradient: 'linear-gradient(135deg, #00cec9, #81ecec)',
   },
   {
+    id: 'ai-deck-boost',
+    icon: '⚡',
+    labelIt: 'AI Deck Boost',
+    labelEn: 'AI Deck Boost',
+    descIt: 'Migliora i tuoi mazzi salvati tramite chat AI',
+    descEn: 'Improve your saved decks via AI chat',
+    color: '#f39c12',
+    gradient: 'linear-gradient(135deg, #f39c12, #e67e22)',
+  },
+  {
     id: 'arena-import',
     icon: '🎮',
     labelIt: 'Arena Import',
