@@ -137,6 +137,7 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
   const [deckModified, setDeckModified] = useState(false)
   const [collections, setCollections] = useState([])
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
+  const [mobileTab, setMobileTab] = useState('chat') // 'chat' | 'cards' | 'options'
 
   // Carica lista mazzi salvati e collezioni
   useEffect(() => {
@@ -361,9 +362,22 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
 
       {error && <div className="abb-error">⚠️ {error}</div>}
 
+      {/* Tab switcher mobile */}
+      <div className="abb-mobile-tabs">
+        <button className={`abb-mobile-tab ${mobileTab === 'chat' ? 'active' : ''}`} onClick={() => setMobileTab('chat')}>
+          💬 Chat
+        </button>
+        <button className={`abb-mobile-tab ${mobileTab === 'cards' ? 'active' : ''}`} onClick={() => setMobileTab('cards')}>
+          🃏 {language === 'it' ? 'Carte' : 'Cards'} {totalCards > 0 && `(${totalCards})`}
+        </button>
+        <button className={`abb-mobile-tab ${mobileTab === 'options' ? 'active' : ''}`} onClick={() => setMobileTab('options')}>
+          ⚙️ {language === 'it' ? 'Opzioni' : 'Options'}
+        </button>
+      </div>
+
       <div className="abb-layout">
-        {/* Pannello sinistro: mazzo corrente */}
-        <div className="abb-deck-panel">
+        {/* Pannello sinistro: mazzo corrente — su mobile è "Opzioni" */}
+        <div className={`abb-deck-panel${mobileTab === 'options' ? ' abb-mobile-visible' : ''}`}>
           <p className="abb-panel-title">🗂️ {language === 'it' ? 'Seleziona Mazzo' : 'Select Deck'}</p>
           <select
             className="abb-deck-select"
@@ -397,7 +411,6 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
                 value={selectedCollectionId || ''}
                 onChange={e => {
                   setSelectedCollectionId(e.target.value ? Number(e.target.value) : null)
-                  // Reset history quando cambia la collezione — il contesto AI cambia
                   setHistory([])
                 }}
               >
@@ -411,70 +424,6 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
               {selectedCollectionId && (
                 <p className="abb-collection-hint">{tr.collectionHint}</p>
               )}
-            </div>
-          )}
-
-          <p className="abb-panel-title">🃏 {tr.deckPanel}</p>
-          <div className="abb-card-list">
-            {currentCards.map((card, i) => (
-              <div
-                key={i}
-                className="abb-card-row"
-                onClick={() => setPreviewCard(card.card_name)}
-                title={card.card_name}
-              >
-                <span className="abb-card-qty">{card.quantity}x</span>
-                <span
-                  className="abb-card-dot"
-                  style={{ background: CATEGORY_COLORS[card.category] || CATEGORY_COLORS.Other }}
-                />
-                <span className="abb-card-name">{card.card_name}</span>
-              </div>
-            ))}
-          </div>
-          {currentCards.length > 0 && (
-            <div className="abb-card-total">{totalCards} {tr.totalCards}</div>
-          )}
-
-          {deckStats && (
-            <div className="adb-stats">
-              <p className="abb-panel-title">{tr.statsTitle}</p>
-              <div className="adb-stats-row">
-                <div className="adb-stat"><span className="adb-stat-val">{totalCards}</span><span className="adb-stat-lbl">{tr.totalCards}</span></div>
-                <div className="adb-stat"><span className="adb-stat-val">{uniqueCards}</span><span className="adb-stat-lbl">{tr.uniqueCardsLabel}</span></div>
-                <div className="adb-stat"><span className="adb-stat-val">{deckStats.avgCmc.toFixed(1)}</span><span className="adb-stat-lbl">{tr.avgCmc}</span></div>
-              </div>
-              {Object.keys(deckStats.curve).length > 0 && (
-                <div className="adb-curve">
-                  <p className="adb-curve-title">{tr.manaCurve}</p>
-                  <div className="adb-curve-bars">
-                    {[0,1,2,3,4,5,6,7].map(cmc => {
-                      const count = deckStats.curve[cmc] || 0
-                      const max = Math.max(...Object.values(deckStats.curve), 1)
-                      return (
-                        <div key={cmc} className="adb-curve-col">
-                          <span className="adb-curve-count">{count || ''}</span>
-                          <div className="adb-curve-bar" style={{ height: `${(count / max) * 48}px` }} />
-                          <span className="adb-curve-label">{cmc === 7 ? '7+' : cmc}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-              <div className="adb-types">
-                <p className="adb-curve-title">{tr.types}</p>
-                {Object.entries(deckStats.typeCount).sort((a,b) => b[1]-a[1]).map(([type, count]) => (
-                  <div key={type} className="adb-type-row">
-                    <span className="adb-type-dot" style={{ background: CATEGORY_COLORS[type] || CATEGORY_COLORS.Other }} />
-                    <span className="adb-type-name">{type}</span>
-                    <div className="adb-type-bar-wrap">
-                      <div className="adb-type-bar" style={{ width: `${(count/totalCards)*100}%`, background: CATEGORY_COLORS[type] || CATEGORY_COLORS.Other }} />
-                    </div>
-                    <span className="adb-type-count">{count}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
@@ -503,8 +452,46 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
           </div>
         </div>
 
+        {/* Pannello mobile: lista carte */}
+        <div className={`abb-mobile-cards-panel${mobileTab === 'cards' ? ' abb-mobile-visible' : ''}`}>
+          {currentCards.length === 0 ? (
+            <div className="abb-empty-chat">
+              <div className="abb-empty-icon">🃏</div>
+              <p>{language === 'it' ? 'Seleziona un mazzo per iniziare' : 'Select a deck to start'}</p>
+            </div>
+          ) : (
+            <>
+              <div className="abb-mobile-cards-list">
+                {currentCards.map((card, i) => (
+                  <div key={i} className="abb-card-row" onClick={() => setPreviewCard(card.card_name)}>
+                    <span className="abb-card-qty">{card.quantity}x</span>
+                    <span className="abb-card-dot" style={{ background: CATEGORY_COLORS[card.category] || CATEGORY_COLORS.Other }} />
+                    <span className="abb-card-name">{card.card_name}</span>
+                    <span className="abb-card-cat" style={{ color: CATEGORY_COLORS[card.category] || CATEGORY_COLORS.Other }}>{card.category}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="abb-mobile-cards-footer">
+                <div className="abb-card-total">{totalCards} {tr.totalCards}</div>
+                <div className="abb-deck-actions">
+                  <button
+                    className={`abb-save-btn ${saveStatus === 'saved' ? 'saved' : saveStatus === 'error' ? 'error' : ''}`}
+                    onClick={() => handleSave(false)}
+                    disabled={saving || !deckModified}
+                  >
+                    {saving ? tr.saving : saveStatus === 'saved' ? tr.saved : saveStatus === 'error' ? tr.saveError : tr.saveBtn}
+                  </button>
+                  <button className="abb-save-btn" style={{ background: '#7c3aed' }} onClick={() => handleSave(true)} disabled={saving || !deckModified}>
+                    {tr.saveNew}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Pannello centrale: chat */}
-        <div className="abb-chat-panel">
+        <div className={`abb-chat-panel${mobileTab === 'chat' ? ' abb-mobile-visible' : ''}`}>
           <div className="abb-messages">
             {history.length === 0 && !loading && (
               <div className="abb-empty-chat">
@@ -556,7 +543,7 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
           </div>
         </div>
 
-        {/* Pannello destro: suggerimenti */}
+        {/* Pannello destro: suggerimenti — solo desktop */}
         <div className="abb-suggestions-panel">
           <p className="abb-panel-title">{tr.suggestionsTitle}</p>
           {(SUGGESTIONS[language] || SUGGESTIONS.en).map((s, i) => (
