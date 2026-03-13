@@ -865,8 +865,8 @@ Respond ONLY with valid JSON in this exact structure:
             },
             {"role": "user", "content": prompt}
         ],
-        temperature=0.5,
-        max_tokens=3500,
+        temperature=1,
+        max_completion_tokens=3500,
         response_format={"type": "json_object"}
     )
 
@@ -1015,8 +1015,8 @@ Respond ONLY with valid JSON in this exact structure:
             },
             {"role": "user", "content": prompt}
         ],
-        temperature=0.7,
-        max_tokens=3000,
+        temperature=1,
+        max_completion_tokens=3000,
         response_format={"type": "json_object"}
     )
 
