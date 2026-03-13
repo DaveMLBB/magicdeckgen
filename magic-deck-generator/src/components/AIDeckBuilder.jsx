@@ -123,6 +123,10 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
   const [colors, setColors] = useState('')
   const [mobileTab, setMobileTab] = useState('chat') // 'chat' | 'deck'
 
+  // Calcola diff carte tra deck precedente e attuale
+  const prevDeckRef = useRef(null)
+  const [deckDiff, setDeckDiff] = useState(null) // { added: [], removed: [] }
+
   useEffect(() => {
     if (!user?.userId) return
     fetch(`${API_URL}/api/collections/user/${user.userId}`)
@@ -184,9 +188,28 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
       if (user) user.tokens = data.tokens_remaining
 
       if (data.deck_updated && data.deck?.cards) {
+        // Calcola diff rispetto al deck precedente
+        const prevCards = prevDeckRef.current?.cards || []
+        const newCards = data.deck.cards
+        const prevMap = Object.fromEntries(prevCards.map(c => [c.card_name, c.quantity]))
+        const newMap = Object.fromEntries(newCards.map(c => [c.card_name, c.quantity]))
+
+        const added = []
+        const removed = []
+        for (const [name, qty] of Object.entries(newMap)) {
+          if (!prevMap[name]) added.push({ card_name: name, quantity: qty })
+          else if (qty > prevMap[name]) added.push({ card_name: name, quantity: qty - prevMap[name] })
+        }
+        for (const [name, qty] of Object.entries(prevMap)) {
+          if (!newMap[name]) removed.push({ card_name: name, quantity: qty })
+          else if (qty > newMap[name]) removed.push({ card_name: name, quantity: qty - newMap[name] })
+        }
+        setDeckDiff(added.length || removed.length ? { added, removed } : null)
+        prevDeckRef.current = data.deck
+
         setCurrentDeck(data.deck)
         setSaveStatus(null)
-        setMobileTab('deck') // mostra automaticamente il mazzo su mobile
+        setMobileTab('deck')
       }
     } catch {
       setError(t.errorGeneric)
@@ -207,6 +230,8 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
     setCurrentDeck(null)
     setSaveStatus(null)
     setError(null)
+    setDeckDiff(null)
+    prevDeckRef.current = null
   }
 
   const handleSave = async () => {
@@ -517,19 +542,65 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
           </div>
         </div>
 
-        {/* Pannello destro: suggerimenti */}
+        {/* Pannello destro: suggerimenti o diff mazzo */}
         <div className="abb-suggestions-panel">
-          <p className="abb-panel-title">{t.suggestionsTitle}</p>
-          {(SUGGESTIONS[language] || SUGGESTIONS.en).map((s, i) => (
-            <button
-              key={i}
-              className="abb-suggestion-btn"
-              onClick={() => setMessage(s.replace(/^[^\s]+ /, ''))}
-              disabled={loading}
-            >
-              {s}
-            </button>
-          ))}
+          {history.length === 0 ? (
+            <>
+              <p className="abb-panel-title">{t.suggestionsTitle}</p>
+              {(SUGGESTIONS[language] || SUGGESTIONS.en).map((s, i) => (
+                <button
+                  key={i}
+                  className="abb-suggestion-btn"
+                  onClick={() => setMessage(s.replace(/^[^\s]+ /, ''))}
+                  disabled={loading}
+                >
+                  {s}
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              <p className="abb-panel-title">
+                {language === 'it' ? '🔄 Ultime modifiche' : '🔄 Last changes'}
+              </p>
+              {!deckDiff && !currentDeck && (
+                <p className="abb-diff-empty">
+                  {language === 'it' ? 'Nessun mazzo ancora generato.' : 'No deck generated yet.'}
+                </p>
+              )}
+              {!deckDiff && currentDeck && (
+                <p className="abb-diff-empty">
+                  {language === 'it' ? 'Nessuna modifica nell\'ultimo messaggio.' : 'No changes in last message.'}
+                </p>
+              )}
+              {deckDiff?.added?.length > 0 && (
+                <div className="abb-diff-section">
+                  <p className="abb-diff-label added">
+                    ➕ {language === 'it' ? 'Aggiunte' : 'Added'}
+                  </p>
+                  {deckDiff.added.map((c, i) => (
+                    <div key={i} className="abb-diff-row added">
+                      <span className="abb-card-qty">{c.quantity}x</span>
+                      <span className="abb-card-name">{c.card_name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {deckDiff?.removed?.length > 0 && (
+                <div className="abb-diff-section">
+                  <p className="abb-diff-label removed">
+                    ➖ {language === 'it' ? 'Rimosse' : 'Removed'}
+                  </p>
+                  {deckDiff.removed.map((c, i) => (
+                    <div key={i} className="abb-diff-row removed">
+                      <span className="abb-card-qty">{c.quantity}x</span>
+                      <span className="abb-card-name">{c.card_name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
