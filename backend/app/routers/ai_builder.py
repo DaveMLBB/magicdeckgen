@@ -858,7 +858,7 @@ Respond ONLY with valid JSON in this exact structure:
 }}
 """
     response = await client.chat.completions.create(
-        model="gpt-5-mini",
+        model="gpt-4o-mini",
         messages=[
             {
                 "role": "system",
@@ -871,7 +871,7 @@ Respond ONLY with valid JSON in this exact structure:
         response_format={"type": "json_object"}
     )
 
-    log_openai_cost(response.usage, "find-twins", "gpt-5-mini")
+    log_openai_cost(response.usage, "find-twins", "gpt-4o-mini")
     return json.loads(response.choices[0].message.content)
 
 @router.post("/find-synergies")
@@ -1009,7 +1009,7 @@ Respond ONLY with valid JSON in this exact structure:
 }}
 """
     response = await client.chat.completions.create(
-        model="gpt-5-mini",
+        model="gpt-4o-mini",
         messages=[
             {
                 "role": "system",
@@ -1022,7 +1022,7 @@ Respond ONLY with valid JSON in this exact structure:
         response_format={"type": "json_object"}
     )
 
-    log_openai_cost(response.usage, "find-synergies", "gpt-5-mini")
+    log_openai_cost(response.usage, "find-synergies", "gpt-4o-mini")
     return json.loads(response.choices[0].message.content)
 
 @router.post("/optimize-deck")
