@@ -372,6 +372,7 @@
     display: flex;
     border-bottom: 1px solid var(--border-color, #334155);
     background: var(--bg-secondary, #1e293b);
+    flex-shrink: 0;
   }
   .abb-mobile-tab {
     flex: 1;
@@ -389,11 +390,42 @@
     color: #60a5fa;
     border-bottom-color: #60a5fa;
   }
-  .abb-mobile-hidden {
+
+  /* Layout mobile: stack verticale, ogni pannello occupa tutto lo spazio */
+  .abb-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Nasconde tutti i pannelli di default su mobile */
+  .abb-deck-panel,
+  .abb-chat-panel,
+  .abb-mobile-cards-panel {
     display: none !important;
   }
+
+  /* Mostra solo il pannello attivo */
   .abb-mobile-visible {
     display: flex !important;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    height: 100%;
+  }
+
+  /* Chat panel su mobile */
+  .abb-chat-panel.abb-mobile-visible {
+    border-right: none;
+  }
+
+  /* Deck panel (opzioni) su mobile */
+  .abb-deck-panel.abb-mobile-visible {
+    overflow-y: auto;
+    border-right: none;
   }
 }
 
@@ -406,14 +438,10 @@
 }
 @media (max-width: 640px) {
   .abb-layout {
-    display: block;
-    flex: 1;
-    overflow: hidden;
-    min-height: 0;
+    /* già gestito nel blocco mobile-tabs sopra */
   }
   .abb-deck-panel,
   .abb-chat-panel {
-    height: 100%;
     border-right: none;
     border-bottom: none;
     max-height: unset;
@@ -424,7 +452,6 @@
 .abb-mobile-cards-panel {
   display: none;
   flex-direction: column;
-  height: 100%;
   background: var(--bg-primary, #0f172a);
 }
 .abb-mobile-cards-list {

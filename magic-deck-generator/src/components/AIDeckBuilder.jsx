@@ -342,7 +342,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
 
       <div className="abb-layout">
         {/* Pannello sinistro — opzioni (formato/colori/collezione) */}
-        <div className={`abb-deck-panel${mobileTab === 'deck' ? ' abb-mobile-visible' : ' abb-mobile-hidden'}`}>
+        <div className={`abb-deck-panel${mobileTab === 'deck' ? ' abb-mobile-visible' : ''}`}>
           {/* Formato e colori */}
           <div>
             <p className="abb-panel-title">{t.formatLabel}</p>
@@ -494,7 +494,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
         </div>
 
         {/* Pannello mobile: lista carte del mazzo */}
-        <div className={`abb-mobile-cards-panel${mobileTab === 'cards' ? ' abb-mobile-visible' : ' abb-mobile-hidden'}`}>
+        <div className={`abb-mobile-cards-panel${mobileTab === 'cards' ? ' abb-mobile-visible' : ''}`}>
           {!currentDeck?.cards?.length ? (
             <div className="abb-empty-chat">
               <div className="abb-empty-icon">🃏</div>
@@ -536,7 +536,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
         </div>
 
         {/* Pannello centrale: chat */}
-        <div className={`abb-chat-panel${mobileTab === 'chat' ? ' abb-mobile-visible' : ' abb-mobile-hidden'}`}>
+        <div className={`abb-chat-panel${mobileTab === 'chat' ? ' abb-mobile-visible' : ''}`}>
           <div className="abb-messages">
             {history.length === 0 && !loading && (
               <div className="abb-empty-chat">
