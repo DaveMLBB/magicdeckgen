@@ -2805,3 +2805,16 @@ div.column-mapper.column-mapper {
   border-bottom: 2px solid #facc15;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
+
+/* Dev banner */
+.app-dev-banner {
+  background: rgba(251, 191, 36, 0.1);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 0.4rem 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 99;
+}

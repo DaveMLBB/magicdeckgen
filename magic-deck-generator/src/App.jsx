@@ -2074,6 +2074,11 @@ function App() {
       )}
 
       <div className="app-content">
+        <div className="app-dev-banner">
+          {language === 'it'
+            ? '🚧 Server in continuo sviluppo — alcune funzionalità potrebbero non funzionare correttamente'
+            : '🚧 Server under active development — some features may not work correctly'}
+        </div>
         {!isLegal ? (
           <div className="app-layout">
             {/* Sidebar - desktop only */}

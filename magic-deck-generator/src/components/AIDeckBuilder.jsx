@@ -324,18 +324,24 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
           className={`abb-mobile-tab ${mobileTab === 'chat' ? 'active' : ''}`}
           onClick={() => setMobileTab('chat')}
         >
-          💬 {language === 'it' ? 'Chat' : 'Chat'}
+          💬 Chat
+        </button>
+        <button
+          className={`abb-mobile-tab ${mobileTab === 'cards' ? 'active' : ''}`}
+          onClick={() => setMobileTab('cards')}
+        >
+          🃏 {language === 'it' ? 'Carte' : 'Cards'} {totalCards > 0 && `(${totalCards})`}
         </button>
         <button
           className={`abb-mobile-tab ${mobileTab === 'deck' ? 'active' : ''}`}
           onClick={() => setMobileTab('deck')}
         >
-          🃏 {t.deckPanel} {totalCards > 0 && `(${totalCards})`}
+          ⚙️ {language === 'it' ? 'Opzioni' : 'Options'}
         </button>
       </div>
 
       <div className="abb-layout">
-        {/* Pannello sinistro */}
+        {/* Pannello sinistro — opzioni (formato/colori/collezione) */}
         <div className={`abb-deck-panel${mobileTab === 'deck' ? ' abb-mobile-visible' : ' abb-mobile-hidden'}`}>
           {/* Formato e colori */}
           <div>
@@ -485,6 +491,48 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
               </button>
             )}
           </div>
+        </div>
+
+        {/* Pannello mobile: lista carte del mazzo */}
+        <div className={`abb-mobile-cards-panel${mobileTab === 'cards' ? ' abb-mobile-visible' : ' abb-mobile-hidden'}`}>
+          {!currentDeck?.cards?.length ? (
+            <div className="abb-empty-chat">
+              <div className="abb-empty-icon">🃏</div>
+              <p>{language === 'it' ? 'Nessun mazzo generato ancora.\nChiedi all\'AI di costruire un mazzo!' : 'No deck generated yet.\nAsk the AI to build a deck!'}</p>
+            </div>
+          ) : (
+            <>
+              <div className="abb-mobile-cards-list">
+                {currentDeck.cards.map((card, i) => (
+                  <div
+                    key={i}
+                    className="abb-card-row"
+                    onClick={() => setPreviewCard(card.card_name)}
+                  >
+                    <span className="abb-card-qty">{card.quantity}x</span>
+                    <span className="abb-card-dot" style={{ background: CATEGORY_COLORS[card.category] || CATEGORY_COLORS.Other }} />
+                    <span className="abb-card-name">{card.card_name}</span>
+                    <span className="abb-card-cat" style={{ color: CATEGORY_COLORS[card.category] || CATEGORY_COLORS.Other }}>{card.category}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="abb-mobile-cards-footer">
+                <div className="abb-card-total">{totalCards} {t.totalCards}</div>
+                <div className="abb-deck-actions">
+                  <button
+                    className={`abb-save-btn ${saveStatus === 'saved' ? 'saved' : saveStatus === 'error' ? 'error' : ''}`}
+                    onClick={handleSave}
+                    disabled={saving}
+                  >
+                    {saving ? t.saving : saveStatus === 'saved' ? t.saved : saveStatus === 'error' ? t.saveError : t.saveBtn}
+                  </button>
+                  <button className="abb-save-btn" style={{ background: '#475569' }} onClick={handleCopy}>
+                    {copied ? t.copied : t.copyList}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Pannello centrale: chat */}
