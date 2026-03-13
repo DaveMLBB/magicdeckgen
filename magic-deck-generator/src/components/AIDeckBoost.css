@@ -1,8 +1,12 @@
 .ai-deck-boost {
-  min-height: 100vh;
   background: var(--bg-primary, #0f172a);
   color: var(--text-primary, #e2e8f0);
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 /* Header */
@@ -13,6 +17,7 @@
   padding: 1rem 1.5rem;
   background: var(--bg-secondary, #1e293b);
   border-bottom: 1px solid var(--border-color, #334155);
+  flex-shrink: 0;
 }
 .abb-back-btn {
   background: none;
@@ -43,7 +48,9 @@
   display: grid;
   grid-template-columns: 320px 1fr 320px;
   gap: 0;
-  height: calc(100vh - 65px);
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* Pannello sinistro: selezione mazzo */
@@ -95,6 +102,7 @@
 .abb-card-list {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 .abb-card-row {
   display: flex;
@@ -247,6 +255,7 @@
   display: flex;
   gap: 0.5rem;
   align-items: flex-end;
+  flex-shrink: 0;
 }
 .abb-input-area textarea {
   flex: 1;
@@ -286,6 +295,7 @@
   color: var(--text-secondary, #94a3b8);
   text-align: center;
   padding: 0.2rem 0;
+  flex-shrink: 0;
 }
 
 /* Pannello destro: suggerimenti */
@@ -355,6 +365,7 @@
 /* Tab switcher mobile */
 .abb-mobile-tabs {
   display: none;
+  flex-shrink: 0;
 }
 @media (max-width: 640px) {
   .abb-mobile-tabs {
@@ -390,15 +401,15 @@
 @media (max-width: 1024px) {
   .abb-layout {
     grid-template-columns: 260px 1fr;
-    grid-template-rows: 1fr auto;
   }
   .abb-suggestions-panel { display: none; }
 }
 @media (max-width: 640px) {
   .abb-layout {
     display: block;
-    height: calc(100vh - 65px - 41px);
+    flex: 1;
     overflow: hidden;
+    min-height: 0;
   }
   .abb-deck-panel,
   .abb-chat-panel {
