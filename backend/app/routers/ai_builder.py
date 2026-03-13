@@ -342,8 +342,15 @@ Return the improved deck as the same JSON structure. If no changes needed, retur
             "tokens_remaining": user.tokens
         }
     except Exception as e:
+        import traceback
         err_str = str(e)
         print(f"❌ AI build-deck failed: {err_str}")
+        print(f"❌ Full traceback:\n{traceback.format_exc()}")
+        if hasattr(e, 'response'):
+            try: print(f"❌ OpenAI response body: {e.response.text}")
+            except: pass
+        if hasattr(e, 'body'):
+            print(f"❌ OpenAI error body: {e.body}")
         if '413' in err_str or 'rate_limit_exceeded' in err_str or 'Request too large' in err_str:
             raise HTTPException(status_code=503, detail="DEMO_RATE_LIMIT")
         raise HTTPException(status_code=503, detail=f"AI processing error: {err_str}")
@@ -474,6 +481,7 @@ Only include card names that appear exactly in the list above. Respond with JSON
                     selected_cards.append(f"{c.name} (x{c.quantity_owned})")
         except Exception as e:
             print(f"⚠️ Chunk {i+1} selection failed: {e}")
+            if hasattr(e, 'body'): print(f"⚠️ Chunk {i+1} OpenAI error body: {e.body}")
             continue
 
     if not selected_cards:
@@ -702,8 +710,11 @@ Return the improved deck as the same JSON structure. Respond with valid JSON onl
             "arena_check": is_arena_request,
         }
     except Exception as e:
+        import traceback
         err_str = str(e)
         print(f"❌ AI build-deck-full-collection failed: {err_str}")
+        print(f"❌ Full traceback:\n{traceback.format_exc()}")
+        if hasattr(e, 'body'): print(f"❌ OpenAI error body: {e.body}")
         if '413' in err_str or 'rate_limit_exceeded' in err_str or 'Request too large' in err_str:
             raise HTTPException(status_code=503, detail="DEMO_RATE_LIMIT")
         raise HTTPException(status_code=503, detail=f"AI processing error: {err_str}")
@@ -758,7 +769,10 @@ async def find_twins(
     try:
         result = await find_twins_with_ai(cards_data, input_data.format, input_data.budget, language)
     except Exception as e:
+        import traceback
         print(f"❌ AI twins failed: {str(e)}")
+        print(f"❌ Full traceback:\n{traceback.format_exc()}")
+        if hasattr(e, 'body'): print(f"❌ OpenAI error body: {e.body}")
         raise HTTPException(status_code=503, detail=f"AI service unavailable: {str(e)}")
 
     return {
@@ -910,7 +924,10 @@ async def find_synergies(
     try:
         result = await find_synergies_with_ai(seed_cards_data, input_data.format, input_data.strategy, language)
     except Exception as e:
+        import traceback
         print(f"❌ AI synergy failed: {str(e)}")
+        print(f"❌ Full traceback:\n{traceback.format_exc()}")
+        if hasattr(e, 'body'): print(f"❌ OpenAI error body: {e.body}")
         raise HTTPException(status_code=503, detail=f"AI service unavailable: {str(e)}")
 
     return {
@@ -1081,8 +1098,10 @@ async def optimize_deck(
         suggestions = await analyze_deck_with_ai(deck_info, input_data.optimization_goal, language)
         print(f"✅ AI analysis completed successfully")
     except Exception as e:
-        # If AI fails, provide basic analysis
+        import traceback
         print(f"❌ AI failed: {str(e)}")
+        print(f"❌ Full traceback:\n{traceback.format_exc()}")
+        if hasattr(e, 'body'): print(f"❌ OpenAI error body: {e.body}")
         print(f"⚠️ Using fallback basic suggestions (always the same)")
         suggestions = generate_basic_suggestions(deck_info, deck_cards, db)
     
@@ -1553,8 +1572,11 @@ Se deck_updated è false, deck può essere null."""
         }
 
     except Exception as e:
+        import traceback
         err_str = str(e)
         print(f"❌ Chat Build Deck failed: {err_str}")
+        print(f"❌ Full traceback:\n{traceback.format_exc()}")
+        if hasattr(e, 'body'): print(f"❌ OpenAI error body: {e.body}")
         if '413' in err_str or 'rate_limit_exceeded' in err_str:
             raise HTTPException(status_code=503, detail="DEMO_RATE_LIMIT")
         raise HTTPException(status_code=503, detail=f"AI error: {err_str}")

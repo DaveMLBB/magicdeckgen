@@ -244,8 +244,11 @@ Se deck_modified è false, updated_deck può essere null."""
         }
 
     except Exception as e:
+        import traceback
         err_str = str(e)
         print(f"❌ AI boost-deck fallito: {err_str}")
+        print(f"❌ Full traceback:\n{traceback.format_exc()}")
+        if hasattr(e, 'body'): print(f"❌ OpenAI error body: {e.body}")
         if '413' in err_str or 'rate_limit_exceeded' in err_str or 'Request too large' in err_str:
             raise HTTPException(status_code=503, detail="DEMO_RATE_LIMIT")
         raise HTTPException(status_code=503, detail=f"Errore AI: {err_str}")
