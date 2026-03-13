@@ -13,6 +13,21 @@ router = APIRouter()
 MAX_COLLECTION_CARDS = 300
 BOOST_TOKEN_COST = 5  # Token cost per AI boost message
 
+GPT4O_INPUT_COST  = 2.50
+GPT4O_OUTPUT_COST = 10.00
+
+def log_openai_cost(usage, endpoint: str, model: str = "gpt-4o"):
+    pricing = {
+        "gpt-4o":      {"input": 2.50,  "output": 10.00},
+        "gpt-4o-mini": {"input": 0.15,  "output": 0.60},
+        "gpt-5-nano":  {"input": 0.05,  "output": 0.40},
+        "gpt-5-mini":  {"input": 0.25,  "output": 2.00},
+        "gpt-5":       {"input": 1.25,  "output": 10.00},
+    }
+    p = pricing.get(model, pricing["gpt-4o"])
+    cost = (usage.prompt_tokens * p["input"] + usage.completion_tokens * p["output"]) / 1_000_000
+    print(f"[AI:{endpoint}] model={model} tokens — prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens}, total: {usage.total_tokens} (~${cost:.5f})")
+
 class ChatMessage(BaseModel):
     role: str   # "user" | "assistant"
     content: str
@@ -180,7 +195,8 @@ Se deck_modified è false, updated_deck può essere null."""
             response_format={"type": "json_object"}
         )
         raw = response.choices[0].message.content
-        print(f"🔍 GPT-5.1 raw response: {raw[:300] if raw else 'EMPTY'}")
+        log_openai_cost(response.usage, "deck-boost", "gpt-4o")
+        print(f"[AI:deck-boost] raw response: {raw[:300] if raw else 'EMPTY'}")
         
         if not raw or not raw.strip():
             raise ValueError("GPT-5.1-nano returned empty response")

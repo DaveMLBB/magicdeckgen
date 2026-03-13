@@ -12,6 +12,25 @@ from threading import Lock
 
 router = APIRouter()
 
+# ── Prezzi modelli OpenAI ($/1M tokens) ──
+MODEL_PRICING = {
+    "gpt-4o":       {"input": 2.50,  "output": 10.00},
+    "gpt-4o-mini":  {"input": 0.15,  "output": 0.60},
+    "gpt-5-nano":   {"input": 0.05,  "output": 0.40},
+    "gpt-5-mini":   {"input": 0.25,  "output": 2.00},
+    "gpt-5":        {"input": 1.25,  "output": 10.00},
+    "gpt-5.1":      {"input": 1.25,  "output": 10.00},
+    "gpt-5.2":      {"input": 1.75,  "output": 14.00},
+
+
+}
+
+def log_openai_cost(usage, endpoint: str, model: str = "gpt-4o"):
+    """Logga token e costo stimato di una chiamata OpenAI."""
+    pricing = MODEL_PRICING.get(model, MODEL_PRICING["gpt-4o"])
+    cost = (usage.prompt_tokens * pricing["input"] + usage.completion_tokens * pricing["output"]) / 1_000_000
+    print(f"[AI:{endpoint}] model={model} tokens — prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens}, total: {usage.total_tokens} (~${cost:.5f})")
+
 # ── Costanti formato ──
 FORMAT_MIN_CARDS = {
     "commander": 100,
@@ -278,8 +297,9 @@ IMPORTANT:
             temperature=0.7,
             max_tokens=4000,
             response_format={"type": "json_object"}
-        )
+        log_openai_cost(response.usage, "deck-builder", "gpt-4o")
         deck_data = json.loads(response.choices[0].message.content)
+        log_openai_cost(response.usage, "deck-builder")
         print(f"✅ AI built deck: {deck_data.get('deck_name', 'unnamed')}")
 
         # Verification pass: ask AI to review and improve the deck
@@ -309,8 +329,9 @@ Return the improved deck as the same JSON structure. If no changes needed, retur
             temperature=0.3,
             max_tokens=4000,
             response_format={"type": "json_object"}
-        )
+        log_openai_cost(verify_response.usage, "deck-builder-verify", "gpt-4o")
         final_deck = json.loads(verify_response.choices[0].message.content)
+        log_openai_cost(verify_response.usage, "deck-builder-verify")
         print(f"✅ AI verified deck: {final_deck.get('deck_name', 'unnamed')}")
 
         # Garantisce il conteggio minimo carte
@@ -433,8 +454,9 @@ Only include card names that appear exactly in the list above. Respond with JSON
                 temperature=0.3,
                 max_tokens=800,
                 response_format={"type": "json_object"}
-            )
+            log_openai_cost(resp.usage, "collection-select", "gpt-4o")
             raw = resp.choices[0].message.content
+            log_openai_cost(resp.usage, "collection-select")
             print(f"🔍 Chunk {i+1} raw response: {raw[:200]}")
             parsed = json.loads(raw)
             # Robust extraction: look for any list value in the object
@@ -502,8 +524,9 @@ IMPORTANT: total cards must sum to exactly {deck_size}. Include 15 sideboard car
             temperature=0.7,
             max_tokens=4000,
             response_format={"type": "json_object"}
-        )
+        log_openai_cost(response.usage, "collection-build", "gpt-4o")
         deck_data = json.loads(response.choices[0].message.content)
+        log_openai_cost(response.usage, "collection-build")
         print(f"✅ AI full-collection deck: {deck_data.get('deck_name', 'unnamed')} ({chunks} chunks, {token_cost} tokens)")
 
         # --- Server-side enforcement: remove cards not in collection ---
@@ -583,8 +606,9 @@ Return the improved deck as the same JSON structure. Respond with valid JSON onl
             temperature=0.3,
             max_tokens=4000,
             response_format={"type": "json_object"}
-        )
+        log_openai_cost(verify_response.usage, "collection-build-verify", "gpt-4o")
         final_deck = json.loads(verify_response.choices[0].message.content)
+        log_openai_cost(verify_response.usage, "collection-build-verify")
         print(f"✅ AI verified full-collection deck: {final_deck.get('deck_name', 'unnamed')}")
 
         # Re-apply enforcement after verification (verifier may reintroduce invalid cards)
@@ -818,10 +842,8 @@ Respond ONLY with valid JSON in this exact structure:
   ],
   "notes": "string - general observations about the functional equivalence landscape for these cards"
 }}
-"""
-
     response = await client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-5-nano",
         messages=[
             {
                 "role": "system",
@@ -834,6 +856,9 @@ Respond ONLY with valid JSON in this exact structure:
         response_format={"type": "json_object"}
     )
 
+    log_openai_cost(response.usage, "find-twins", "gpt-5-nano")
+    return json.loads(response.choices[0].message.content)
+    log_openai_cost(response.usage, "find-twins")
     return json.loads(response.choices[0].message.content)
 
 @router.post("/find-synergies")
@@ -966,10 +991,8 @@ Respond ONLY with valid JSON in this exact structure:
   "cards_to_avoid": ["card1", "card2"],
   "avoid_reason": "string - brief explanation of what to avoid"
 }}
-"""
-
     response = await client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-5-nano",
         messages=[
             {
                 "role": "system",
@@ -982,6 +1005,9 @@ Respond ONLY with valid JSON in this exact structure:
         response_format={"type": "json_object"}
     )
 
+    log_openai_cost(response.usage, "find-synergies", "gpt-5-nano")
+    return json.loads(response.choices[0].message.content)
+    log_openai_cost(response.usage, "find-synergies")
     return json.loads(response.choices[0].message.content)
 
 @router.post("/optimize-deck")
@@ -1209,8 +1235,9 @@ Format your response as JSON with this structure:
         max_tokens=2500,
         response_format={"type": "json_object"}
     )
-    
+    log_openai_cost(response.usage, "deck-analyzer", "gpt-4o")
     print(f"✅ Received response from Groq AI")
+    log_openai_cost(response.usage, "deck-analyzer")
     
     # Parse response
     suggestions = json.loads(response.choices[0].message.content)
@@ -1504,8 +1531,9 @@ Se deck_updated è false, deck può essere null."""
             temperature=0.7,
             max_completion_tokens=10000,
             response_format={"type": "json_object"}
-        )
+        log_openai_cost(response.usage, "chat-build", "gpt-4o")
         result = json.loads(response.choices[0].message.content)
+        log_openai_cost(response.usage, "chat-build")
 
         deck_updated = result.get("deck_updated", False)
         deck = result.get("deck")
