@@ -286,7 +286,7 @@ IMPORTANT:
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5.1",
             messages=[
                 {
                     "role": "system",
@@ -298,7 +298,7 @@ IMPORTANT:
             max_tokens=4000,
             response_format={"type": "json_object"}
         )
-        log_openai_cost(response.usage, "deck-builder", "gpt-4o")
+        log_openai_cost(response.usage, "deck-builder", "gpt-5.1")
         deck_data = json.loads(response.choices[0].message.content)
         print(f"✅ AI built deck: {deck_data.get('deck_name', 'unnamed')}")
 

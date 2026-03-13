@@ -188,14 +188,14 @@ Se deck_modified è false, updated_deck può essere null."""
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5.1",
             messages=messages,
             temperature=0.7,
             max_completion_tokens=10000,
             response_format={"type": "json_object"}
         )
         raw = response.choices[0].message.content
-        log_openai_cost(response.usage, "deck-boost", "gpt-4o")
+        log_openai_cost(response.usage, "deck-boost", "gpt-5.1")
         print(f"[AI:deck-boost] raw response: {raw[:300] if raw else 'EMPTY'}")
         
         if not raw or not raw.strip():
