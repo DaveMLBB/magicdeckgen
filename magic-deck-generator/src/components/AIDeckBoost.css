@@ -396,19 +396,16 @@
 }
 @media (max-width: 640px) {
   .abb-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr;
-    height: calc(100vh - 65px - 41px); /* sottrai header tab */
-    min-height: unset;
+    display: block;
+    height: calc(100vh - 65px - 41px);
+    overflow: hidden;
   }
-  .abb-deck-panel {
+  .abb-deck-panel,
+  .abb-chat-panel {
+    height: 100%;
     border-right: none;
     border-bottom: none;
     max-height: unset;
-    height: 100%;
-  }
-  .abb-chat-panel {
-    height: 100%;
   }
 }
 
