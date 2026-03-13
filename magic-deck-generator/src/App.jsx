@@ -330,6 +330,8 @@ function App() {
       const res = await fetch(`${API_URL}/api/tokens/balance?token=${user.token}`)
       const data = await res.json()
       setSubscriptionStatus({ tokens: data.tokens })
+      // Aggiorna anche user.tokens così i componenti AI lo leggono correttamente
+      setUser(prev => prev ? { ...prev, tokens: data.tokens } : prev)
       
       // Se l'utente ha 0 token e non abbiamo ancora mostrato la modale, mostrala
       if (data.tokens === 0 && !hasShownSubscriptionModal) {

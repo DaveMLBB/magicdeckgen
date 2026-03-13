@@ -127,7 +127,10 @@ function CardSynergy({ user, onBack, language }) {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [tokens, setTokens] = useState(user?.tokens || 0)
-  const [filterPriority, setFilterPriority] = useState('all')
+
+  useEffect(() => {
+    if (user?.tokens != null) setTokens(user.tokens)
+  }, [user?.tokens])
   const [previewCard, setPreviewCard] = useState(null)
   const [sortMode, setSortMode] = useState('priority')
   const [copied, setCopied] = useState(false)

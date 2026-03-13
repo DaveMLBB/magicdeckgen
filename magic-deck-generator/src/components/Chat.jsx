@@ -131,6 +131,10 @@ export default function Chat({ user, language = 'it' }) {
   const [error, setError] = useState(null)
   const [tokens, setTokens] = useState(user?.tokens || 0)
 
+  useEffect(() => {
+    if (user?.tokens != null) setTokens(user.tokens)
+  }, [user?.tokens])
+
   // Create form
   const [createName, setCreateName] = useState('')
   const [createDesc, setCreateDesc] = useState('')

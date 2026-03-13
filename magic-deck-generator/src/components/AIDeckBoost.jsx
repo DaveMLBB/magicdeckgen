@@ -131,10 +131,10 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [tokens, setTokens] = useState(user?.tokens || 0)
-  const [saving, setSaving] = useState(false)
-  const [saveStatus, setSaveStatus] = useState(null)
-  const [previewCard, setPreviewCard] = useState(null)
-  const [deckModified, setDeckModified] = useState(false)
+
+  useEffect(() => {
+    if (user?.tokens != null) setTokens(user.tokens)
+  }, [user?.tokens])
   const [collections, setCollections] = useState([])
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
   const [mobileTab, setMobileTab] = useState('chat') // 'chat' | 'cards' | 'options'

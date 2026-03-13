@@ -124,7 +124,10 @@ function CardTwins({ user, onBack, language }) {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [tokens, setTokens] = useState(user?.tokens || 0)
-  const [filterRel, setFilterRel] = useState('all')
+
+  useEffect(() => {
+    if (user?.tokens != null) setTokens(user.tokens)
+  }, [user?.tokens])
   const [sortMode, setSortMode] = useState('similarity')
   const [copied, setCopied] = useState(false)
   const [previewCard, setPreviewCard] = useState(null)
