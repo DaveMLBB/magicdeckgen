@@ -116,6 +116,8 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
   useEffect(() => {
     if (user?.tokens != null) setTokens(user.tokens)
   }, [user?.tokens])
+
+  const [currentDeck, setCurrentDeck] = useState(null)   // { cards, deck_name, format, colors, ... }
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null)
   const [copied, setCopied] = useState(false)
