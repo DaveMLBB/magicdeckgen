@@ -191,13 +191,13 @@ async def build_deck(
     from app.routers.tokens import consume_token
     consume_token(user, 'ai_build_deck', f'AI build deck: {input_data.description[:60]}', db, tokens_to_consume=5)
 
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if not groq_api_key:
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
         raise HTTPException(status_code=503, detail="AI service not configured")
 
     try:
         from openai import AsyncOpenAI
-        client = AsyncOpenAI(api_key=groq_api_key, base_url="https://api.groq.com/openai/v1")
+        client = AsyncOpenAI(api_key=openai_api_key)
     except ImportError:
         raise HTTPException(status_code=503, detail="OpenAI library not installed")
 
@@ -422,13 +422,13 @@ async def build_deck_full_collection(
     from app.routers.tokens import consume_token
     consume_token(user, 'ai_build_deck_full', f'AI full collection deck: {input_data.description[:50]}', db, tokens_to_consume=token_cost)
 
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if not groq_api_key:
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
         raise HTTPException(status_code=503, detail="AI service not configured")
 
     try:
         from openai import AsyncOpenAI
-        client = AsyncOpenAI(api_key=groq_api_key, base_url="https://api.groq.com/openai/v1")
+        client = AsyncOpenAI(api_key=openai_api_key)
     except ImportError:
         raise HTTPException(status_code=503, detail="OpenAI library not installed")
 
@@ -788,15 +788,14 @@ async def find_twins_with_ai(cards: list, format: Optional[str], budget: Optiona
     """
     Usa Groq (Llama 3.3 70B) per trovare carte funzionalmente equivalenti.
     """
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if not groq_api_key:
-        raise Exception("Groq API key not configured")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise Exception("OpenAI API key not configured")
 
     try:
         from openai import AsyncOpenAI
         client = AsyncOpenAI(
-            api_key=groq_api_key,
-            base_url="https://api.groq.com/openai/v1"
+            api_key=openai_api_key
         )
     except ImportError:
         raise Exception("OpenAI library not installed")
@@ -943,15 +942,14 @@ async def find_synergies_with_ai(seed_cards: list, format: Optional[str], strate
     """
     Usa Groq (Llama 3.3 70B) per trovare carte sinergiche con le carte seme.
     """
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if not groq_api_key:
-        raise Exception("Groq API key not configured")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise Exception("OpenAI API key not configured")
 
     try:
         from openai import AsyncOpenAI
         client = AsyncOpenAI(
-            api_key=groq_api_key,
-            base_url="https://api.groq.com/openai/v1"
+            api_key=openai_api_key
         )
     except ImportError:
         raise Exception("OpenAI library not installed")
@@ -1124,20 +1122,18 @@ async def analyze_deck_with_ai(deck_info: dict, optimization_goal: str, language
     """
     Usa Groq (Llama 3.1) per analizzare il mazzo e generare suggerimenti - GRATIS!
     """
-    groq_api_key = os.getenv("GROQ_API_KEY")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
     
-    if not groq_api_key:
-        raise Exception("Groq API key not configured")
+    if not openai_api_key:
+        raise Exception("OpenAI API key not configured")
     
-    # Import Groq (compatible with OpenAI SDK)
     try:
         from openai import AsyncOpenAI
         client = AsyncOpenAI(
-            api_key=groq_api_key,
-            base_url="https://api.groq.com/openai/v1"
+            api_key=openai_api_key
         )
     except ImportError:
-        raise Exception("OpenAI library not installed (needed for Groq compatibility)")
+        raise Exception("OpenAI library not installed")
     
     # Build goal-specific instructions
     goal_instructions = {
@@ -1234,7 +1230,6 @@ Format your response as JSON with this structure:
 }}
 """
     
-    # Call Groq (Llama 3.1 70B - FREE and FAST!)
     # Use different temperature based on goal for more variation
     temp = 0.8 if optimization_goal in ['casual', 'thematic'] else 0.7
     
