@@ -173,7 +173,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
           detail === 'DEMO_RATE_LIMIT' ? t.errorDemoLimit :
           t.errorGeneric
         )
-        setHistory(history)
+        // mantieni il messaggio utente nella history
         setLoading(false)
         return
       }
@@ -188,7 +188,6 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
       if (user) user.tokens = data.tokens_remaining
 
       if (data.deck_updated && data.deck?.cards) {
-        // Calcola diff rispetto al deck precedente
         const prevCards = prevDeckRef.current?.cards || []
         const newCards = data.deck.cards
         const prevMap = Object.fromEntries(prevCards.map(c => [c.card_name, c.quantity]))
@@ -206,14 +205,13 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
         }
         setDeckDiff(added.length || removed.length ? { added, removed } : null)
         prevDeckRef.current = data.deck
-
         setCurrentDeck(data.deck)
         setSaveStatus(null)
-        setMobileTab('deck')
       }
-    } catch {
+    } catch (e) {
+      console.error('Chat build error:', e)
       setError(t.errorGeneric)
-      setHistory(history)
+      // mantieni il messaggio utente nella history (newHistory già settato)
     }
     setLoading(false)
   }
@@ -579,7 +577,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
                     ➕ {language === 'it' ? 'Aggiunte' : 'Added'}
                   </p>
                   {deckDiff.added.map((c, i) => (
-                    <div key={i} className="abb-diff-row added">
+                    <div key={i} className="abb-diff-row added" onClick={() => setPreviewCard(c.card_name)} style={{ cursor: 'pointer' }}>
                       <span className="abb-card-qty">{c.quantity}x</span>
                       <span className="abb-card-name">{c.card_name}</span>
                     </div>
@@ -592,7 +590,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
                     ➖ {language === 'it' ? 'Rimosse' : 'Removed'}
                   </p>
                   {deckDiff.removed.map((c, i) => (
-                    <div key={i} className="abb-diff-row removed">
+                    <div key={i} className="abb-diff-row removed" onClick={() => setPreviewCard(c.card_name)} style={{ cursor: 'pointer' }}>
                       <span className="abb-card-qty">{c.quantity}x</span>
                       <span className="abb-card-name">{c.card_name}</span>
                     </div>

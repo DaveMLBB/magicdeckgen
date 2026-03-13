@@ -2127,17 +2127,6 @@ function App() {
         onPrivacyClick={() => setCurrentView('privacy-policy')}
       />
 
-      {/* Bug Report Button */}
-      <a
-        href="https://cloudsw.site/contatti"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bug-report-btn"
-        title={language === 'it' ? 'Segnala un problema' : 'Report a bug'}
-      >
-        🐛 {language === 'it' ? 'Segnala Bug' : 'Report Bug'}
-      </a>
-
       {/* Session Expired Overlay */}
       {sessionExpired && (
         <div className="session-expired-overlay">
