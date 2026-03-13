@@ -352,6 +352,40 @@
   30% { transform: translateY(-6px); }
 }
 
+/* Tab switcher mobile */
+.abb-mobile-tabs {
+  display: none;
+}
+@media (max-width: 640px) {
+  .abb-mobile-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color, #334155);
+    background: var(--bg-secondary, #1e293b);
+  }
+  .abb-mobile-tab {
+    flex: 1;
+    padding: 0.7rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .abb-mobile-tab.active {
+    color: #60a5fa;
+    border-bottom-color: #60a5fa;
+  }
+  .abb-mobile-hidden {
+    display: none !important;
+  }
+  .abb-mobile-visible {
+    display: flex !important;
+  }
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .abb-layout {
@@ -363,14 +397,18 @@
 @media (max-width: 640px) {
   .abb-layout {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    height: auto;
-    min-height: calc(100vh - 65px);
+    grid-template-rows: 1fr;
+    height: calc(100vh - 65px - 41px); /* sottrai header tab */
+    min-height: unset;
   }
   .abb-deck-panel {
     border-right: none;
-    border-bottom: 1px solid var(--border-color, #334155);
-    max-height: 280px;
+    border-bottom: none;
+    max-height: unset;
+    height: 100%;
+  }
+  .abb-chat-panel {
+    height: 100%;
   }
 }
 

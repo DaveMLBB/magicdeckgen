@@ -121,6 +121,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
   const [format, setFormat] = useState('')
   const [colors, setColors] = useState('')
+  const [mobileTab, setMobileTab] = useState('chat') // 'chat' | 'deck'
 
   useEffect(() => {
     if (!user?.userId) return
@@ -185,6 +186,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
       if (data.deck_updated && data.deck?.cards) {
         setCurrentDeck(data.deck)
         setSaveStatus(null)
+        setMobileTab('deck') // mostra automaticamente il mazzo su mobile
       }
     } catch {
       setError(t.errorGeneric)
@@ -293,9 +295,25 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
 
       {error && <div className="abb-error">⚠️ {error}</div>}
 
+      {/* Tab switcher mobile */}
+      <div className="abb-mobile-tabs">
+        <button
+          className={`abb-mobile-tab ${mobileTab === 'chat' ? 'active' : ''}`}
+          onClick={() => setMobileTab('chat')}
+        >
+          💬 {language === 'it' ? 'Chat' : 'Chat'}
+        </button>
+        <button
+          className={`abb-mobile-tab ${mobileTab === 'deck' ? 'active' : ''}`}
+          onClick={() => setMobileTab('deck')}
+        >
+          🃏 {t.deckPanel} {totalCards > 0 && `(${totalCards})`}
+        </button>
+      </div>
+
       <div className="abb-layout">
         {/* Pannello sinistro */}
-        <div className="abb-deck-panel">
+        <div className={`abb-deck-panel${mobileTab === 'deck' ? ' abb-mobile-visible' : ' abb-mobile-hidden'}`}>
           {/* Formato e colori */}
           <div>
             <p className="abb-panel-title">{t.formatLabel}</p>
@@ -447,7 +465,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
         </div>
 
         {/* Pannello centrale: chat */}
-        <div className="abb-chat-panel">
+        <div className={`abb-chat-panel${mobileTab === 'chat' ? ' abb-mobile-visible' : ' abb-mobile-hidden'}`}>
           <div className="abb-messages">
             {history.length === 0 && !loading && (
               <div className="abb-empty-chat">
