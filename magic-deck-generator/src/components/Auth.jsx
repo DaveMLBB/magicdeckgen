@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Auth.css'
 
-const API_URL = import.meta.env.PROD 
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
+const API_URL = import.meta.env.PROD
+  ? 'https://api.magicdeckbuilder.app.cloudsw.site'
   : 'http://localhost:8000'
 
 function Auth({ onLogin, language, setLanguage }) {
@@ -13,99 +13,71 @@ function Auth({ onLogin, language, setLanguage }) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const [messageType, setMessageType] = useState('') // 'success' or 'error'
+  const [messageType, setMessageType] = useState('')
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
   const [showPrivacyModal, setShowPrivacyModal] = useState(false)
   const [showTermsModal, setShowTermsModal] = useState(false)
+  const [showAuthForm, setShowAuthForm] = useState(false)
+  const [openFaq, setOpenFaq] = useState(null)
 
-  const translations = {
+  const t = {
     it: {
-      login: 'Accedi',
-      register: 'Registrati',
-      email: 'Email',
-      password: 'Password',
-      loginBtn: 'Accedi',
-      registerBtn: 'Registrati',
+      login: 'Accedi', register: 'Registrati', email: 'Email', password: 'Password',
+      loginBtn: 'Accedi', registerBtn: 'Registrati',
       switchToRegister: 'Non hai un account? Registrati',
       switchToLogin: 'Hai già un account? Accedi',
       loginSuccess: 'Login effettuato con successo!',
       registerSuccess: 'Registrazione completata! Controlla la tua email per verificare l\'account.',
       loginError: 'Email o password non corretti',
       registerError: 'Errore durante la registrazione',
-      emailRequired: 'Email richiesta',
-      passwordRequired: 'Password richiesta',
-      acceptTerms: 'Accetto i',
-      termsOfService: 'Termini di Servizio',
-      and: 'e la',
+      emailRequired: 'Email richiesta', passwordRequired: 'Password richiesta',
+      acceptTerms: 'Accetto i', termsOfService: 'Termini di Servizio', and: 'e la',
       privacyPolicy: 'Privacy Policy',
       mustAcceptTerms: 'Devi accettare i Termini di Servizio e la Privacy Policy per registrarti',
       loginAcceptance: 'Effettuando il login accetti automaticamente i nostri',
       desktopRecommended: 'Per un\'esperienza ottimale, consigliamo l\'utilizzo su PC desktop',
-      desktopRecommendedShort: 'Consigliato: PC Desktop'
     },
     en: {
-      login: 'Login',
-      register: 'Register',
-      email: 'Email',
-      password: 'Password',
-      loginBtn: 'Login',
-      registerBtn: 'Register',
+      login: 'Login', register: 'Register', email: 'Email', password: 'Password',
+      loginBtn: 'Login', registerBtn: 'Register',
       switchToRegister: 'Don\'t have an account? Register',
       switchToLogin: 'Already have an account? Login',
       loginSuccess: 'Login successful!',
       registerSuccess: 'Registration complete! Check your email to verify your account.',
       loginError: 'Incorrect email or password',
       registerError: 'Registration error',
-      emailRequired: 'Email required',
-      passwordRequired: 'Password required',
-      acceptTerms: 'I accept the',
-      termsOfService: 'Terms of Service',
-      and: 'and',
+      emailRequired: 'Email required', passwordRequired: 'Password required',
+      acceptTerms: 'I accept the', termsOfService: 'Terms of Service', and: 'and',
       privacyPolicy: 'Privacy Policy',
       mustAcceptTerms: 'You must accept the Terms of Service and Privacy Policy to register',
       loginAcceptance: 'By logging in, you automatically accept our',
       desktopRecommended: 'For the best experience, we recommend using a desktop PC',
-      desktopRecommendedShort: 'Recommended: Desktop PC'
     }
-  }
-
-  const t = translations[language]
+  }[language]
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setMessage('')
-    
     if (!email || !password) {
       setMessage(!email ? t.emailRequired : t.passwordRequired)
       setMessageType('error')
       return
     }
-
-    // Verifica accettazione policy per registrazione
     if (!isLogin && (!acceptedTerms || !acceptedPrivacy)) {
       setMessage(t.mustAcceptTerms)
       setMessageType('error')
       return
     }
-
     setLoading(true)
-    console.log('🔐 Tentativo login/registrazione:', { email, isLogin })
-
     try {
       const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register'
-      console.log('📡 Chiamata API:', `${API_URL}${endpoint}`)
-      
       const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       })
-
-      console.log('📥 Risposta status:', res.status)
       const data = await res.json()
-      console.log('📥 Risposta data:', data)
-
       if (!res.ok) {
         const detail = data.detail
         const msg = Array.isArray(detail)
@@ -116,45 +88,26 @@ function Auth({ onLogin, language, setLanguage }) {
         setLoading(false)
         return
       }
-
       if (isLogin) {
-        // Login riuscito
-        console.log('✅ Login riuscito:', data)
         setMessage(t.loginSuccess)
         setMessageType('success')
-        
-        // Salva token e user info
         localStorage.setItem('token', data.access_token)
         localStorage.setItem('userId', data.user_id)
         localStorage.setItem('userEmail', data.email)
         localStorage.setItem('isVerified', data.is_verified)
-        
-        console.log('💾 Dati salvati in localStorage')
-        
-        // Chiama callback
         setTimeout(() => {
-          console.log('🚀 Chiamata onLogin callback')
-          onLogin({
-            userId: data.user_id,
-            email: data.email,
-            isVerified: data.is_verified,
-            token: data.access_token
-          })
+          onLogin({ userId: data.user_id, email: data.email, isVerified: data.is_verified, token: data.access_token })
         }, 500)
       } else {
-        // Registrazione riuscita — login automatico e redirect a /welcome
         if (data.email_sent === false) {
-          const emailWarning = language === 'it'
+          setMessage(language === 'it'
             ? 'Registrazione completata! Non siamo riusciti a inviarti l\'email di verifica. Contatta il supporto o riprova più tardi.'
-            : 'Registration complete! We could not send the verification email. Please contact support or try again later.'
-          setMessage(emailWarning)
+            : 'Registration complete! We could not send the verification email. Please contact support or try again later.')
           setMessageType('warning')
         } else {
           setMessage(t.registerSuccess)
           setMessageType('success')
         }
-
-        // Login automatico con le stesse credenziali
         try {
           const loginRes = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
@@ -167,667 +120,382 @@ function Auth({ onLogin, language, setLanguage }) {
             localStorage.setItem('userId', loginData.user_id)
             localStorage.setItem('userEmail', loginData.email)
             localStorage.setItem('isVerified', loginData.is_verified)
-            onLogin({
-              userId: loginData.user_id,
-              email: loginData.email,
-              isVerified: loginData.is_verified,
-              token: loginData.access_token
-            })
+            onLogin({ userId: loginData.user_id, email: loginData.email, isVerified: loginData.is_verified, token: loginData.access_token })
             navigate('/welcome')
             return
           }
-        } catch {
-          // login automatico fallito, l'utente farà login manualmente
-        }
-
-        // Fallback: redirect al login dopo 3 secondi
-        setTimeout(() => {
-          setIsLogin(true)
-          setMessage('')
-        }, 3000)
+        } catch { /* login automatico fallito */ }
+        setTimeout(() => { setIsLogin(true); setMessage('') }, 3000)
       }
     } catch (err) {
-      console.error('❌ Errore auth:', err)
       setMessage(isLogin ? t.loginError : t.registerError)
       setMessageType('error')
     }
-
     setLoading(false)
   }
 
+  const il = language === 'it'
+  const tryUrl = il ? '/try' : '/en/try'
 
-  const [showAuthForm, setShowAuthForm] = useState(false)
+  const stats = [
+    { value: '7200+', label: il ? 'Mazzi competitivi' : 'Competitive decks' },
+    { value: '392k+', label: il ? 'Carte nel DB' : 'Cards in DB' },
+    { value: '5', label: il ? 'Strumenti AI' : 'AI tools' },
+    { value: '10+', label: il ? 'Formati' : 'Formats' },
+  ]
+
+  const aiTools = [
+    { icon: '🏗️', name: il ? 'AI Deck Builder' : 'AI Deck Builder', tokens: '5', desc: il ? 'Descrivi il mazzo in testo libero — "aggro rosso Modern" o "Commander Atraxa" — e l\'AI costruisce un mazzo completo da 60 o 100 carte con sideboard, strategia e upgrade path.' : 'Describe the deck in plain text — "red aggro Modern" or "Atraxa Commander" — and AI builds a complete 60 or 100-card deck with sideboard, strategy and upgrade path.' },
+    { icon: '✨', name: il ? 'AI Synergy Finder' : 'AI Synergy Finder', tokens: '3', desc: il ? 'Inserisci 1–5 carte di partenza e l\'AI trova le carte più sinergiche. Risultati raggruppati per ruolo: Enabler, Payoff, Removal, Ramp.' : 'Enter 1–5 seed cards and AI finds the most synergistic cards. Results grouped by role: Enabler, Payoff, Removal, Ramp.' },
+    { icon: '🪞', name: il ? 'AI Gemelli' : 'AI Card Twins', tokens: '3', desc: il ? 'Trova equivalenti funzionali per qualsiasi carta. Scopri sostituti economici, upgrade o carte che fanno la stessa cosa con un nome diverso.' : 'Find functional equivalents for any card. Discover budget replacements, upgrades or cards that do the same thing with a different name.' },
+    { icon: '🔬', name: il ? 'AI Deck Analyzer' : 'AI Deck Analyzer', tokens: '3', desc: il ? 'Seleziona un mazzo salvato e scegli un obiettivo (Aggro, Control, Combo…). L\'AI analizza la curva di mana, identifica sinergie e suggerisce carte da aggiungere o rimuovere.' : 'Select a saved deck and choose a goal (Aggro, Control, Combo…). AI analyzes mana curve, identifies synergies and suggests cards to add or remove.' },
+    { icon: '⚡', name: il ? 'AI Deck Boost' : 'AI Deck Boost', tokens: '5', desc: il ? 'Potenzia un mazzo esistente con suggerimenti AI mirati. Ottimizza la curva, migliora le sinergie e porta il tuo mazzo al livello successivo.' : 'Boost an existing deck with targeted AI suggestions. Optimize the curve, improve synergies and take your deck to the next level.' },
+  ]
+
+  const otherTools = [
+    { icon: '🏆', name: il ? 'Tournament Deck Builder' : 'Tournament Deck Builder', desc: il ? 'Costruisci mazzi da torneo ottimizzati per il meta competitivo attuale.' : 'Build tournament-optimized decks for the current competitive meta.' },
+    { icon: '🔍', name: il ? 'Cerca Carte' : 'Card Search', desc: il ? 'Ricerca avanzata nel database completo di Magic con filtri per colore, tipo, costo e altro.' : 'Advanced search in the complete Magic database with filters for color, type, cost and more.' },
+    { icon: '📚', name: il ? 'Collezioni Pubbliche' : 'Public Collections', desc: il ? 'Esplora le collezioni condivise dalla community e trova ispirazione per la tua.' : 'Explore community-shared collections and find inspiration for yours.' },
+    { icon: '🃏', name: il ? 'Mazzi Pubblici' : 'Public Decks', desc: il ? 'Sfoglia migliaia di mazzi condivisi dagli utenti, filtra per formato e strategia.' : 'Browse thousands of user-shared decks, filter by format and strategy.' },
+    { icon: '🎮', name: il ? 'Arena Import' : 'Arena Import', desc: il ? 'Importa mazzi direttamente dal formato Arena con un semplice copia-incolla.' : 'Import decks directly from Arena format with a simple copy-paste.' },
+    { icon: '📷', name: il ? 'Scanner Carte' : 'Card Scanner', desc: il ? 'Scansiona le tue carte fisiche con la fotocamera e aggiungile automaticamente alla collezione.' : 'Scan your physical cards with the camera and add them automatically to your collection.' },
+  ]
+
+  const faqs = [
+    {
+      q: il ? 'Come carico la mia collezione?' : 'How do I upload my collection?',
+      a: il ? 'Esporta da Delver Lens, TCGPlayer o Dragon Shield in formato Excel (.xlsx) o CSV (.csv). Il file deve contenere nome carta e quantità. I nomi devono essere in inglese.' : 'Export from Delver Lens, TCGPlayer or Dragon Shield in Excel (.xlsx) or CSV (.csv) format. The file must contain card name and quantity. Names must be in English.'
+    },
+    {
+      q: il ? 'Quali formati sono supportati?' : 'Which formats are supported?',
+      a: il ? 'Tutti i principali formati: Commander (EDH), Modern, Standard, Legacy, Vintage, Pioneer, Pauper, Historic, Brawl e Alchemy. Il database include oltre 7200 mazzi competitivi.' : 'All major formats: Commander (EDH), Modern, Standard, Legacy, Vintage, Pioneer, Pauper, Historic, Brawl and Alchemy. The database includes over 7200 competitive decks.'
+    },
+    {
+      q: il ? 'È davvero gratuito?' : 'Is it really free?',
+      a: il ? 'Sì! Il piano gratuito include 3 caricamenti di collezione. Per utenti più attivi sono disponibili piani Premium (10 caricamenti/mese) e Lifetime (tutto illimitato).' : 'Yes! The free plan includes 3 collection uploads. For more active users, Premium (10 uploads/month) and Lifetime (everything unlimited) plans are available.'
+    },
+    {
+      q: il ? 'Posso provare senza registrarmi?' : 'Can I try without registering?',
+      a: il ? 'Assolutamente! Vai su /try per accedere a tutti gli strumenti AI e non-AI senza creare un account. Hai un numero limitato di utilizzi gratuiti per ogni strumento.' : 'Absolutely! Go to /try to access all AI and non-AI tools without creating an account. You have a limited number of free uses for each tool.'
+    },
+    {
+      q: il ? 'Come vengono aggiornati i mazzi?' : 'How are decks updated?',
+      a: il ? 'Il database viene aggiornato regolarmente con mazzi vincenti da tornei ufficiali, Grand Prix e Pro Tour. Gli utenti possono anche condividere i propri mazzi pubblici.' : 'The database is regularly updated with winning decks from official tournaments, Grand Prix and Pro Tour. Users can also share their own public decks.'
+    },
+    {
+      q: il ? 'Funziona su mobile?' : 'Does it work on mobile?',
+      a: il ? 'Sì, l\'app è completamente responsive. Per un\'esperienza ottimale consigliamo comunque il PC desktop, specialmente per la gestione della collezione.' : 'Yes, the app is fully responsive. For the best experience we still recommend desktop PC, especially for collection management.'
+    },
+  ]
 
   return (
-    <div className="auth-container">
+    <div className="auth-root">
       {!showAuthForm ? (
-        <div className="landing-page">
-          {/* Language Selector */}
-          <div className="landing-language-selector">
-            <button 
-              className={`lang-btn ${language === 'it' ? 'active' : ''}`}
-              onClick={() => {
-                setLanguage('it')
-                localStorage.setItem('language', 'it')
-              }}
-            >
-              🇮🇹 IT
-            </button>
-            <button 
-              className={`lang-btn ${language === 'en' ? 'active' : ''}`}
-              onClick={() => {
-                setLanguage('en')
-                localStorage.setItem('language', 'en')
-              }}
-            >
-              🇬🇧 EN
-            </button>
-          </div>
-
-          {/* Hero Section */}
-          <div className="hero-section">
-            <div className="hero-content">
-              <h1 className="hero-title">
-                <span className="hero-icon">🃏</span>
-                Magic Deck Builder
-              </h1>
-              <p className="hero-subtitle">
-                {language === 'it' 
-                  ? 'Scopri quali mazzi competitivi puoi costruire con la tua collezione'
-                  : 'Discover which competitive decks you can build with your collection'}
-              </p>
-              <div className="hero-cta">
-                <button className="cta-primary" onClick={() => setShowAuthForm(true)}>
-                  {language === 'it' ? '🚀 Inizia Gratis' : '🚀 Start Free'}
+        <>
+          {/* ── NAVBAR ── */}
+          <nav className="lp-nav">
+            <div className="lp-nav-inner">
+              <span className="lp-nav-logo">🃏 Magic Deck Builder</span>
+              <div className="lp-nav-actions">
+                <div className="lp-lang-toggle">
+                  <button className={`lp-lang-btn ${language === 'it' ? 'active' : ''}`} onClick={() => { setLanguage('it'); localStorage.setItem('language', 'it') }}>🇮🇹 IT</button>
+                  <button className={`lp-lang-btn ${language === 'en' ? 'active' : ''}`} onClick={() => { setLanguage('en'); localStorage.setItem('language', 'en') }}>🇬🇧 EN</button>
+                </div>
+                <button className="lp-nav-login" onClick={() => { setIsLogin(true); setShowAuthForm(true) }}>
+                  {il ? '🔑 Accedi' : '🔑 Login'}
                 </button>
-                <button className="cta-secondary" onClick={() => { setIsLogin(true); setShowAuthForm(true); }}>
-                  {language === 'it' ? '🔑 Accedi' : '🔑 Login'}
+                <button className="lp-nav-register" onClick={() => { setIsLogin(false); setShowAuthForm(true) }}>
+                  {il ? '🚀 Registrati' : '🚀 Sign Up'}
                 </button>
               </div>
-              <div className="hero-try-link">
-                <a href={language === 'it' ? '/try' : '/en/try'}>
-                  {language === 'it'
-                    ? '🧪 Prova tutti gli strumenti gratis — nessun account richiesto →'
-                    : '🧪 Try all tools for free — no account needed →'}
+            </div>
+          </nav>
+
+          <div className="lp-page">
+
+            {/* ── HERO ── */}
+            <section className="lp-hero">
+              <div className="lp-hero-bg" />
+              <div className="lp-hero-content">
+                <div className="lp-hero-badge">{il ? '✨ Strumento #1 per giocatori MTG italiani' : '✨ #1 tool for MTG players'}</div>
+                <h1 className="lp-hero-title">
+                  {il ? <>Costruisci il mazzo<br /><span className="lp-gradient-text">perfetto</span> con la tua<br />collezione</> : <>Build the <span className="lp-gradient-text">perfect deck</span><br />from your collection</>}
+                </h1>
+                <p className="lp-hero-sub">
+                  {il ? 'Analisi AI avanzata, 7200+ mazzi competitivi, 5 strumenti AI esclusivi. Scopri cosa puoi costruire adesso.' : 'Advanced AI analysis, 7200+ competitive decks, 5 exclusive AI tools. Discover what you can build right now.'}
+                </p>
+                <div className="lp-hero-ctas">
+                  <button className="lp-btn-primary" onClick={() => { setIsLogin(false); setShowAuthForm(true) }}>
+                    🚀 {il ? 'Inizia Gratis' : 'Start Free'}
+                  </button>
+                  <button className="lp-btn-ghost" onClick={() => { setIsLogin(true); setShowAuthForm(true) }}>
+                    🔑 {il ? 'Accedi' : 'Login'}
+                  </button>
+                </div>
+                <a href={tryUrl} className="lp-hero-try">
+                  <span className="lp-try-pulse" />
+                  ⚡ {il ? 'Prova GRATIS senza account — AI Deck Builder, Synergy, Scanner e altro →' : 'Try FREE without account — AI Deck Builder, Synergy, Scanner and more →'}
+                </a>
+                <div className="lp-stats-bar">
+                  {stats.map((s, i) => (
+                    <div key={i} className="lp-stat">
+                      <span className="lp-stat-value">{s.value}</span>
+                      <span className="lp-stat-label">{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* ── TRY BANNER ── */}
+            <section className="lp-try-banner">
+              <div className="lp-try-banner-inner">
+                <div className="lp-try-banner-text">
+                  <span className="lp-try-banner-emoji">🧪</span>
+                  <div>
+                    <strong>{il ? 'Nessun account? Nessun problema.' : 'No account? No problem.'}</strong>
+                    <p>{il ? 'Prova tutti gli strumenti AI gratis — nessuna carta di credito, nessuna registrazione.' : 'Try all AI tools for free — no credit card, no registration.'}</p>
+                  </div>
+                </div>
+                <a href={tryUrl} className="lp-try-banner-btn">
+                  {il ? '⚡ Prova Gratis Ora' : '⚡ Try Free Now'}
                 </a>
               </div>
-            </div>
-          </div>
+            </section>
 
-          {/* Features Section */}
-          <div className="features-section">
-            <div className="features-grid">
-              <div className="feature-card">
-                <div className="feature-icon">📊</div>
-                <h3>{language === 'it' ? 'Analisi Intelligente' : 'Smart Analysis'}</h3>
-                <p>
-                  {language === 'it' 
-                    ? 'Carica la tua collezione e scopri istantaneamente quali mazzi competitivi puoi costruire'
-                    : 'Upload your collection and instantly discover which competitive decks you can build'}
-                </p>
-              </div>
-
-              <div className="feature-card">
-                <div className="feature-icon">🎯</div>
-                <h3>{language === 'it' ? '7200+ Mazzi' : '7200+ Decks'}</h3>
-                <p>
-                  {language === 'it' 
-                    ? 'Database aggiornato con mazzi competitivi da tutti i formati: Modern, Legacy, Vintage, Pioneer e altro'
-                    : 'Updated database with competitive decks from all formats: Modern, Legacy, Vintage, Pioneer and more'}
-                </p>
-              </div>
-
-              <div className="feature-card">
-                <div className="feature-icon">💎</div>
-                <h3>{language === 'it' ? 'Gestione Collezione' : 'Collection Management'}</h3>
-                <p>
-                  {language === 'it' 
-                    ? 'Organizza le tue carte, crea collezioni multiple e tieni traccia dei tuoi mazzi'
-                    : 'Organize your cards, create multiple collections and track your decks'}
-                </p>
-              </div>
-
-              <div className="feature-card">
-                <div className="feature-icon">🔍</div>
-                <h3>{language === 'it' ? 'Filtri Avanzati' : 'Advanced Filters'}</h3>
-                <p>
-                  {language === 'it' 
-                    ? 'Cerca per colori, formato, percentuale di completamento e molto altro'
-                    : 'Search by colors, format, completion percentage and much more'}
-                </p>
-              </div>
-
-              <div className="feature-card">
-                <div className="feature-icon">⚡</div>
-                <h3>{language === 'it' ? 'Veloce e Facile' : 'Fast and Easy'}</h3>
-                <p>
-                  {language === 'it' 
-                    ? 'Carica un file Excel o CSV e ottieni risultati in pochi secondi'
-                    : 'Upload an Excel or CSV file and get results in seconds'}
-                </p>
-              </div>
-
-              <div className="feature-card">
-                <div className="feature-icon">🌍</div>
-                <h3>{language === 'it' ? 'Multilingua' : 'Multilingual'}</h3>
-                <p>
-                  {language === 'it' 
-                    ? 'Interfaccia disponibile in italiano e inglese'
-                    : 'Interface available in Italian and English'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* AI Tools Section */}
-          <div className="ai-tools-section">
-            <h2 className="section-title">
-              {language === 'it' ? '🤖 4 Strumenti AI per il Tuo Gioco' : '🤖 4 AI-Powered Tools for Your Game'}
-            </h2>
-            <p className="section-subtitle">
-              {language === 'it'
-                ? 'Funzionalità AI all\'avanguardia che nessun altro strumento MTG offre'
-                : 'State-of-the-art AI features that no other MTG tool offers'}
-            </p>
-            <div className="ai-tools-grid">
-              <div className="ai-tool-card">
-                <div className="ai-tool-header">
-                  <span className="ai-tool-icon">🏗️</span>
-                  <div>
-                    <h3>{language === 'it' ? 'AI Deck Builder' : 'AI Deck Builder'}</h3>
-                    <span className="ai-token-badge">5 token</span>
+            {/* ── HOW IT WORKS ── */}
+            <section className="lp-section">
+              <h2 className="lp-section-title">{il ? '🚀 Come Funziona' : '🚀 How It Works'}</h2>
+              <div className="lp-steps">
+                {[
+                  { n: '1', icon: '📤', title: il ? 'Carica la Collezione' : 'Upload Collection', desc: il ? 'Esporta da Delver Lens, TCGPlayer o Dragon Shield in Excel/CSV e carica il file.' : 'Export from Delver Lens, TCGPlayer or Dragon Shield in Excel/CSV and upload the file.' },
+                  { n: '2', icon: '🤖', title: il ? 'Analisi Automatica' : 'Automatic Analysis', desc: il ? 'Il sistema analizza 7200+ mazzi competitivi e calcola la compatibilità con le tue carte.' : 'The system analyzes 7200+ competitive decks and calculates compatibility with your cards.' },
+                  { n: '3', icon: '🏆', title: il ? 'Scopri i Mazzi' : 'Discover Decks', desc: il ? 'Visualizza i mazzi che puoi costruire, ordina per completamento e scopri le carte mancanti.' : 'View decks you can build, sort by completion and discover missing cards.' },
+                ].map((s, i) => (
+                  <div key={i} className="lp-step">
+                    <div className="lp-step-num">{s.n}</div>
+                    <div className="lp-step-icon">{s.icon}</div>
+                    <h3>{s.title}</h3>
+                    <p>{s.desc}</p>
                   </div>
-                </div>
-                <p>
-                  {language === 'it'
-                    ? 'Descrivi il mazzo che vuoi in testo libero — "aggro rosso Modern" o "Commander Atraxa" — e l\'AI costruisce un mazzo completo da 60 o 100 carte con sideboard, strategia e upgrade path. Può usare solo le carte della tua collezione.'
-                    : 'Describe the deck you want in plain text — "red aggro Modern" or "Atraxa Commander" — and AI builds a complete 60 or 100-card deck with sideboard, strategy notes and upgrade path. Can use only cards from your collection.'}
-                </p>
+                ))}
               </div>
-              <div className="ai-tool-card">
-                <div className="ai-tool-header">
-                  <span className="ai-tool-icon">✨</span>
-                  <div>
-                    <h3>{language === 'it' ? 'AI Synergy Finder' : 'AI Synergy Finder'}</h3>
-                    <span className="ai-token-badge">3 token</span>
+            </section>
+
+            {/* ── AI TOOLS ── */}
+            <section className="lp-section lp-section-dark">
+              <div className="lp-section-header">
+                <h2 className="lp-section-title">🤖 {il ? '5 Strumenti AI Esclusivi' : '5 Exclusive AI Tools'}</h2>
+                <p className="lp-section-sub">{il ? 'Funzionalità AI all\'avanguardia che nessun altro strumento MTG offre' : 'State-of-the-art AI features no other MTG tool offers'}</p>
+              </div>
+              <div className="lp-ai-grid">
+                {aiTools.map((tool, i) => (
+                  <div key={i} className="lp-ai-card">
+                    <div className="lp-ai-card-top">
+                      <span className="lp-ai-icon">{tool.icon}</span>
+                      <div>
+                        <h3>{tool.name}</h3>
+                        <span className="lp-token-badge">⚡ {tool.tokens} token</span>
+                      </div>
+                    </div>
+                    <p>{tool.desc}</p>
                   </div>
-                </div>
-                <p>
-                  {language === 'it'
-                    ? 'Inserisci 1–5 carte di partenza e l\'AI trova le carte più sinergiche per costruire attorno ad esse. Risultati raggruppati per ruolo: Enabler, Payoff, Removal, Ramp. Perfetto per creare nuovi archetipi.'
-                    : 'Enter 1–5 seed cards and AI finds the most synergistic cards to build around them. Results grouped by role: Enabler, Payoff, Removal, Ramp. Perfect for brewing new archetypes.'}
-                </p>
+                ))}
               </div>
-              <div className="ai-tool-card">
-                <div className="ai-tool-header">
-                  <span className="ai-tool-icon">🪞</span>
-                  <div>
-                    <h3>{language === 'it' ? 'AI Gemelli' : 'AI Card Twins'}</h3>
-                    <span className="ai-token-badge">3 token</span>
+              <div className="lp-ai-cta">
+                <a href={tryUrl} className="lp-btn-amber">
+                  🧪 {il ? 'Prova gli strumenti AI gratis →' : 'Try AI tools for free →'}
+                </a>
+              </div>
+            </section>
+
+            {/* ── OTHER TOOLS ── */}
+            <section className="lp-section">
+              <h2 className="lp-section-title">🛠️ {il ? 'Tutti gli Strumenti' : 'All Tools'}</h2>
+              <p className="lp-section-sub">{il ? 'Oltre all\'AI, una suite completa per ogni aspetto del gioco' : 'Beyond AI, a complete suite for every aspect of the game'}</p>
+              <div className="lp-tools-grid">
+                {otherTools.map((tool, i) => (
+                  <div key={i} className="lp-tool-card">
+                    <span className="lp-tool-icon">{tool.icon}</span>
+                    <div>
+                      <h4>{tool.name}</h4>
+                      <p>{tool.desc}</p>
+                    </div>
                   </div>
-                </div>
-                <p>
-                  {language === 'it'
-                    ? 'Trova equivalenti funzionali per qualsiasi carta. Scopri sostituti economici, upgrade o carte che fanno la stessa cosa con un nome diverso. Ogni gemello classificato: Copia Funzionale, Superiore, Inferiore o Laterale.'
-                    : 'Find functional equivalents for any card. Discover budget replacements, upgrades or cards that do the same thing with a different name. Each twin rated: Functional Copy, Superior, Inferior or Lateral.'}
-                </p>
+                ))}
               </div>
-              <div className="ai-tool-card">
-                <div className="ai-tool-header">
-                  <span className="ai-tool-icon">🤖</span>
-                  <div>
-                    <h3>{language === 'it' ? 'AI Deck Analyzer' : 'AI Deck Analyzer'}</h3>
-                    <span className="ai-token-badge">3 token</span>
+            </section>
+
+            {/* ── FORMATS ── */}
+            <section className="lp-section lp-section-dark">
+              <h2 className="lp-section-title">🎮 {il ? 'Formati Supportati' : 'Supported Formats'}</h2>
+              <div className="lp-formats">
+                {['Commander (EDH)', 'Modern', 'Standard', 'Legacy', 'Vintage', 'Pioneer', 'Pauper', 'Historic', 'Brawl', 'Alchemy'].map(f => (
+                  <span key={f} className="lp-format-badge">{f}</span>
+                ))}
+              </div>
+            </section>
+
+            {/* ── BENEFITS ── */}
+            <section className="lp-section">
+              <h2 className="lp-section-title">💡 {il ? 'Perché Magic Deck Builder?' : 'Why Magic Deck Builder?'}</h2>
+              <div className="lp-benefits">
+                {[
+                  { icon: '💰', title: il ? 'Risparmia Denaro' : 'Save Money', desc: il ? 'Scopri quali mazzi puoi costruire senza comprare nuove carte.' : 'Discover which decks you can build without buying new cards.' },
+                  { icon: '⏱️', title: il ? 'Risparmia Tempo' : 'Save Time', desc: il ? 'Niente più ore a cercare deck list compatibili manualmente.' : 'No more hours manually searching for compatible deck lists.' },
+                  { icon: '🏆', title: il ? 'Gioca Competitivo' : 'Play Competitive', desc: il ? 'Accedi a mazzi vincenti da tornei e campionati ufficiali.' : 'Access winning decks from official tournaments and championships.' },
+                  { icon: '📈', title: il ? 'Ottimizza la Collezione' : 'Optimize Collection', desc: il ? 'Scopri quali carte acquistare per completare più mazzi.' : 'Discover which cards to buy to complete more decks.' },
+                  { icon: '🤖', title: il ? 'AI Avanzata' : 'Advanced AI', desc: il ? '5 strumenti AI esclusivi per costruire, analizzare e ottimizzare i tuoi mazzi.' : '5 exclusive AI tools to build, analyze and optimize your decks.' },
+                  { icon: '🌍', title: il ? 'Multilingua' : 'Multilingual', desc: il ? 'Interfaccia disponibile in italiano e inglese.' : 'Interface available in Italian and English.' },
+                ].map((b, i) => (
+                  <div key={i} className="lp-benefit">
+                    <span className="lp-benefit-icon">{b.icon}</span>
+                    <div>
+                      <h4>{b.title}</h4>
+                      <p>{b.desc}</p>
+                    </div>
                   </div>
-                </div>
-                <p>
-                  {language === 'it'
-                    ? 'Seleziona un mazzo salvato e scegli un obiettivo (Aggro, Control, Combo, Tribal…). L\'AI analizza la curva di mana, identifica sinergie e combo, e suggerisce carte specifiche da aggiungere o rimuovere.'
-                    : 'Select a saved deck and choose an optimization goal (Aggro, Control, Combo, Tribal…). AI analyzes mana curve, identifies synergies and combos, and suggests specific cards to add or remove.'}
-                </p>
+                ))}
               </div>
-            </div>
-          </div>
+            </section>
 
-          {/* Try AI CTA */}
-          <div className="try-ai-cta-section">
-            <p className="try-ai-cta-label">
-              {language === 'it' ? '🧪 Non vuoi registrarti subito? Nessun problema.' : '🧪 Not ready to sign up? No problem.'}
-            </p>
-            <a href={language === 'it' ? '/try' : '/en/try'} className="try-ai-cta-btn">
-              {language === 'it'
-                ? '⚡ Prova gratis tutti gli strumenti — AI Deck Builder, Synergy, Gemelli, Scanner e altro →'
-                : '⚡ Try all tools for free — AI Deck Builder, Synergy, Twins, Scanner and more →'}
-            </a>
-          </div>
-
-          {/* How It Works Section */}
-          <div className="how-it-works-section">
-            <h2 className="section-title">
-              {language === 'it' ? '🚀 Come Funziona' : '🚀 How It Works'}
-            </h2>
-            <div className="steps-grid">
-              <div className="step-card">
-                <div className="step-number">1</div>
-                <h3>{language === 'it' ? 'Carica la Collezione' : 'Upload Collection'}</h3>
-                <p>
-                  {language === 'it' 
-                    ? 'Esporta la tua collezione da app come Delver Lens o TCGPlayer in formato Excel/CSV e caricala'
-                    : 'Export your collection from apps like Delver Lens or TCGPlayer in Excel/CSV format and upload it'}
-                </p>
+            {/* ── TESTIMONIALS ── */}
+            <section className="lp-section lp-section-dark">
+              <h2 className="lp-section-title">⭐ {il ? 'Cosa Dicono i Giocatori' : 'What Players Say'}</h2>
+              <div className="lp-testimonials">
+                {[
+                  { text: il ? '"Fantastico! Ho scoperto che posso costruire 3 mazzi Modern competitivi con le carte che già possiedo."' : '"Amazing! I discovered I can build 3 competitive Modern decks with cards I already own."', author: 'Marco R.' },
+                  { text: il ? '"Strumento indispensabile per chi ha una grande collezione. Mi ha fatto risparmiare centinaia di euro!"' : '"Essential tool for anyone with a large collection. Saved me hundreds of euros!"', author: 'Sarah L.' },
+                  { text: il ? '"L\'AI Deck Builder è incredibile. In 30 secondi ho un mazzo Commander completo con strategia e upgrade path."' : '"The AI Deck Builder is incredible. In 30 seconds I have a complete Commander deck with strategy and upgrade path."', author: 'Giovanni P.' },
+                ].map((t, i) => (
+                  <div key={i} className="lp-testimonial">
+                    <div className="lp-stars">⭐⭐⭐⭐⭐</div>
+                    <p className="lp-testimonial-text">{t.text}</p>
+                    <span className="lp-testimonial-author">— {t.author}</span>
+                  </div>
+                ))}
               </div>
-              <div className="step-card">
-                <div className="step-number">2</div>
-                <h3>{language === 'it' ? 'Analisi Automatica' : 'Automatic Analysis'}</h3>
-                <p>
-                  {language === 'it' 
-                    ? 'Il sistema analizza oltre 7200 mazzi competitivi e calcola la compatibilità con le tue carte'
-                    : 'The system analyzes over 7200 competitive decks and calculates compatibility with your cards'}
-                </p>
-              </div>
-              <div className="step-card">
-                <div className="step-number">3</div>
-                <h3>{language === 'it' ? 'Scopri i Mazzi' : 'Discover Decks'}</h3>
-                <p>
-                  {language === 'it' 
-                    ? 'Visualizza i mazzi che puoi costruire, ordina per completamento e scopri quali carte ti mancano'
-                    : 'View decks you can build, sort by completion and discover which cards you\'re missing'}
-                </p>
-              </div>
-            </div>
-          </div>
+            </section>
 
-          {/* Formats Section */}
-          <div className="formats-section">
-            <h2 className="section-title">
-              {language === 'it' ? '🎮 Formati Supportati' : '🎮 Supported Formats'}
-            </h2>
-            <div className="formats-grid">
-              <div className="format-badge">Commander (EDH)</div>
-              <div className="format-badge">Modern</div>
-              <div className="format-badge">Standard</div>
-              <div className="format-badge">Legacy</div>
-              <div className="format-badge">Vintage</div>
-              <div className="format-badge">Pioneer</div>
-              <div className="format-badge">Pauper</div>
-              <div className="format-badge">Historic</div>
-              <div className="format-badge">Brawl</div>
-              <div className="format-badge">Alchemy</div>
-            </div>
-          </div>
+            {/* ── FAQ ── */}
+            <section className="lp-section">
+              <h2 className="lp-section-title">❓ {il ? 'Domande Frequenti' : 'FAQ'}</h2>
+              <div className="lp-faq">
+                {faqs.map((faq, i) => (
+                  <div key={i} className={`lp-faq-item ${openFaq === i ? 'open' : ''}`} onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                    <div className="lp-faq-q">
+                      <span>{faq.q}</span>
+                      <span className="lp-faq-arrow">{openFaq === i ? '▲' : '▼'}</span>
+                    </div>
+                    {openFaq === i && <p className="lp-faq-a">{faq.a}</p>}
+                  </div>
+                ))}
+              </div>
+            </section>
 
-          {/* Benefits Section */}
-          <div className="benefits-section">
-            <h2 className="section-title">
-              {language === 'it' ? '💡 Perché Usare Magic Deck Builder?' : '💡 Why Use Magic Deck Builder?'}
-            </h2>
-            <div className="benefits-grid">
-              <div className="benefit-item">
-                <span className="benefit-icon">💰</span>
-                <div className="benefit-content">
-                  <h4>{language === 'it' ? 'Risparmia Denaro' : 'Save Money'}</h4>
-                  <p>
-                    {language === 'it' 
-                      ? 'Scopri quali mazzi puoi costruire senza comprare nuove carte'
-                      : 'Discover which decks you can build without buying new cards'}
-                  </p>
+            {/* ── FINAL CTA ── */}
+            <section className="lp-final-cta">
+              <div className="lp-final-cta-inner">
+                <h2>{il ? 'Pronto a iniziare?' : 'Ready to start?'}</h2>
+                <p>{il ? 'Registrati gratis e scopri subito quali mazzi puoi costruire con la tua collezione.' : 'Sign up free and instantly discover which decks you can build with your collection.'}</p>
+                <div className="lp-final-cta-btns">
+                  <button className="lp-btn-primary lp-btn-xl" onClick={() => { setIsLogin(false); setShowAuthForm(true) }}>
+                    🎯 {il ? 'Crea Account Gratuito' : 'Create Free Account'}
+                  </button>
+                  <a href={tryUrl} className="lp-btn-amber lp-btn-xl">
+                    🧪 {il ? 'Prova senza account' : 'Try without account'}
+                  </a>
                 </div>
               </div>
-              <div className="benefit-item">
-                <span className="benefit-icon">⏱️</span>
-                <div className="benefit-content">
-                  <h4>{language === 'it' ? 'Risparmia Tempo' : 'Save Time'}</h4>
-                  <p>
-                    {language === 'it' 
-                      ? 'Non perdere ore a cercare deck list compatibili manualmente'
-                      : 'Don\'t waste hours manually searching for compatible deck lists'}
-                  </p>
-                </div>
-              </div>
-              <div className="benefit-item">
-                <span className="benefit-icon">🏆</span>
-                <div className="benefit-content">
-                  <h4>{language === 'it' ? 'Gioca Competitivo' : 'Play Competitive'}</h4>
-                  <p>
-                    {language === 'it' 
-                      ? 'Accedi a mazzi vincenti da tornei e campionati ufficiali'
-                      : 'Access winning decks from official tournaments and championships'}
-                  </p>
-                </div>
-              </div>
-              <div className="benefit-item">
-                <span className="benefit-icon">📈</span>
-                <div className="benefit-content">
-                  <h4>{language === 'it' ? 'Ottimizza la Collezione' : 'Optimize Collection'}</h4>
-                  <p>
-                    {language === 'it' 
-                      ? 'Scopri quali carte acquistare per completare più mazzi'
-                      : 'Discover which cards to buy to complete more decks'}
-                  </p>
-                </div>
-              </div>
-              <div className="benefit-item">
-                <span className="benefit-icon">📚</span>
-                <div className="benefit-content">
-                  <h4>{language === 'it' ? 'Gestione Collezioni' : 'Collection Management'}</h4>
-                  <p>
-                    {language === 'it' 
-                      ? 'Organizza le tue carte in collezioni multiple e tieni traccia di tutto'
-                      : 'Organize your cards in multiple collections and keep track of everything'}
-                  </p>
-                </div>
-              </div>
-              <div className="benefit-item">
-                <span className="benefit-icon">🃏</span>
-                <div className="benefit-content">
-                  <h4>{language === 'it' ? 'Gestione Deck' : 'Deck Management'}</h4>
-                  <p>
-                    {language === 'it' 
-                      ? 'Salva i tuoi mazzi preferiti e condividili con la community'
-                      : 'Save your favorite decks and share them with the community'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+            </section>
 
-          {/* Testimonials Section */}
-          <div className="testimonials-section">
-            <h2 className="section-title">
-              {language === 'it' ? '⭐ Cosa Dicono i Giocatori' : '⭐ What Players Say'}
-            </h2>
-            <div className="testimonials-grid">
-              <div className="testimonial-card">
-                <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
-                <p className="testimonial-text">
-                  {language === 'it' 
-                    ? '"Fantastico! Ho scoperto che posso costruire 3 mazzi Modern competitivi con le carte che già possiedo."'
-                    : '"Amazing! I discovered I can build 3 competitive Modern decks with cards I already own."'}
-                </p>
-                <p className="testimonial-author">- Marco R.</p>
+            {/* ── FOOTER ── */}
+            <footer className="lp-footer">
+              <div className="lp-footer-inner">
+                <span className="lp-footer-logo">🃏 Magic Deck Builder</span>
+                <div className="lp-footer-links">
+                  <a href="#" onClick={e => { e.preventDefault(); setShowPrivacyModal(true) }}>Privacy Policy</a>
+                  <a href="#" onClick={e => { e.preventDefault(); setShowTermsModal(true) }}>Terms of Service</a>
+                  <a href={tryUrl}>{il ? 'Prova Gratis' : 'Try Free'}</a>
+                </div>
+                <span className="lp-footer-copy">© 2025 Magic Deck Builder</span>
               </div>
-              <div className="testimonial-card">
-                <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
-                <p className="testimonial-text">
-                  {language === 'it' 
-                    ? '"Strumento indispensabile per chi ha una grande collezione. Mi ha fatto risparmiare centinaia di euro!"'
-                    : '"Essential tool for anyone with a large collection. Saved me hundreds of euros!"'}
-                </p>
-                <p className="testimonial-author">- Sarah L.</p>
-              </div>
-              <div className="testimonial-card">
-                <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
-                <p className="testimonial-text">
-                  {language === 'it' 
-                    ? '"Interfaccia intuitiva e risultati precisi. Perfetto per preparare tornei!"'
-                    : '"Intuitive interface and accurate results. Perfect for tournament preparation!"'}
-                </p>
-                <p className="testimonial-author">- Giovanni P.</p>
-              </div>
-            </div>
-          </div>
+            </footer>
 
-          {/* FAQ Section */}
-          <div className="faq-section">
-            <h2 className="section-title">
-              {language === 'it' ? '❓ Domande Frequenti' : '❓ Frequently Asked Questions'}
-            </h2>
-            <div className="faq-grid">
-              <div className="faq-item">
-                <h4 className="faq-question">
-                  {language === 'it' ? 'Come carico la mia collezione?' : 'How do I upload my collection?'}
-                </h4>
-                <p className="faq-answer">
-                  {language === 'it' 
-                    ? 'Esporta la tua collezione da app come Delver Lens, TCGPlayer o Dragon Shield in formato Excel (.xlsx) o CSV (.csv). Il file deve contenere almeno il nome della carta e la quantità. I nomi delle carte devono essere in inglese.'
-                    : 'Export your collection from apps like Delver Lens, TCGPlayer or Dragon Shield in Excel (.xlsx) or CSV (.csv) format. The file must contain at least the card name and quantity. Card names must be in English.'}
-                </p>
-              </div>
-              <div className="faq-item">
-                <h4 className="faq-question">
-                  {language === 'it' ? 'Quali formati sono supportati?' : 'Which formats are supported?'}
-                </h4>
-                <p className="faq-answer">
-                  {language === 'it' 
-                    ? 'Supportiamo tutti i principali formati Magic: Commander (EDH), Modern, Standard, Legacy, Vintage, Pioneer, Pauper, Historic, Brawl e Alchemy. Il database include oltre 7200 mazzi competitivi.'
-                    : 'We support all major Magic formats: Commander (EDH), Modern, Standard, Legacy, Vintage, Pioneer, Pauper, Historic, Brawl and Alchemy. The database includes over 7200 competitive decks.'}
-                </p>
-              </div>
-              <div className="faq-item">
-                <h4 className="faq-question">
-                  {language === 'it' ? 'È davvero gratuito?' : 'Is it really free?'}
-                </h4>
-                <p className="faq-answer">
-                  {language === 'it' 
-                    ? 'Sì! Offriamo un piano gratuito che include 3 caricamenti di collezione. Per utenti più attivi, sono disponibili piani Premium (10 caricamenti/mese) e Lifetime (tutto illimitato).'
-                    : 'Yes! We offer a free plan that includes 3 collection uploads. For more active users, Premium (10 uploads/month) and Lifetime (everything unlimited) plans are available.'}
-                </p>
-              </div>
-              <div className="faq-item">
-                <h4 className="faq-question">
-                  {language === 'it' ? 'Come vengono aggiornati i mazzi?' : 'How are decks updated?'}
-                </h4>
-                <p className="faq-answer">
-                  {language === 'it' 
-                    ? 'Il nostro database viene aggiornato regolarmente con mazzi vincenti da tornei ufficiali, Grand Prix, Pro Tour e campionati. Inoltre, gli utenti possono condividere i propri mazzi pubblici.'
-                    : 'Our database is regularly updated with winning decks from official tournaments, Grand Prix, Pro Tour and championships. Additionally, users can share their own public decks.'}
-                </p>
-              </div>
-              <div className="faq-item">
-                <h4 className="faq-question">
-                  {language === 'it' ? 'Posso gestire più collezioni?' : 'Can I manage multiple collections?'}
-                </h4>
-                <p className="faq-answer">
-                  {language === 'it' 
-                    ? 'Assolutamente sì! Puoi creare collezioni separate per diversi formati, mazzi o set. Ogni collezione può essere analizzata indipendentemente.'
-                    : 'Absolutely! You can create separate collections for different formats, decks or sets. Each collection can be analyzed independently.'}
-                </p>
-              </div>
-              <div className="faq-item">
-                <h4 className="faq-question">
-                  {language === 'it' ? 'Funziona su mobile?' : 'Does it work on mobile?'}
-                </h4>
-                <p className="faq-answer">
-                  {language === 'it' 
-                    ? 'Sì, l\'applicazione è completamente responsive e funziona su smartphone e tablet. Tuttavia, per un\'esperienza ottimale consigliamo l\'utilizzo su PC desktop.'
-                    : 'Yes, the application is fully responsive and works on smartphones and tablets. However, for the best experience we recommend using a desktop PC.'}
-                </p>
-              </div>
-            </div>
           </div>
-
-          {/* CTA Section */}
-          <div className="cta-section">
-            <h2>{language === 'it' ? 'Pronto a iniziare?' : 'Ready to start?'}</h2>
-            <p>
-              {language === 'it' 
-                ? 'Registrati gratuitamente e inizia a scoprire quali mazzi puoi costruire'
-                : 'Sign up for free and start discovering which decks you can build'}
-            </p>
-            <button className="cta-large" onClick={() => setShowAuthForm(true)}>
-              {language === 'it' ? '🎯 Crea Account Gratuito' : '🎯 Create Free Account'}
-            </button>
-          </div>
-        </div>
+        </>
       ) : (
-        <div className="auth-box">
-          <div className="auth-header">
-            <button className="back-btn" onClick={() => setShowAuthForm(false)}>
-              ← {language === 'it' ? 'Indietro' : 'Back'}
-            </button>
-          </div>
-          
-          {/* Desktop Recommendation Banner */}
-          <div className="desktop-recommendation">
-            <span className="recommendation-icon">💻</span>
-            <span className="recommendation-text">{t.desktopRecommended}</span>
-          </div>
-          
-          <h1>🃏 Magic Deck Builder</h1>
-          <h2>{isLogin ? t.login : t.register}</h2>
-
-          {message && (
-            <div className={`auth-message ${messageType}`}>
-              {message}
+        /* ── AUTH FORM ── */
+        <div className="auth-container">
+          <div className="auth-box">
+            <div className="auth-header">
+              <button className="back-btn" onClick={() => setShowAuthForm(false)}>← {il ? 'Indietro' : 'Back'}</button>
             </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>{t.email}</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
-                disabled={loading}
-                required
-              />
+            <div className="desktop-recommendation">
+              <span className="recommendation-icon">💻</span>
+              <span className="recommendation-text">{t.desktopRecommended}</span>
             </div>
-
-            <div className="form-group">
-              <label>{t.password}</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                disabled={loading}
-                required
-              />
-            </div>
-
-            {isLogin && (
-              <div className="login-policy-notice">
-                <p>
-                  {t.loginAcceptance}{' '}
-                  <a 
-                    href="#" 
-                    onClick={(e) => {
-                      e.preventDefault()
-                      setShowTermsModal(true)
-                    }}
-                    className="policy-link-small"
-                  >
-                    {t.termsOfService}
-                  </a>
-                  {' '}{t.and}{' '}
-                  <a 
-                    href="#" 
-                    onClick={(e) => {
-                      e.preventDefault()
-                      setShowPrivacyModal(true)
-                    }}
-                    className="policy-link-small"
-                  >
-                    {t.privacyPolicy}
-                  </a>
-                </p>
+            <h1>🃏 Magic Deck Builder</h1>
+            <h2>{isLogin ? t.login : t.register}</h2>
+            {message && <div className={`auth-message ${messageType}`}>{message}</div>}
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label>{t.email}</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" disabled={loading} required />
               </div>
-            )}
-
-            {!isLogin && (
-              <div className="form-group policy-acceptance">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={acceptedTerms && acceptedPrivacy}
-                    onChange={(e) => {
-                      setAcceptedTerms(e.target.checked)
-                      setAcceptedPrivacy(e.target.checked)
-                    }}
-                    disabled={loading}
-                    required
-                  />
-                  <span>
-                    {t.acceptTerms}{' '}
-                    <a 
-                      href="#" 
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setShowTermsModal(true)
-                      }}
-                      className="policy-link"
-                    >
-                      {t.termsOfService}
-                    </a>
-                    {' '}{t.and}{' '}
-                    <a 
-                      href="#" 
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setShowPrivacyModal(true)
-                      }}
-                      className="policy-link"
-                    >
-                      {t.privacyPolicy}
-                    </a>
-                  </span>
-                </label>
+              <div className="form-group">
+                <label>{t.password}</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" disabled={loading} required />
               </div>
-            )}
-
-            <button type="submit" className="auth-btn" disabled={loading}>
-              {loading ? (
-                <>
-                  <span className="spinner"></span>
-                  {isLogin ? t.loginBtn : t.registerBtn}...
-                </>
-              ) : (
-                isLogin ? t.loginBtn : t.registerBtn
+              {isLogin && (
+                <div className="login-policy-notice">
+                  <p>{t.loginAcceptance}{' '}<a href="#" onClick={e => { e.preventDefault(); setShowTermsModal(true) }} className="policy-link-small">{t.termsOfService}</a>{' '}{t.and}{' '}<a href="#" onClick={e => { e.preventDefault(); setShowPrivacyModal(true) }} className="policy-link-small">{t.privacyPolicy}</a></p>
+                </div>
               )}
+              {!isLogin && (
+                <div className="form-group policy-acceptance">
+                  <label className="checkbox-label">
+                    <input type="checkbox" checked={acceptedTerms && acceptedPrivacy} onChange={e => { setAcceptedTerms(e.target.checked); setAcceptedPrivacy(e.target.checked) }} disabled={loading} required />
+                    <span>{t.acceptTerms}{' '}<a href="#" onClick={e => { e.preventDefault(); setShowTermsModal(true) }} className="policy-link">{t.termsOfService}</a>{' '}{t.and}{' '}<a href="#" onClick={e => { e.preventDefault(); setShowPrivacyModal(true) }} className="policy-link">{t.privacyPolicy}</a></span>
+                  </label>
+                </div>
+              )}
+              <button type="submit" className="auth-btn" disabled={loading}>
+                {loading ? <><span className="spinner" />{isLogin ? t.loginBtn : t.registerBtn}...</> : (isLogin ? t.loginBtn : t.registerBtn)}
+              </button>
+            </form>
+            <button className="switch-btn" onClick={() => { setIsLogin(!isLogin); setMessage('') }} disabled={loading}>
+              {isLogin ? t.switchToRegister : t.switchToLogin}
             </button>
-          </form>
-
-          <button 
-            className="switch-btn" 
-            onClick={() => {
-              setIsLogin(!isLogin)
-              setMessage('')
-            }}
-            disabled={loading}
-          >
-            {isLogin ? t.switchToRegister : t.switchToLogin}
-          </button>
-
+          </div>
         </div>
       )}
 
-      {/* Privacy Policy Modal */}
+      {/* Privacy Modal */}
       {showPrivacyModal && (
         <div className="policy-modal-overlay" onClick={() => setShowPrivacyModal(false)}>
-          <div className="policy-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="policy-modal" onClick={e => e.stopPropagation()}>
             <div className="policy-modal-header">
               <h2>🔒 Privacy Policy</h2>
               <button className="close-modal-btn" onClick={() => setShowPrivacyModal(false)}>✕</button>
             </div>
             <div className="policy-modal-content">
-              <iframe 
-                src="/privacy.html" 
-                style={{ width: '100%', height: '100%', border: 'none' }}
-                title="Privacy Policy"
-                sandbox="allow-same-origin allow-scripts"
-              />
+              <iframe src="/privacy.html" style={{ width: '100%', height: '100%', border: 'none' }} title="Privacy Policy" sandbox="allow-same-origin allow-scripts" />
             </div>
           </div>
         </div>
       )}
 
-      {/* Terms of Service Modal */}
+      {/* Terms Modal */}
       {showTermsModal && (
         <div className="policy-modal-overlay" onClick={() => setShowTermsModal(false)}>
-          <div className="policy-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="policy-modal" onClick={e => e.stopPropagation()}>
             <div className="policy-modal-header">
               <h2>📋 Terms of Service</h2>
               <button className="close-modal-btn" onClick={() => setShowTermsModal(false)}>✕</button>
             </div>
             <div className="policy-modal-content">
-              <iframe 
-                src="/terms.html" 
-                style={{ width: '100%', height: '100%', border: 'none' }}
-                title="Terms of Service"
-                sandbox="allow-same-origin allow-scripts"
-              />
+              <iframe src="/terms.html" style={{ width: '100%', height: '100%', border: 'none' }} title="Terms of Service" sandbox="allow-same-origin allow-scripts" />
             </div>
           </div>
         </div>
