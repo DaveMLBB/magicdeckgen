@@ -516,7 +516,6 @@ function App() {
   useEffect(() => {
     const originalFetch = window.fetch
     window.fetch = async (...args) => {
-      // Inietta X-Browser-Id su tutte le chiamate API AI
       const [input, init] = args
       const url = typeof input === 'string' ? input : input?.url || ''
       if (url.includes('/api/ai/')) {
@@ -534,8 +533,7 @@ function App() {
         handleUnauthorized()
       }
 
-      // Intercetta 429 da trial anonimo esaurito (solo per utenti non autenticati)
-      if (response.status === 429 && !user) {
+      if (response.status === 429) {
         try {
           const cloned = response.clone()
           const data = await cloned.json()
@@ -549,7 +547,7 @@ function App() {
       return response
     }
     return () => { window.fetch = originalFetch }
-  }, [user, language])
+  }, [language]) // rimosso 'user' dalle dipendenze — evita ricreazione ad ogni setSubscriptionStatus
 
   if (loading) {
     return (
