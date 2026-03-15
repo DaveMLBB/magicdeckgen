@@ -2818,3 +2818,32 @@ div.column-mapper.column-mapper {
   top: 0;
   z-index: 99;
 }
+
+/* Unverified email banner */
+.unverified-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: rgba(246, 173, 85, 0.15);
+  border-bottom: 1px solid rgba(246, 173, 85, 0.35);
+  color: #f6ad55;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.unverified-resend-btn {
+  background: rgba(246, 173, 85, 0.2);
+  border: 1px solid rgba(246, 173, 85, 0.5);
+  color: #f6ad55;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.2s;
+}
+
+.unverified-resend-btn:hover {
+  background: rgba(246, 173, 85, 0.35);
+}

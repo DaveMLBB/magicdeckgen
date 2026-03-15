@@ -5,9 +5,12 @@ import bcrypt
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 import secrets
+import logging
 from app.database import get_db
 from app.models import User, PolicyAcceptance
 from app.email import send_verification_email
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -116,15 +119,19 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     
     # Invia email di verifica tramite Brevo (non blocca la registrazione se fallisce)
+    email_sent = False
     try:
-        send_verification_email(user_data.email, verification_token)
-    except Exception:
-        pass
+        email_sent = send_verification_email(user_data.email, verification_token)
+        if not email_sent:
+            logger.error(f"send_verification_email returned False for user {new_user.id} ({user_data.email})")
+    except Exception as e:
+        logger.error(f"Exception sending verification email to {user_data.email} (user_id={new_user.id}): {e}")
     
     return {
         "message": "Registration completed. Check your email to verify your account. You received 100 free tokens!",
         "user_id": new_user.id,
-        "welcome_tokens": 100
+        "welcome_tokens": 100,
+        "email_sent": email_sent
     }
 
 @router.post("/login", response_model=Token)
@@ -249,7 +256,12 @@ def update_user(user_data: UserUpdate, token: str, db: Session = Depends(get_db)
         user.verification_token = generate_verification_token()
         
         # Invia email di verifica tramite Brevo
-        send_verification_email(user_data.email, user.verification_token)
+        try:
+            sent = send_verification_email(user_data.email, user.verification_token)
+            if not sent:
+                logger.error(f"send_verification_email returned False for updated email {user_data.email} (user_id={user.id})")
+        except Exception as e:
+            logger.error(f"Exception sending verification email on update to {user_data.email} (user_id={user.id}): {e}")
     
     # Aggiorna password
     if user_data.password:
@@ -288,3 +300,49 @@ def get_current_user(token: str, db: Session = Depends(get_db)):
         "is_verified": user.is_verified,
         "created_at": user.created_at
     }
+
+@router.post("/resend-verification")
+def resend_verification(token: str, db: Session = Depends(get_db)):
+    """Reinvia email di verifica all'utente autenticato"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = int(payload.get("sub"))
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token non valido"
+        )
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Utente non trovato"
+        )
+
+    if user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email già verificata"
+        )
+
+    # Rigenera token se non presente
+    if not user.verification_token:
+        user.verification_token = generate_verification_token()
+        db.commit()
+
+    email_sent = False
+    try:
+        email_sent = send_verification_email(user.email, user.verification_token)
+        if not email_sent:
+            logger.error(f"resend_verification: send returned False for user {user.id} ({user.email})")
+    except Exception as e:
+        logger.error(f"resend_verification: exception for user {user.id} ({user.email}): {e}")
+
+    if not email_sent:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Impossibile inviare l'email al momento. Riprova più tardi."
+        )
+
+    return {"message": "Email di verifica inviata"}

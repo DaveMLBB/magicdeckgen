@@ -2002,7 +2002,34 @@ function App() {
             </div>
           </header>
 
-          {/* Mobile overlay menu */}
+          {/* Unverified email banner */}
+          {!user.isVerified && (
+            <div className="unverified-banner">
+              <span>
+                {language === 'it'
+                  ? '⚠️ Email non verificata. Controlla la tua casella di posta.'
+                  : '⚠️ Email not verified. Check your inbox.'}
+              </span>
+              <button
+                className="unverified-resend-btn"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${API_URL}/api/auth/resend-verification?token=${user.token}`, { method: 'POST' })
+                    const data = await res.json()
+                    if (res.ok) {
+                      alert(language === 'it' ? '✅ Email inviata! Controlla la tua casella.' : '✅ Email sent! Check your inbox.')
+                    } else {
+                      alert(data.detail || (language === 'it' ? 'Errore invio email' : 'Error sending email'))
+                    }
+                  } catch {
+                    alert(language === 'it' ? 'Errore di rete' : 'Network error')
+                  }
+                }}
+              >
+                {language === 'it' ? 'Reinvia email' : 'Resend email'}
+              </button>
+            </div>
+          )}
           <div className={`mobile-menu-overlay ${mobileMenuOpen ? 'is-open' : ''}`} onClick={() => setMobileMenuOpen(false)}>
             <div className={`mobile-menu ${mobileMenuOpen ? 'is-open' : ''}`} onClick={(e) => e.stopPropagation()}>
 

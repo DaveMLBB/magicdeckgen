@@ -464,6 +464,12 @@
   color: #f5576c;
 }
 
+.auth-message.warning {
+  background: rgba(246, 173, 85, 0.2);
+  border: 1px solid rgba(246, 173, 85, 0.5);
+  color: #f6ad55;
+}
+
 
 @keyframes slideIn {
   from {

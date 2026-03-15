@@ -141,19 +141,27 @@ function Auth({ onLogin, language, setLanguage }) {
         }, 500)
       } else {
         // Registrazione riuscita
-        setMessage(t.registerSuccess)
-        setMessageType('success')
+        if (data.email_sent === false) {
+          const emailWarning = language === 'it'
+            ? 'Registrazione completata! Non siamo riusciti a inviarti l\'email di verifica. Contatta il supporto o riprova più tardi.'
+            : 'Registration complete! We could not send the verification email. Please contact support or try again later.'
+          setMessage(emailWarning)
+          setMessageType('warning')
+        } else {
+          setMessage(t.registerSuccess)
+          setMessageType('success')
+        }
         
         // Google Ads conversion tracking
         if (typeof window.gtag_report_conversion === 'function') {
           window.gtag_report_conversion()
         }
         
-        // Passa a login dopo 3 secondi
+        // Passa a login dopo 5 secondi
         setTimeout(() => {
           setIsLogin(true)
           setMessage('')
-        }, 3000)
+        }, 5000)
       }
     } catch (err) {
       console.error('❌ Errore auth:', err)
