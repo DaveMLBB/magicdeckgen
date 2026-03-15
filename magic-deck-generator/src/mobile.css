@@ -242,7 +242,7 @@ body {
   display: none !important;
 }
 
-/* Hamburger button - visible only on mobile */
+/* Hamburger button - hidden on desktop, shown on mobile via media query */
 .app-topbar-hamburger {
   display: none;
   flex-direction: column;
@@ -250,6 +250,7 @@ body {
   align-items: center;
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -264,6 +265,11 @@ body {
   background: rgba(255, 255, 255, 0.12);
 }
 
+@media (max-width: 1024px) {
+  .app-topbar-hamburger {
+    display: flex !important;
+  }
+}
 .app-topbar-hamburger span {
   display: block;
   width: 16px;

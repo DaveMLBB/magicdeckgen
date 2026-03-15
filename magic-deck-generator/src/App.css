@@ -2768,10 +2768,6 @@ div.column-mapper.column-mapper {
 
 /* Mobile: topbar hamburger shown, sidebar hidden */
 @media (max-width: 1024px) {
-  .app-topbar-hamburger {
-    display: flex;
-  }
-
   .desktop-only {
     display: none !important;
   }
@@ -2783,12 +2779,9 @@ div.column-mapper.column-mapper {
   .app-main {
     min-height: calc(100vh - 52px);
   }
-
-  .app-topbar-logo-text {
-    display: none;
-  }
 }
 
+/* Su schermi molto piccoli riduci padding topbar */
 @media (max-width: 480px) {
   .app-topbar {
     padding: 0 0.6rem;
@@ -2796,6 +2789,10 @@ div.column-mapper.column-mapper {
   }
 
   .app-topbar-email {
+    display: none;
+  }
+
+  .app-topbar-logo-text {
     display: none;
   }
 }
