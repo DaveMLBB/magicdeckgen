@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from collections import defaultdict
 from app.database import get_db
 from app.models import Card
+from app.dependencies import anonymous_trial_guard
 
 router = APIRouter()
 
@@ -198,16 +199,33 @@ def select_deck_cards(cards: list, archetype: str, target: int) -> list:
 @router.get("/match/{user_id}")
 def match_decks(
     user_id: str, 
-    format: str = None,  # OPZIONALE - Formato del mazzo
-    colors: str = None,  # Colori separati da virgola: "W,U,B"
-    min_match: int = 10,  # Percentuale minima di match
-    buildable_only: bool = False,  # Solo mazzi costruibili (>=90%)
-    collection_id: int = None,  # OPZIONALE - Filtra per collezione specifica
+    request: Request,
+    format: str = None,
+    colors: str = None,
+    min_match: int = 10,
+    buildable_only: bool = False,
+    collection_id: int = None,
     db: Session = Depends(get_db)
 ):
     """Trova mazzi template che puoi costruire con le tue carte"""
     from app.models import DeckTemplate, DeckTemplateCard, User
-    
+    from app.anonymous_trial import check_and_increment_trial, _extract_ip
+
+    # Gestione utenti anonimi (user_id=0 o non numerico)
+    is_anon = False
+    try:
+        uid_int = int(user_id)
+        is_anon = uid_int <= 0
+    except (ValueError, TypeError):
+        is_anon = True
+
+    if is_anon:
+        # Applica trial guard per anonimi
+        browser_id = request.headers.get("X-Browser-ID")
+        ip = _extract_ip(request)
+        check_and_increment_trial("tournament_deck", ip, browser_id)
+        return {"decks": [], "message": "Anonymous users cannot use deck matching without a collection."}
+
     # Get user to check subscription
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:

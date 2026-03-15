@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import App from './App';
 import LandingPage from './pages/public/LandingPage';
 import WelcomePage from './pages/WelcomePage';
+import TryPage from './pages/public/TryPage';
 import { CedhDeckBuilderEN, CedhDeckBuilderIT } from './pages/public/formats/CedhDeckBuilder';
 import { PremodernDeckBuilderEN, PremodernDeckBuilderIT } from './pages/public/formats/PremodernDeckBuilder';
 import { PauperDeckBuilderEN, PauperDeckBuilderIT } from './pages/public/formats/PauperDeckBuilder';
@@ -29,6 +30,8 @@ function AppRouter() {
       
       {/* Root and all other paths - Protected app */}
       <Route path="/welcome" element={<WelcomePage />} />
+      <Route path="/try" element={<TryPage lang="it" />} />
+      <Route path="/en/try" element={<TryPage lang="en" />} />
       <Route path="/*" element={<App />} />
     </Routes>
   );

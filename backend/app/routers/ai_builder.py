@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
 from app.database import get_db
 from app.models import User, SavedDeck, SavedDeckCard, MTGCard
+from app.dependencies import anonymous_trial_guard
 import os
 import json
 import time
@@ -11,6 +12,30 @@ from collections import deque
 from threading import Lock
 
 router = APIRouter()
+
+# Utente fittizio per richieste anonime (trial): nessun token consumato
+class _AnonUser:
+    id = 0
+    tokens = 0
+    def __bool__(self): return False
+
+ANON_USER = _AnonUser()
+
+def get_user_or_anon(user_id: int, db: Session) -> tuple:
+    """Restituisce (user, is_anon). Se user_id=0 → utente anonimo, nessun DB lookup."""
+    if not user_id or user_id <= 0:
+        return ANON_USER, True
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user, False
+
+def maybe_consume_token(user, is_anon: bool, action: str, description: str, db: Session, tokens_to_consume: int):
+    """Consuma token solo per utenti autenticati."""
+    if is_anon:
+        return
+    from app.routers.tokens import consume_token
+    consume_token(user, action, description, db, tokens_to_consume=tokens_to_consume)
 
 # ── Prezzi modelli OpenAI ($/1M tokens) ──
 MODEL_PRICING = {
@@ -172,24 +197,24 @@ class BuildDeckInput(BaseModel):
 @router.post("/build-deck")
 async def build_deck(
     input_data: BuildDeckInput,
+    request: Request,
     language: str = "it",
+    _trial: None = Depends(anonymous_trial_guard("deck_ai")),
     db: Session = Depends(get_db)
 ):
     """
     Genera un mazzo completo da una descrizione testuale usando AI.
     Consuma 30 token.
     """
-    user = db.query(User).filter(User.id == input_data.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user, is_anon = get_user_or_anon(input_data.user_id, db)
 
-    check_ai_rate_limit(input_data.user_id)
+    if not is_anon:
+        check_ai_rate_limit(input_data.user_id)
 
     if not input_data.description or len(input_data.description.strip()) < 10:
         raise HTTPException(status_code=400, detail="Description too short (min 10 characters)")
 
-    from app.routers.tokens import consume_token
-    consume_token(user, 'ai_build_deck', f'AI build deck: {input_data.description[:60]}', db, tokens_to_consume=5)
+    maybe_consume_token(user, is_anon, 'ai_build_deck', f'AI build deck: {input_data.description[:60]}', db, tokens_to_consume=5)
 
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
@@ -383,7 +408,9 @@ def get_full_collection_cost(collection_id: int, user_id: int, db: Session = Dep
 @router.post("/build-deck-full-collection")
 async def build_deck_full_collection(
     input_data: BuildDeckFullCollectionInput,
+    request: Request,
     language: str = "it",
+    _trial: None = Depends(anonymous_trial_guard("deck_ai_full")),
     db: Session = Depends(get_db)
 ):
     """
@@ -723,18 +750,19 @@ Return the improved deck as the same JSON structure. Respond with valid JSON onl
 @router.post("/find-twins")
 async def find_twins(
     input_data: FindTwinsInput,
+    request: Request,
     language: str = "it",
+    _trial: None = Depends(anonymous_trial_guard("twins_ai")),
     db: Session = Depends(get_db)
 ):
     """
     Dato un set di carte, trova carte che fanno la stessa cosa (twins/gemelli).
     Consuma 1 token.
     """
-    user = db.query(User).filter(User.id == input_data.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user, is_anon = get_user_or_anon(input_data.user_id, db)
 
-    check_ai_rate_limit(input_data.user_id)
+    if not is_anon:
+        check_ai_rate_limit(input_data.user_id)
 
     if not input_data.card_names or len(input_data.card_names) == 0:
         raise HTTPException(status_code=400, detail="Provide at least one card name")
@@ -742,8 +770,7 @@ async def find_twins(
     if len(input_data.card_names) > 5:
         raise HTTPException(status_code=400, detail="Maximum 5 cards allowed")
 
-    from app.routers.tokens import consume_token
-    consume_token(user, 'ai_twins', f'AI twins search: {", ".join(input_data.card_names)}', db, tokens_to_consume=3)
+    maybe_consume_token(user, is_anon, 'ai_twins', f'AI twins search: {", ".join(input_data.card_names)}', db, tokens_to_consume=3)
 
     # Fetch card data from DB
     cards_data = []
@@ -876,18 +903,19 @@ Respond ONLY with valid JSON in this exact structure:
 @router.post("/find-synergies")
 async def find_synergies(
     input_data: FindSynergiesInput,
+    request: Request,
     language: str = "it",
+    _trial: None = Depends(anonymous_trial_guard("synergy_ai")),
     db: Session = Depends(get_db)
 ):
     """
     Dato un set di carte seme, trova carte compatibili/sinergiche usando AI.
     Consuma 1 token.
     """
-    user = db.query(User).filter(User.id == input_data.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user, is_anon = get_user_or_anon(input_data.user_id, db)
 
-    check_ai_rate_limit(input_data.user_id)
+    if not is_anon:
+        check_ai_rate_limit(input_data.user_id)
 
     if not input_data.card_names or len(input_data.card_names) == 0:
         raise HTTPException(status_code=400, detail="Provide at least one card name")
@@ -895,8 +923,7 @@ async def find_synergies(
     if len(input_data.card_names) > 5:
         raise HTTPException(status_code=400, detail="Maximum 5 seed cards allowed")
 
-    from app.routers.tokens import consume_token
-    consume_token(user, 'ai_synergy', f'AI synergy search: {", ".join(input_data.card_names)}', db, tokens_to_consume=3)
+    maybe_consume_token(user, is_anon, 'ai_synergy', f'AI synergy search: {", ".join(input_data.card_names)}', db, tokens_to_consume=3)
 
     # Fetch card data from DB to enrich the prompt
     seed_cards_data = []
@@ -1026,7 +1053,9 @@ Respond ONLY with valid JSON in this exact structure:
 @router.post("/optimize-deck")
 async def optimize_deck(
     input_data: OptimizeDeckInput,
+    request: Request,
     language: str = "it",
+    _trial: None = Depends(anonymous_trial_guard("analyzer_ai")),
     db: Session = Depends(get_db)
 ):
     """
@@ -1411,24 +1440,24 @@ class ChatBuildDeckInput(BaseModel):
 @router.post("/chat-build-deck")
 async def chat_build_deck(
     input_data: ChatBuildDeckInput,
+    request: Request,
     language: str = "it",
+    _trial: None = Depends(anonymous_trial_guard("chat_build_ai")),
     db: Session = Depends(get_db)
 ):
     """
     Costruisce o modifica un mazzo tramite chat AI con memoria della sessione.
     Costo: 5 token per messaggio.
     """
-    user = db.query(User).filter(User.id == input_data.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user, is_anon = get_user_or_anon(input_data.user_id, db)
 
-    check_ai_rate_limit(input_data.user_id)
+    if not is_anon:
+        check_ai_rate_limit(input_data.user_id)
 
     if not input_data.message or len(input_data.message.strip()) < 3:
         raise HTTPException(status_code=400, detail="Messaggio troppo corto")
 
-    from app.routers.tokens import consume_token
-    consume_token(user, 'ai_chat_build', f'AI Chat Build: {input_data.message[:50]}', db, tokens_to_consume=CHAT_BUILD_TOKEN_COST)
+    maybe_consume_token(user, is_anon, 'ai_chat_build', f'AI Chat Build: {input_data.message[:50]}', db, tokens_to_consume=CHAT_BUILD_TOKEN_COST)
 
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:

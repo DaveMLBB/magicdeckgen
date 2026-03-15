@@ -21,8 +21,9 @@ import PrivacySettings from './components/PrivacySettings'
 import LegalPages from './components/LegalPages'
 import CookieSettings from './components/CookieSettings'
 import EmailPreferences from './components/EmailPreferences'
+import TrialLimitModal from './components/TrialLimitModal'
+import { getTrialHeaders, isTrialLimitError, getTrialLimitMessage } from './utils/anonymousTrial'
 import { cardImageCache } from './utils/cardImageCache'
-import RandomArtBackground from './components/RandomArtBackground'
 import Chat from './components/Chat'
 import Dashboard from './components/Dashboard'
 import Breadcrumb from './components/Breadcrumb'
@@ -114,6 +115,7 @@ function App() {
   const [showGuide, setShowGuide] = useState(false)
   const [cardSearchInitialQuery, setCardSearchInitialQuery] = useState('')
   const [sessionExpired, setSessionExpired] = useState(false)
+  const [trialLimitInfo, setTrialLimitInfo] = useState(null) // { message: string }
 
   // Traduzioni
   const translations = {
@@ -508,18 +510,44 @@ function App() {
     if (user) setSessionExpired(true)
   }
 
-  // Fetch interceptor globale per catturare i 401
+  // Fetch interceptor globale per catturare i 401 e i 429 trial limit
   useEffect(() => {
     const originalFetch = window.fetch
     window.fetch = async (...args) => {
+      // Inietta X-Browser-Id su tutte le chiamate API AI
+      const [input, init] = args
+      const url = typeof input === 'string' ? input : input?.url || ''
+      if (url.includes('/api/ai/')) {
+        const trialHeaders = getTrialHeaders()
+        const newInit = {
+          ...init,
+          headers: { ...(init?.headers || {}), ...trialHeaders }
+        }
+        args = [input, newInit]
+      }
+
       const response = await originalFetch(...args)
+
       if (response.status === 401) {
         handleUnauthorized()
       }
+
+      // Intercetta 429 da trial anonimo esaurito (solo per utenti non autenticati)
+      if (response.status === 429 && !user) {
+        try {
+          const cloned = response.clone()
+          const data = await cloned.json()
+          if (isTrialLimitError(response, data)) {
+            const msg = getTrialLimitMessage(data, language)
+            setTrialLimitInfo({ message: msg })
+          }
+        } catch { /* ignora errori di parsing */ }
+      }
+
       return response
     }
     return () => { window.fetch = originalFetch }
-  }, [user])
+  }, [user, language])
 
   if (loading) {
     return (
@@ -530,7 +558,19 @@ function App() {
   }
 
   if (!user) {
-    return <Auth onLogin={handleLogin} language={language} setLanguage={setLanguage} />
+    return (
+      <>
+        <Auth onLogin={handleLogin} language={language} setLanguage={setLanguage} />
+        {trialLimitInfo && (
+          <TrialLimitModal
+            message={trialLimitInfo.message}
+            language={language}
+            onClose={() => setTrialLimitInfo(null)}
+            onRegister={() => setTrialLimitInfo(null)}
+          />
+        )}
+      </>
+    )
   }
 
   const handleUpload = async (e) => {
@@ -2160,6 +2200,16 @@ function App() {
         onConsentChange={(consent) => { console.log('Consent updated:', consent) }}
         onPrivacyClick={() => setCurrentView('privacy-policy')}
       />
+
+      {/* Anonymous Trial Limit Modal */}
+      {trialLimitInfo && (
+        <TrialLimitModal
+          message={trialLimitInfo.message}
+          language={language}
+          onClose={() => setTrialLimitInfo(null)}
+          onRegister={() => { setTrialLimitInfo(null) }}
+        />
+      )}
 
       {/* Session Expired Overlay */}
       {sessionExpired && (

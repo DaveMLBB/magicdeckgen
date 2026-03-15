@@ -152,6 +152,9 @@ const LandingPage = ({ lang = 'en' }) => {
           <p className="seo-hero-subtitle">{t.subtitle}</p>
           <div className="lp-hero-actions">
             <Link to="/app" className="seo-hero-cta">{t.ctaPrimary}</Link>
+            <Link to={lang === 'en' ? '/en/try' : '/try'} className="seo-hero-cta lp-cta-secondary lp-cta-try">
+              {lang === 'en' ? '🧪 Try free — no signup' : '🧪 Prova gratis — senza registrarti'}
+            </Link>
           </div>
         </div>
       </section>
@@ -206,6 +209,9 @@ const LandingPage = ({ lang = 'en' }) => {
           </div>
           <div className="lp-ai-cta">
             <Link to="/app" className="seo-hero-cta lp-cta-sm">{t.ctaPrimary}</Link>
+            <Link to={lang === 'en' ? '/en/try' : '/try'} className="seo-hero-cta lp-cta-sm lp-cta-try">
+              {lang === 'en' ? '🧪 Try free — no signup needed' : '🧪 Prova gratis — nessun account'}
+            </Link>
           </div>
         </div>
       </section>

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
 from app.database import get_db
 from app.models import User, SavedDeck, SavedDeckCard, Card, CardCollection, MTGCard
-from app.routers.ai_builder import check_ai_rate_limit, enforce_deck_size
+from app.routers.ai_builder import check_ai_rate_limit, enforce_deck_size, get_user_or_anon, maybe_consume_token
+from app.dependencies import anonymous_trial_guard
 import os
 import json
 
@@ -43,16 +44,19 @@ class BoostDeckInput(BaseModel):
 @router.post("/boost-deck")
 async def boost_deck(
     input_data: BoostDeckInput,
+    request: Request,
     language: str = "it",
+    _trial: None = Depends(anonymous_trial_guard("boost_ai_anon")),
     db: Session = Depends(get_db)
 ):
     """
     Modifica un mazzo esistente tramite chat AI con memoria della sessione.
-    Costo: 3 token per messaggio.
+    Costo: 5 token per messaggio (utenti registrati). 1 utilizzo/mese per anonimi.
     """
-    user = db.query(User).filter(User.id == input_data.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Utente non trovato")
+    user, is_anon = get_user_or_anon(input_data.user_id, db)
+
+    if is_anon:
+        raise HTTPException(status_code=400, detail="AI Deck Boost richiede un mazzo salvato. Registrati per usare questa funzione.")
 
     check_ai_rate_limit(input_data.user_id)
 
@@ -85,12 +89,9 @@ async def boost_deck(
         ]
 
     from app.routers.tokens import consume_token
-    consume_token(
-        user, 'ai_boost_deck',
-        f'AI Deck Boost: {input_data.message[:50]}',
-        db,
-        tokens_to_consume=BOOST_TOKEN_COST
-    )
+    maybe_consume_token(user, is_anon, 'ai_boost_deck',
+        f'AI Deck Boost: {input_data.message[:50]}', db,
+        tokens_to_consume=BOOST_TOKEN_COST)
 
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
@@ -240,7 +241,7 @@ Se deck_modified è false, updated_deck può essere null."""
             "assistant_message": assistant_message,
             "deck_modified": deck_modified,
             "updated_deck": updated_deck,
-            "tokens_remaining": user.tokens
+            "tokens_remaining": user.tokens if not is_anon else 0
         }
 
     except Exception as e:

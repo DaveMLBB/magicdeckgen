@@ -244,6 +244,13 @@ function Auth({ onLogin, language, setLanguage }) {
                   {language === 'it' ? '🔑 Accedi' : '🔑 Login'}
                 </button>
               </div>
+              <div className="hero-try-link">
+                <a href={language === 'it' ? '/try' : '/en/try'}>
+                  {language === 'it'
+                    ? '🧪 Prova tutti gli strumenti gratis — nessun account richiesto →'
+                    : '🧪 Try all tools for free — no account needed →'}
+                </a>
+              </div>
             </div>
           </div>
 
@@ -380,6 +387,18 @@ function Auth({ onLogin, language, setLanguage }) {
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Try AI CTA */}
+          <div className="try-ai-cta-section">
+            <p className="try-ai-cta-label">
+              {language === 'it' ? '🧪 Non vuoi registrarti subito? Nessun problema.' : '🧪 Not ready to sign up? No problem.'}
+            </p>
+            <a href={language === 'it' ? '/try' : '/en/try'} className="try-ai-cta-btn">
+              {language === 'it'
+                ? '⚡ Prova gratis tutti gli strumenti — AI Deck Builder, Synergy, Gemelli, Scanner e altro →'
+                : '⚡ Try all tools for free — AI Deck Builder, Synergy, Twins, Scanner and more →'}
+            </a>
           </div>
 
           {/* How It Works Section */}
