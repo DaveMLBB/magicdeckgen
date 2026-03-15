@@ -432,12 +432,16 @@ function App() {
 
   useEffect(() => {
     localStorage.setItem('language', language)
-    if (user) {
+  }, [language])
+
+  // Carica dati iniziali quando l'utente fa login (dipende solo da userId/token, non dall'oggetto user intero)
+  useEffect(() => {
+    if (user?.userId && user?.token) {
       loadAvailableFormats()
       loadSubscriptionStatus()
       loadSearchCollections()
     }
-  }, [language, user])
+  }, [user?.userId, user?.token])
 
   // Carica le carte quando viene selezionato un mazzo pubblico
   useEffect(() => {
