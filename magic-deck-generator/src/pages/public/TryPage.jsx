@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import AIDeckBuilderAnon from './AIDeckBuilderAnon'
 import CardSynergyAnon from './CardSynergyAnon'
 import CardTwinsAnon from './CardTwinsAnon'
@@ -46,13 +46,29 @@ const TOOLS = {
 
 export default function TryPage({ lang = 'it' }) {
   const navigate = useNavigate()
-  const [activeTool, setActiveTool] = useState(null)
+  const { toolId } = useParams()
+  const [activeTool, setActiveTool] = useState(toolId || null)
   const [trialLimitInfo, setTrialLimitInfo] = useState(null)
   const language = lang
+
+  // Sincronizza activeTool con il parametro URL
+  useEffect(() => {
+    setActiveTool(toolId || null)
+  }, [toolId])
 
   const handleTrialLimit = (data) => {
     const msg = getTrialLimitMessage(data, language)
     setTrialLimitInfo({ message: msg })
+  }
+
+  const handleSelectTool = (id) => {
+    const base = language === 'en' ? '/en/try' : '/try'
+    navigate(`${base}/${id}`)
+  }
+
+  const handleBack = () => {
+    const base = language === 'en' ? '/en/try' : '/try'
+    navigate(base)
   }
 
   const tools = TOOLS[language] || TOOLS.it
@@ -66,24 +82,24 @@ export default function TryPage({ lang = 'it' }) {
     />
   )
 
-  const commonProps = { language, onBack: () => setActiveTool(null), onTrialLimit: handleTrialLimit }
+  const commonProps = { language, onBack: handleBack, onTrialLimit: handleTrialLimit }
 
   if (activeTool === 'deck-builder') return <><AIDeckBuilderAnon {...commonProps} />{trialModal}</>
   if (activeTool === 'synergy')      return <><CardSynergyAnon {...commonProps} />{trialModal}</>
   if (activeTool === 'twins')        return <><CardTwinsAnon {...commonProps} />{trialModal}</>
   if (activeTool === 'boost')        return <><AIDeckBoostAnon {...commonProps} />{trialModal}</>
   if (activeTool === 'tournament')   return <><TournamentDeckBuilderAnon {...commonProps} />{trialModal}</>
-  if (activeTool === 'card-search')  return <CardSearchAnon language={language} onBack={() => setActiveTool(null)} />
-  if (activeTool === 'decks')        return <PublicDecksAnon language={language} onBack={() => setActiveTool(null)} />
-  if (activeTool === 'collections')  return <PublicCollectionsAnon language={language} onBack={() => setActiveTool(null)} />
-  if (activeTool === 'arena-import') return <ArenaImportAnon language={language} onBack={() => setActiveTool(null)} />
+  if (activeTool === 'card-search')  return <CardSearchAnon language={language} onBack={handleBack} />
+  if (activeTool === 'decks')        return <PublicDecksAnon language={language} onBack={handleBack} />
+  if (activeTool === 'collections')  return <PublicCollectionsAnon language={language} onBack={handleBack} />
+  if (activeTool === 'arena-import') return <ArenaImportAnon language={language} onBack={handleBack} />
   if (activeTool === 'scanner')      return <><CardScannerAnon {...commonProps} />{trialModal}</>
 
   if (activeTool === 'feedback') {
     return (
       <div style={{ minHeight: '100vh', background: '#0f172a', color: '#e2e8f0', padding: '0 0 60px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', background: '#1e293b', borderBottom: '1px solid #334155' }}>
-          <button onClick={() => setActiveTool(null)} style={{ background: '#334155', color: '#e2e8f0', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer' }}>
+          <button onClick={handleBack} style={{ background: '#334155', color: '#e2e8f0', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer' }}>
             {language === 'it' ? '← Indietro' : '← Back'}
           </button>
         </div>
@@ -111,7 +127,7 @@ export default function TryPage({ lang = 'it' }) {
 
       <div className="try-tools-grid">
         {tools.map(tool => (
-          <div key={tool.id} className="try-tool-card" onClick={() => setActiveTool(tool.id)}>
+          <div key={tool.id} className="try-tool-card" onClick={() => handleSelectTool(tool.id)}>
             <div className="try-tool-icon">{tool.icon}</div>
             <h2 className="try-tool-title">{tool.title}</h2>
             <p className="try-tool-desc">{tool.desc}</p>
