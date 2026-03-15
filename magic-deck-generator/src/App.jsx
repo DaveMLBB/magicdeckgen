@@ -325,21 +325,17 @@ function App() {
 
   const t = translations[language]
 
+  // Ref per evitare loop: traccia l'ultimo userId per cui abbiamo già caricato i dati
+  const loadedForUserRef = useRef(null)
+
   // Definisci le funzioni prima degli useEffect
-  const loadSubscriptionStatus = async () => {
-    if (!user) return
+  const loadSubscriptionStatus = async (token) => {
+    if (!token) return
     try {
-      const res = await fetch(`${API_URL}/api/tokens/balance?token=${user.token}`)
+      const res = await fetch(`${API_URL}/api/tokens/balance?token=${token}`)
       const data = await res.json()
+      // Aggiorna SOLO subscriptionStatus, NON setUser (evita loop)
       setSubscriptionStatus({ tokens: data.tokens })
-      // Aggiorna anche user.tokens così i componenti AI lo leggono correttamente
-      setUser(prev => prev ? { ...prev, tokens: data.tokens } : prev)
-      
-      // Se l'utente ha 0 token e non abbiamo ancora mostrato la modale, mostrala
-      if (data.tokens === 0 && !hasShownSubscriptionModal) {
-        setCurrentView('subscriptions')
-        setHasShownSubscriptionModal(true)
-      }
     } catch (err) {
       console.error('Errore caricamento saldo token:', err)
     }
@@ -435,10 +431,12 @@ function App() {
   }, [language])
 
   // Carica dati iniziali quando l'utente fa login (dipende solo da userId/token, non dall'oggetto user intero)
+  // loadedForUserRef evita che il loop si ripeta se subscriptionStatus cambia
   useEffect(() => {
-    if (user?.userId && user?.token) {
+    if (user?.userId && user?.token && loadedForUserRef.current !== user.userId) {
+      loadedForUserRef.current = user.userId
       loadAvailableFormats()
-      loadSubscriptionStatus()
+      loadSubscriptionStatus(user.token)
       loadSearchCollections()
     }
   }, [user?.userId, user?.token])
@@ -2023,26 +2021,26 @@ function App() {
               </button>
             </div>
             <div className="app-topbar-right">
-              <div className="language-selector">
+              <div className="language-selector desktop-only">
                 <button className={`lang-btn ${language === 'it' ? 'active' : ''}`} onClick={() => setLanguage('it')}>🇮🇹</button>
                 <button className={`lang-btn ${language === 'en' ? 'active' : ''}`} onClick={() => setLanguage('en')}>🇬🇧</button>
               </div>
               <button
-                className="app-topbar-icon-btn"
+                className="app-topbar-icon-btn desktop-only"
                 onClick={() => { const next = !animatedBg; setAnimatedBg(next); localStorage.setItem('animatedBg', String(next)) }}
                 title={language === 'it' ? 'Sfondo animato' : 'Animated background'}
               >
                 {animatedBg ? '🖼️' : '🚫'}
               </button>
-              <button className="app-topbar-icon-btn" title={language === 'it' ? 'Guida' : 'Guide'} onClick={() => setShowGuide(true)}>❓</button>
+              <button className="app-topbar-icon-btn desktop-only" title={language === 'it' ? 'Guida' : 'Guide'} onClick={() => setShowGuide(true)}>❓</button>
               {subscriptionStatus && (
                 <button className="app-topbar-tokens" onClick={() => setCurrentView('subscriptions')}>
                   🪙 {subscriptionStatus.tokens ?? 0}
                 </button>
               )}
               <span className="app-topbar-email desktop-only">{user.email}</span>
-              <button className="app-topbar-icon-btn" onClick={() => setCurrentView('privacy-settings')}>🔒</button>
-              <button className="app-topbar-icon-btn logout-btn" onClick={handleLogout} title={language === 'it' ? 'Esci' : 'Logout'}>🚪</button>
+              <button className="app-topbar-icon-btn desktop-only" onClick={() => setCurrentView('privacy-settings')}>🔒</button>
+              <button className="app-topbar-icon-btn logout-btn desktop-only" onClick={handleLogout} title={language === 'it' ? 'Esci' : 'Logout'}>🚪</button>
             </div>
           </header>
 
