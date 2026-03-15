@@ -760,7 +760,7 @@ function App() {
       setMessage(`✓ ${data.message}`)
       loadCards()
       loadSearchCollections()
-      loadSubscriptionStatus()
+      loadSubscriptionStatus(user.token)
       
       // Imposta la collezione appena creata come filtro di ricerca predefinito
       setFilters(prev => ({ ...prev, collectionId: newCollection.id }))
@@ -978,7 +978,7 @@ function App() {
         }
         
         // Update token balance after search
-        loadSubscriptionStatus()
+        loadSubscriptionStatus(user.token)
       } catch (err) {
         console.error('Errore ricerca:', err)
         setMessage(t.errorSearching)
@@ -1124,7 +1124,7 @@ function App() {
       setMessage(`✅ ${t.deckImported} "${data.name}" (${data.cards_added} ${t.cards}${enrichedMsg})`)
       
       // Update token balance
-      loadSubscriptionStatus()
+      loadSubscriptionStatus(user.token)
       
       // Opzionale: reindirizza alla collezione appena creata
       setTimeout(() => {
@@ -1194,7 +1194,7 @@ function App() {
       setMessage(`✅ ${t.deckSaved} "${data.name}" (${data.total_cards} ${t.cards})`)
       
       // Update token balance
-      loadSubscriptionStatus()
+      loadSubscriptionStatus(user.token)
       
       // Opzionale: reindirizza ai mazzi salvati
       setTimeout(() => {
@@ -1332,7 +1332,7 @@ function App() {
           onSelectDeck={(deck) => { setSelectedSavedDeck(deck); setCurrentView('saved-deck-detail') }}
           language={language}
           onShowSubscriptions={() => setCurrentView('subscriptions')}
-          onUploadComplete={() => loadSubscriptionStatus()}
+          onUploadComplete={() => loadSubscriptionStatus(user.token)}
           onLimitError={showLimitError}
         />
       )
