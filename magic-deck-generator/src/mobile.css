@@ -52,6 +52,7 @@
   
   .app-topbar {
     padding-top: max(0px, env(safe-area-inset-top));
+    min-height: calc(52px + max(0px, env(safe-area-inset-top)));
     height: calc(52px + max(0px, env(safe-area-inset-top)));
   }
   

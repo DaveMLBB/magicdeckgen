@@ -2519,12 +2519,15 @@ div.column-mapper.column-mapper {
   align-items: center;
   justify-content: space-between;
   padding: 0 1rem;
+  min-height: 52px;
   height: 52px;
   background: rgba(10, 8, 30, 0.95);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   gap: 0.5rem;
+  overflow: visible;
+  box-sizing: border-box;
 }
 
 .app-topbar-left {
@@ -2602,6 +2605,10 @@ div.column-mapper.column-mapper {
   cursor: pointer;
   transition: background 0.15s;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 .app-topbar-tokens:hover {
@@ -2776,13 +2783,14 @@ div.column-mapper.column-mapper {
   }
 
   .app-topbar-logo-text {
-    font-size: 0.9rem;
+    display: none;
   }
 }
 
 @media (max-width: 480px) {
   .app-topbar {
     padding: 0 0.6rem;
+    min-height: 48px;
     height: 48px;
   }
 
