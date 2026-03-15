@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import App from './App';
 import LandingPage from './pages/public/LandingPage';
+import WelcomePage from './pages/WelcomePage';
 import { CedhDeckBuilderEN, CedhDeckBuilderIT } from './pages/public/formats/CedhDeckBuilder';
 import { PremodernDeckBuilderEN, PremodernDeckBuilderIT } from './pages/public/formats/PremodernDeckBuilder';
 import { PauperDeckBuilderEN, PauperDeckBuilderIT } from './pages/public/formats/PauperDeckBuilder';
@@ -27,6 +28,7 @@ function AppRouter() {
       <Route path="/it/costruttore-mazzi-highlander-da-collezione" element={<HighlanderDeckBuilderIT />} />
       
       {/* Root and all other paths - Protected app */}
+      <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/*" element={<App />} />
     </Routes>
   );

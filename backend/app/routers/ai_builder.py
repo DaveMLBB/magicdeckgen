@@ -1042,7 +1042,7 @@ async def optimize_deck(
 
     # Consume 2 tokens for AI optimization (premium feature)
     from app.routers.tokens import consume_token
-    consume_token(user, 'ai_optimization', f'AI deck optimization: deck {input_data.deck_id}', db, tokens_to_consume=10)
+    consume_token(user, 'ai_optimization', f'AI deck optimization: deck {input_data.deck_id}', db, tokens_to_consume=3)
     
     # Get deck
     deck = db.query(SavedDeck).filter(SavedDeck.id == input_data.deck_id).first()

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './Auth.css'
 
 const API_URL = import.meta.env.PROD 
@@ -6,6 +7,7 @@ const API_URL = import.meta.env.PROD
   : 'http://localhost:8000'
 
 function Auth({ onLogin, language, setLanguage }) {
+  const navigate = useNavigate()
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -140,7 +142,7 @@ function Auth({ onLogin, language, setLanguage }) {
           })
         }, 500)
       } else {
-        // Registrazione riuscita
+        // Registrazione riuscita — login automatico e redirect a /welcome
         if (data.email_sent === false) {
           const emailWarning = language === 'it'
             ? 'Registrazione completata! Non siamo riusciti a inviarti l\'email di verifica. Contatta il supporto o riprova più tardi.'
@@ -151,17 +153,38 @@ function Auth({ onLogin, language, setLanguage }) {
           setMessage(t.registerSuccess)
           setMessageType('success')
         }
-        
-        // Google Ads conversion tracking
-        if (typeof window.gtag_report_conversion === 'function') {
-          window.gtag_report_conversion()
+
+        // Login automatico con le stesse credenziali
+        try {
+          const loginRes = await fetch(`${API_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          })
+          if (loginRes.ok) {
+            const loginData = await loginRes.json()
+            localStorage.setItem('token', loginData.access_token)
+            localStorage.setItem('userId', loginData.user_id)
+            localStorage.setItem('userEmail', loginData.email)
+            localStorage.setItem('isVerified', loginData.is_verified)
+            onLogin({
+              userId: loginData.user_id,
+              email: loginData.email,
+              isVerified: loginData.is_verified,
+              token: loginData.access_token
+            })
+            navigate('/welcome')
+            return
+          }
+        } catch {
+          // login automatico fallito, l'utente farà login manualmente
         }
-        
-        // Passa a login dopo 5 secondi
+
+        // Fallback: redirect al login dopo 3 secondi
         setTimeout(() => {
           setIsLogin(true)
           setMessage('')
-        }, 5000)
+        }, 3000)
       }
     } catch (err) {
       console.error('❌ Errore auth:', err)
@@ -347,7 +370,7 @@ function Auth({ onLogin, language, setLanguage }) {
                   <span className="ai-tool-icon">🤖</span>
                   <div>
                     <h3>{language === 'it' ? 'AI Deck Analyzer' : 'AI Deck Analyzer'}</h3>
-                    <span className="ai-token-badge">10 token</span>
+                    <span className="ai-token-badge">3 token</span>
                   </div>
                 </div>
                 <p>

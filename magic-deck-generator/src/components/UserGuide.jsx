@@ -6,6 +6,19 @@ const GUIDE_VERSION = '1.0'
 const sections = {
   it: [
     {
+      id: 'welcome',
+      icon: '🎉',
+      title: 'Benvenuto! I tuoi 100 Token',
+      content: [
+        'Grazie per esserti registrato! Hai ricevuto 100 token gratuiti di benvenuto.',
+        'I token sono la valuta del sito: ogni funzione AI o caricamento ne consuma alcuni.',
+        'Con 100 token puoi fare moltissimo: caricare collezioni, cercare mazzi, usare tutti gli strumenti AI.',
+        'Il saldo token è sempre visibile nella barra in alto 🪙.',
+        'Puoi ricaricare i token in qualsiasi momento dal Token Shop (clicca sul saldo 🪙).',
+        '💡 Inizia caricando la tua collezione dalla Home per scoprire subito quali mazzi puoi costruire!',
+      ]
+    },
+    {
       id: 'background',
       icon: '🖼️',
       title: 'Sfondo Animato',
@@ -156,8 +169,50 @@ const sections = {
         '⚠️ Consuma 5 token per generazione.',
       ]
     },
+    {
+      id: 'ai-analyzer',
+      icon: '🤖',
+      title: 'AI Deck Analyzer',
+      content: [
+        'AI Deck Analyzer analizza un tuo mazzo salvato e suggerisce miglioramenti mirati.',
+        'Seleziona un mazzo dalla sezione Mazzi e avvia l\'analisi.',
+        'Scegli un obiettivo di ottimizzazione: Aggro, Control, Combo, Midrange, Tribal...',
+        'L\'AI analizza la curva di mana, identifica sinergie e combo presenti e potenziali.',
+        'Ricevi suggerimenti specifici su quali carte aggiungere e quali rimuovere.',
+        'Ogni suggerimento include una spiegazione del perché quella carta migliora il mazzo.',
+        '⚠️ Consuma 3 token per analisi.',
+      ]
+    },
+    {
+      id: 'ai-boost',
+      icon: '💬',
+      title: 'AI Boost (Chat Mazzo)',
+      content: [
+        'AI Boost è una chat AI per modificare un mazzo esistente in modo conversazionale.',
+        'Apri un mazzo salvato e avvia la chat Boost dalla pagina del mazzo.',
+        'Scrivi richieste in linguaggio naturale: "aggiungi più removal", "rendi il mazzo più veloce", "sostituisci le terre costose".',
+        'L\'AI risponde con modifiche concrete alla lista, spiegando ogni scelta.',
+        'La chat mantiene la memoria della sessione: puoi fare più richieste in sequenza.',
+        'Puoi vincolare l\'AI a usare solo le carte della tua collezione.',
+        'Al termine puoi salvare il mazzo modificato con un click.',
+        '⚠️ Consuma 5 token per messaggio.',
+      ]
+    },
   ],
   en: [
+    {
+      id: 'welcome',
+      icon: '🎉',
+      title: 'Welcome! Your 100 Free Tokens',
+      content: [
+        'Thanks for signing up! You received 100 free welcome tokens.',
+        'Tokens are the site currency: each AI feature or upload consumes some.',
+        'With 100 tokens you can do a lot: upload collections, search decks, use all AI tools.',
+        'Your token balance is always visible in the top bar 🪙.',
+        'You can top up tokens anytime from the Token Shop (click the 🪙 balance).',
+        '💡 Start by uploading your collection from the Home to instantly discover which decks you can build!',
+      ]
+    },
     {
       id: 'background',
       icon: '🖼️',
@@ -309,21 +364,50 @@ const sections = {
         '⚠️ Costs 5 tokens per generation.',
       ]
     },
+    {
+      id: 'ai-analyzer',
+      icon: '🤖',
+      title: 'AI Deck Analyzer',
+      content: [
+        'AI Deck Analyzer analyzes one of your saved decks and suggests targeted improvements.',
+        'Select a deck from the Decks section and launch the analysis.',
+        'Choose an optimization goal: Aggro, Control, Combo, Midrange, Tribal...',
+        'The AI analyzes the mana curve, identifies existing and potential synergies and combos.',
+        'Receive specific suggestions on which cards to add and which to cut.',
+        'Each suggestion includes an explanation of why that card improves the deck.',
+        '⚠️ Costs 3 tokens per analysis.',
+      ]
+    },
+    {
+      id: 'ai-boost',
+      icon: '💬',
+      title: 'AI Boost (Deck Chat)',
+      content: [
+        'AI Boost is an AI chat for modifying an existing deck conversationally.',
+        'Open a saved deck and launch the Boost chat from the deck page.',
+        'Write requests in natural language: "add more removal", "make the deck faster", "replace expensive lands".',
+        'The AI responds with concrete changes to the list, explaining each choice.',
+        'The chat keeps session memory: you can make multiple requests in sequence.',
+        'You can constrain the AI to only use cards from your collection.',
+        'When done, save the modified deck with one click.',
+        '⚠️ Costs 5 tokens per message.',
+      ]
+    },
   ]
 }
 
-function UserGuide({ language, setLanguage, onClose }) {
+function UserGuide({ language, setLanguage, onClose, isWelcomePage = false }) {
   const t = language === 'en' ? {
-    title: '👋 Welcome to Magic Deck Builder!',
-    subtitle: 'Here\'s a quick guide to get you started',
+    title: isWelcomePage ? '🎉 Welcome to Magic Deck Builder!' : '👋 Welcome to Magic Deck Builder!',
+    subtitle: isWelcomePage ? 'You received 100 free tokens — here\'s everything you can do' : 'Here\'s a quick guide to get you started',
     dontShow: 'Don\'t show this again',
-    close: 'Got it, let\'s go!',
+    close: isWelcomePage ? 'Start building! 🚀' : 'Got it, let\'s go!',
     step: 'of',
   } : {
-    title: '👋 Benvenuto in Magic Deck Builder!',
-    subtitle: 'Ecco una guida rapida per iniziare',
+    title: isWelcomePage ? '🎉 Benvenuto in Magic Deck Builder!' : '👋 Benvenuto in Magic Deck Builder!',
+    subtitle: isWelcomePage ? 'Hai ricevuto 100 token gratuiti — ecco tutto quello che puoi fare' : 'Ecco una guida rapida per iniziare',
     dontShow: 'Non mostrare più',
-    close: 'Capito, iniziamo!',
+    close: isWelcomePage ? 'Inizia a costruire! 🚀' : 'Capito, iniziamo!',
     step: 'di',
   }
 
@@ -332,7 +416,7 @@ function UserGuide({ language, setLanguage, onClose }) {
   const [dontShow, setDontShow] = useState(false)
 
   const handleClose = () => {
-    if (dontShow) {
+    if (!isWelcomePage && dontShow) {
       localStorage.setItem(`userGuide_dismissed_v${GUIDE_VERSION}`, 'true')
     }
     onClose()
@@ -424,14 +508,16 @@ function UserGuide({ language, setLanguage, onClose }) {
 
         {/* Footer */}
         <div className="ug-footer">
-          <label className="ug-dont-show">
-            <input
-              type="checkbox"
-              checked={dontShow}
-              onChange={e => setDontShow(e.target.checked)}
-            />
-            <span>{t.dontShow}</span>
-          </label>
+          {!isWelcomePage && (
+            <label className="ug-dont-show">
+              <input
+                type="checkbox"
+                checked={dontShow}
+                onChange={e => setDontShow(e.target.checked)}
+              />
+              <span>{t.dontShow}</span>
+            </label>
+          )}
           <button className="ug-close-btn" onClick={handleClose}>
             {t.close}
           </button>
