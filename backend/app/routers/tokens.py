@@ -255,7 +255,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         session_id = data.get('id', '')
         
         if user_id and tokens_str:
-            tokens_amount = int(tokens_str)
+            tokens_amount = int(float(tokens_str))
             user = db.query(User).filter(User.id == int(user_id)).first()
             if user:
                 # Credit tokens
@@ -308,7 +308,7 @@ def verify_stripe_session(token: str, session_id: str = None, package: str = Non
                     ).first()
                     
                     if not existing and tokens_str:
-                        tokens_amount = int(tokens_str)
+                        tokens_amount = int(float(tokens_str))
                         user.tokens += tokens_amount
                         
                         pkg_name = TOKEN_PACKAGES.get(pkg_id, {}).get('name', pkg_id)
