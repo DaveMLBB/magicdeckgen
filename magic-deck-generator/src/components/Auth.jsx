@@ -121,6 +121,7 @@ function Auth({ onLogin, language, setLanguage }) {
             localStorage.setItem('userId', loginData.user_id)
             localStorage.setItem('userEmail', loginData.email)
             localStorage.setItem('isVerified', loginData.is_verified)
+            setLoading(false)
             onLogin({ userId: loginData.user_id, email: loginData.email, isVerified: loginData.is_verified, token: loginData.access_token })
             navigate('/welcome')
             return
