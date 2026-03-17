@@ -112,6 +112,9 @@ function useCamera(selectedCamera, tr) {
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
     setCameraReady(false)
   }, [])
 
@@ -226,7 +229,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   useEffect(() => { forcedSetRef.current = forcedSet }, [forcedSet])
 
   const { videoRef, cameraReady, error: camError, stopCamera } = useCamera(selectedCamera, tr)
-  useEffect(() => () => { scanningRef.current = false; stopCamera() }, [])
+  useEffect(() => () => { scanningRef.current = false; stopCamera() }, [stopCamera])
 
   useEffect(() => {
     fetch(`${API_URL}/api/scan/sets`)
