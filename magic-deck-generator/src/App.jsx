@@ -2145,8 +2145,8 @@ function App() {
       <div className="app-content">
         <div className="app-dev-banner">
           {language === 'it'
-            ? '🚧 Server in continuo sviluppo — alcune funzionalità potrebbero non funzionare correttamente'
-            : '🚧 Server under active development — some features may not work correctly'}
+            ? '🚧 Il software è ancora in costruzione — alcune funzionalità potrebbero non funzionare correttamente. Qualsiasi feedback è benvenuto, usa il pulsante Feedback anche per segnalare errori!'
+            : '🚧 Software still under construction — some features may not work correctly. Any feedback is welcome, use the Feedback button to report bugs too!'}
         </div>
         {!isLegal ? (
           <div className="app-layout">
