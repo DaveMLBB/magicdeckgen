@@ -77,6 +77,9 @@ function Auth({ onLogin, language, setLanguage }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, ...(!isLogin && referralCode.trim() ? { referral_code: referralCode.trim().toUpperCase() } : {}) })
+      })
+      const data = await res.json()
+      if (!res.ok) {
         const detail = data.detail
         const msg = Array.isArray(detail)
           ? detail.map(e => e.msg).join(', ')
