@@ -71,6 +71,20 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email già registrata"
         )
+
+    # Verifica codice referral se fornito
+    sales_code = None
+    if user_data.referral_code:
+        from app.models import SalesCode
+        sales_code = db.query(SalesCode).filter(
+            SalesCode.code == user_data.referral_code.strip().upper(),
+            SalesCode.is_active == True
+        ).first()
+        if not sales_code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Codice referral non valido o scaduto"
+            )
     
     # Crea nuovo utente
     verification_token = generate_verification_token()
@@ -108,7 +122,7 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     
     # Regala 100 token di benvenuto al nuovo utente
-    from app.models import TokenTransaction, SalesCode
+    from app.models import TokenTransaction
     welcome_tokens = 100
     new_user.tokens = welcome_tokens
     welcome_transaction = TokenTransaction(
@@ -121,23 +135,18 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
 
     # Gestione codice referral opzionale
     referral_bonus = 0
-    if user_data.referral_code:
-        sales_code = db.query(SalesCode).filter(
-            SalesCode.code == user_data.referral_code.strip().upper(),
-            SalesCode.is_active == True
-        ).first()
-        if sales_code:
-            referral_bonus = sales_code.bonus_tokens
-            new_user.tokens += referral_bonus
-            new_user.sales_code_id = sales_code.id
-            sales_code.uses_count += 1
-            referral_transaction = TokenTransaction(
-                user_id=new_user.id,
-                amount=referral_bonus,
-                action='referral_bonus',
-                description=f'🎁 Bonus codice referral {sales_code.code} - {referral_bonus} token!'
-            )
-            db.add(referral_transaction)
+    if user_data.referral_code and sales_code:
+        referral_bonus = sales_code.bonus_tokens
+        new_user.tokens += referral_bonus
+        new_user.sales_code_id = sales_code.id
+        sales_code.uses_count += 1
+        referral_transaction = TokenTransaction(
+            user_id=new_user.id,
+            amount=referral_bonus,
+            action='referral_bonus',
+            description=f'🎁 Bonus codice referral {sales_code.code} - {referral_bonus} token!'
+        )
+        db.add(referral_transaction)
 
     db.commit()
     
