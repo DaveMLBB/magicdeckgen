@@ -23,6 +23,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 giorni
 class UserRegister(BaseModel):
     email: EmailStr
     password: str
+    referral_code: str = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -107,15 +108,37 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     
     # Regala 100 token di benvenuto al nuovo utente
-    from app.models import TokenTransaction
-    new_user.tokens = 100
+    from app.models import TokenTransaction, SalesCode
+    welcome_tokens = 100
+    new_user.tokens = welcome_tokens
     welcome_transaction = TokenTransaction(
         user_id=new_user.id,
-        amount=100,
+        amount=welcome_tokens,
         action='welcome_bonus',
         description='🎉 Bonus di benvenuto - 100 token gratuiti!'
     )
     db.add(welcome_transaction)
+
+    # Gestione codice referral opzionale
+    referral_bonus = 0
+    if user_data.referral_code:
+        sales_code = db.query(SalesCode).filter(
+            SalesCode.code == user_data.referral_code.strip().upper(),
+            SalesCode.is_active == True
+        ).first()
+        if sales_code:
+            referral_bonus = sales_code.bonus_tokens
+            new_user.tokens += referral_bonus
+            new_user.sales_code_id = sales_code.id
+            sales_code.uses_count += 1
+            referral_transaction = TokenTransaction(
+                user_id=new_user.id,
+                amount=referral_bonus,
+                action='referral_bonus',
+                description=f'🎁 Bonus codice referral {sales_code.code} - {referral_bonus} token!'
+            )
+            db.add(referral_transaction)
+
     db.commit()
     
     # Invia email di verifica tramite Brevo (non blocca la registrazione se fallisce)
@@ -130,7 +153,7 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     return {
         "message": "Registration completed. Check your email to verify your account. You received 100 free tokens!",
         "user_id": new_user.id,
-        "welcome_tokens": 100,
+        "welcome_tokens": welcome_tokens + referral_bonus,
         "email_sent": email_sent
     }
 

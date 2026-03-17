@@ -45,6 +45,9 @@ class User(Base):
     terms_version = Column(String, nullable=True)
     marketing_emails_enabled = Column(Boolean, default=True)
 
+    # Referral
+    sales_code_id = Column(Integer, ForeignKey('sales_codes.id'), nullable=True, index=True)
+
 class CardCollection(Base):
     __tablename__ = "card_collections"
     
@@ -360,6 +363,18 @@ class CouponRedemption(Base):
     __table_args__ = (
         Index('idx_user_coupon', 'user_id', 'coupon_id', unique=True),
     )
+
+class SalesCode(Base):
+    """Codici referral per youtuber/sponsor — danno 200 token extra alla registrazione"""
+    __tablename__ = "sales_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, nullable=False, index=True)
+    description = Column(String, nullable=True)  # es. "Codice per MrMagic YT"
+    bonus_tokens = Column(Integer, default=200, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    uses_count = Column(Integer, default=0, nullable=False)  # quante volte è stato usato
 
 class Chat(Base):
     """Community chat rooms — public or private"""

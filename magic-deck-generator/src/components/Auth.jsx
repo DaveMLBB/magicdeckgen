@@ -20,6 +20,7 @@ function Auth({ onLogin, language, setLanguage }) {
   const [showTermsModal, setShowTermsModal] = useState(false)
   const [showAuthForm, setShowAuthForm] = useState(false)
   const [openFaq, setOpenFaq] = useState(null)
+  const [referralCode, setReferralCode] = useState('')
 
   const t = {
     it: {
@@ -75,10 +76,7 @@ function Auth({ onLogin, language, setLanguage }) {
       const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      })
-      const data = await res.json()
-      if (!res.ok) {
+        body: JSON.stringify({ email, password, ...(!isLogin && referralCode.trim() ? { referral_code: referralCode.trim().toUpperCase() } : {}) })
         const detail = data.detail
         const msg = Array.isArray(detail)
           ? detail.map(e => e.msg).join(', ')
@@ -453,14 +451,26 @@ function Auth({ onLogin, language, setLanguage }) {
                 </div>
               )}
               {!isLogin && (
-                <div className="form-group policy-acceptance">
-                  <label className="checkbox-label">
-                    <input type="checkbox" checked={acceptedTerms && acceptedPrivacy} onChange={e => { setAcceptedTerms(e.target.checked); setAcceptedPrivacy(e.target.checked) }} disabled={loading} required />
-                    <span>{t.acceptTerms}{' '}<a href="#" onClick={e => { e.preventDefault(); setShowTermsModal(true) }} className="policy-link">{t.termsOfService}</a>{' '}{t.and}{' '}<a href="#" onClick={e => { e.preventDefault(); setShowPrivacyModal(true) }} className="policy-link">{t.privacyPolicy}</a></span>
-                  </label>
-                </div>
-              )}
-              <button type="submit" className="auth-btn" disabled={loading}>
+                <>
+                  <div className="form-group">
+                    <label>{il ? 'Codice referral (opzionale)' : 'Referral code (optional)'}</label>
+                    <input
+                      type="text"
+                      value={referralCode}
+                      onChange={e => setReferralCode(e.target.value)}
+                      placeholder={il ? 'Es: YOUTUBE2024' : 'E.g: YOUTUBE2024'}
+                      disabled={loading}
+                      style={{ textTransform: 'uppercase' }}
+                    />
+                  </div>
+                  <div className="form-group policy-acceptance">
+                    <label className="checkbox-label">
+                      <input type="checkbox" checked={acceptedTerms && acceptedPrivacy} onChange={e => { setAcceptedTerms(e.target.checked); setAcceptedPrivacy(e.target.checked) }} disabled={loading} required />
+                      <span>{t.acceptTerms}{' '}<a href="#" onClick={e => { e.preventDefault(); setShowTermsModal(true) }} className="policy-link">{t.termsOfService}</a>{' '}{t.and}{' '}<a href="#" onClick={e => { e.preventDefault(); setShowPrivacyModal(true) }} className="policy-link">{t.privacyPolicy}</a></span>
+                    </label>
+                  </div>
+                </>
+              )}              <button type="submit" className="auth-btn" disabled={loading}>
                 {loading ? <><span className="spinner" />{isLogin ? t.loginBtn : t.registerBtn}...</> : (isLogin ? t.loginBtn : t.registerBtn)}
               </button>
             </form>
