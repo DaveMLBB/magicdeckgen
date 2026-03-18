@@ -548,19 +548,60 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
           </div>
         </div>
 
-        {/* Pannello destro: suggerimenti — solo desktop */}
+        {/* Pannello destro: suggerimenti (prima del primo messaggio) → carte (dopo) */}
         <div className="abb-suggestions-panel">
-          <p className="abb-panel-title">{tr.suggestionsTitle}</p>
-          {(SUGGESTIONS[language] || SUGGESTIONS.en).map((s, i) => (
-            <button
-              key={i}
-              className="abb-suggestion-btn"
-              onClick={() => setMessage(s.replace(/^[^\s]+ /, ''))}
-              disabled={loading || !selectedDeckId}
-            >
-              {s}
-            </button>
-          ))}
+          {history.length === 0 ? (
+            <>
+              <p className="abb-panel-title">{tr.suggestionsTitle}</p>
+              {(SUGGESTIONS[language] || SUGGESTIONS.en).map((s, i) => (
+                <button
+                  key={i}
+                  className="abb-suggestion-btn"
+                  onClick={() => setMessage(s.replace(/^[^\s]+ /, ''))}
+                  disabled={loading || !selectedDeckId}
+                >
+                  {s}
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              <p className="abb-panel-title">🃏 {language === 'it' ? `Mazzo (${totalCards} carte)` : `Deck (${totalCards} cards)`}</p>
+              {deckStats && (
+                <div className="abb-right-stats">
+                  <div className="abb-stat-row">
+                    <span>{language === 'it' ? 'CMC Medio' : 'Avg CMC'}</span>
+                    <span>{deckStats.avgCmc.toFixed(2)}</span>
+                  </div>
+                  <div className="abb-stat-row">
+                    <span>{language === 'it' ? 'Terre' : 'Lands'}</span>
+                    <span>{deckStats.typeCount['Land'] || 0}</span>
+                  </div>
+                  <div className="abb-stat-row">
+                    <span>{language === 'it' ? 'Creature' : 'Creatures'}</span>
+                    <span>{deckStats.typeCount['Creature'] || 0}</span>
+                  </div>
+                </div>
+              )}
+              <div className="abb-right-cards-list">
+                {currentCards.map((card, i) => (
+                  <div
+                    key={i}
+                    className="abb-diff-row"
+                    onClick={() => setPreviewCard(card.card_name)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="abb-card-qty">{card.quantity}x</span>
+                    <span
+                      className="abb-card-dot"
+                      style={{ background: CATEGORY_COLORS[card.category] || CATEGORY_COLORS.Other }}
+                    />
+                    <span className="abb-card-name">{card.card_name}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

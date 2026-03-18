@@ -129,12 +129,16 @@ async def boost_deck(
                 )
                 collection_constraint = f"""
 
-VINCOLO COLLEZIONE (MOLTO IMPORTANTE):
-Il giocatore vuole modificare il mazzo usando SOLO le carte della sua collezione "{collection.name}".
+VINCOLO COLLEZIONE (OBBLIGATORIO):
+Il giocatore vuole modificare il mazzo usando le carte della sua collezione "{collection.name}".
 Carte disponibili (max {MAX_COLLECTION_CARDS} per quantità): {card_list}
-- Puoi usare SOLO carte presenti in questa lista (le terre base sono sempre permesse)
-- Rispetta i limiti di quantità indicati come (xN)
-- Se una carta del mazzo attuale non è nella collezione, sostituiscila con una alternativa disponibile"""
+
+REGOLE COLLEZIONE:
+- Usa SOLO le carte presenti in questa lista, rispettando i limiti di quantità (xN)
+- Le TERRE BASE (Plains, Island, Swamp, Mountain, Forest, Wastes, snow-covered variants) sono SEMPRE permesse anche se non nella lista
+- Puoi aggiungere al massimo 5 carte NON presenti nella collezione (solo se strettamente necessario per bilanciare il mazzo)
+- Se una carta del mazzo attuale non è nella collezione, sostituiscila con un'alternativa disponibile nella lista
+- NON inventare carte che non sono nella lista sopra (eccetto le 5 eccezioni e le terre base)"""
 
     system_prompt = f"""Sei un esperto costruttore di mazzi Magic: The Gathering. Stai aiutando un giocatore a modificare il suo mazzo esistente tramite una conversazione.
 
@@ -143,11 +147,21 @@ Formato: {deck_format}
 Totale carte: {total_cards}
 Carte: {json.dumps(deck_cards, ensure_ascii=False)}{collection_constraint}
 
+REGOLE ASSOLUTE — NON VIOLARLE MAI:
+1. Il mazzo DEVE avere esattamente {total_cards} carte totali (somma di tutte le quantity).
+2. Le TERRE (category "Land") sono FONDAMENTALI. NON rimuoverle mai a meno che l'utente non lo chieda esplicitamente.
+   - Mazzo da 60 carte: mantieni 20-26 terre (ideale ~24)
+   - Mazzo da 40 carte: mantieni 17-18 terre
+   - Mazzo Commander (99 carte): mantieni 33-38 terre
+   - Se il mazzo attuale ha già le terre bilanciate, PRESERVALE tutte.
+3. Terre base (Plains, Island, Swamp, Mountain, Forest, Wastes e varianti snow-covered) sono SEMPRE incluse nel mazzo finale, anche se non sono nella collezione.
+4. NON aggiungere mai meno terre di quante ce ne siano nel mazzo originale, salvo richiesta esplicita.
+5. Bilancia la curva di mana: distribuisci le carte non-terra su costi 1-6+ in modo sensato per il formato.
+
 ISTRUZIONI:
 - Rispondi SEMPRE in {lang_label}
 - Quando l'utente chiede modifiche al mazzo, applica le modifiche e restituisci il mazzo aggiornato
-- Mantieni il numero totale di carte uguale all'originale ({total_cards} carte)
-- Spiega brevemente le modifiche apportate
+- Spiega brevemente le modifiche apportate, incluso quante terre ci sono e la curva di mana
 - Se l'utente fa domande senza chiedere modifiche, rispondi normalmente senza aggiornare il mazzo
 - Rispondi SEMPRE con JSON valido nel formato specificato
 
@@ -161,12 +175,6 @@ CATEGORIE CARTE (usa ESATTAMENTE questi valori per il campo "category"):
 - "Planeswalker" → planeswalker
 - "Land" → terre
 - "Other" → altro
-
-LINEE GUIDA PROPORZIONI (rispetta questi range salvo richieste specifiche):
-- Terre: 33-40 (Commander), 20-26 (60 carte), 17-24 (40 carte)
-- Creature: aggro 24-30, control 6-12, midrange 16-24
-- Istantanei + Stregonerie: rimozioni, draw, interazione (8-16 in 60 carte)
-- Incantesimi + Artefatti + Equipment: supporto e sinergie (4-12 in 60 carte)
 
 Formato risposta JSON:
 {{
@@ -220,6 +228,29 @@ Se deck_modified è false, updated_deck può essere null."""
 
         # Se il mazzo è stato modificato, applica enforce_deck_size
         if deck_modified and updated_deck and updated_deck.get("cards"):
+            # Protezione terre: se l'AI ha rimosso troppe terre, ripristina quelle originali
+            BASIC_LANDS = {"plains", "island", "swamp", "mountain", "forest",
+                           "wastes", "snow-covered plains", "snow-covered island",
+                           "snow-covered swamp", "snow-covered mountain", "snow-covered forest"}
+            original_lands = [c for c in deck_cards if c.get("category") == "Land" or c.get("card_name", "").lower() in BASIC_LANDS]
+            updated_lands = [c for c in updated_deck["cards"] if c.get("category") == "Land" or c.get("card_name", "").lower() in BASIC_LANDS]
+            original_land_count = sum(c.get("quantity", 1) for c in original_lands)
+            updated_land_count = sum(c.get("quantity", 1) for c in updated_lands)
+
+            # Se l'AI ha rimosso più del 30% delle terre senza motivo, ripristina le terre originali
+            if original_land_count > 0 and updated_land_count < original_land_count * 0.7:
+                print(f"⚠️ AI ha rimosso troppe terre ({original_land_count} → {updated_land_count}), ripristino terre originali")
+                non_land_updated = [c for c in updated_deck["cards"] if c.get("category") != "Land" and c.get("card_name", "").lower() not in BASIC_LANDS]
+                updated_deck["cards"] = non_land_updated + original_lands
+                # Ribilancia il totale
+                current_total = sum(c.get("quantity", 1) for c in updated_deck["cards"])
+                if current_total != total_cards:
+                    diff = total_cards - current_total
+                    if diff > 0 and non_land_updated:
+                        non_land_updated[-1]["quantity"] = non_land_updated[-1].get("quantity", 1) + diff
+                    elif diff < 0 and non_land_updated:
+                        non_land_updated[-1]["quantity"] = max(1, non_land_updated[-1].get("quantity", 1) + diff)
+
             updated_deck = enforce_deck_size(updated_deck, deck_format, saved_deck.colors)
             # Arricchisci cmc dal DB MTG (fallback al valore fornito dall'AI)
             # Costruisci lookup dalle carte originali per preservare cmc esistente
