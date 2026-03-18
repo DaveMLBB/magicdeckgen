@@ -149,14 +149,16 @@ Carte: {json.dumps(deck_cards, ensure_ascii=False)}{collection_constraint}
 
 REGOLE ASSOLUTE — NON VIOLARLE MAI:
 1. Il mazzo DEVE avere esattamente {total_cards} carte totali (somma di tutte le quantity).
-2. Le TERRE (category "Land") sono FONDAMENTALI. NON rimuoverle mai a meno che l'utente non lo chieda esplicitamente.
-   - Mazzo da 60 carte: mantieni 20-26 terre (ideale ~24)
-   - Mazzo da 40 carte: mantieni 17-18 terre
-   - Mazzo Commander (99 carte): mantieni 33-38 terre
-   - Se il mazzo attuale ha già le terre bilanciate, PRESERVALE tutte.
-3. Terre base (Plains, Island, Swamp, Mountain, Forest, Wastes e varianti snow-covered) sono SEMPRE incluse nel mazzo finale, anche se non sono nella collezione.
-4. NON aggiungere mai meno terre di quante ce ne siano nel mazzo originale, salvo richiesta esplicita.
-5. Bilancia la curva di mana: distribuisci le carte non-terra su costi 1-6+ in modo sensato per il formato.
+2. Le TERRE (category "Land") devono rispettare questi range in base al totale carte:
+   - 40 carte: 15-18 terre
+   - 60 carte: 15-25 terre (ideale ~22-24 per mazzi normali, ~18-20 per mazzi aggro con curva bassa)
+   - 75 carte: 20-28 terre
+   - 80 carte: 22-30 terre
+   - 99/100 carte (Commander): 33-38 terre
+   - Regola generale: circa il 35-40% del mazzo per mazzi midrange/control, 25-30% per aggro con curva bassa
+   - Se l'utente non chiede esplicitamente di cambiare le terre, MANTIENI il numero attuale SE è già nel range corretto.
+3. Terre base (Plains, Island, Swamp, Mountain, Forest, Wastes e varianti snow-covered) sono SEMPRE permesse anche se non nella collezione.
+4. Bilancia la curva di mana: distribuisci le carte non-terra su costi 1-6+ in modo sensato per il formato.
 
 ISTRUZIONI:
 - Rispondi SEMPRE in {lang_label}
@@ -228,28 +230,57 @@ Se deck_modified è false, updated_deck può essere null."""
 
         # Se il mazzo è stato modificato, applica enforce_deck_size
         if deck_modified and updated_deck and updated_deck.get("cards"):
-            # Protezione terre: se l'AI ha rimosso troppe terre, ripristina quelle originali
             BASIC_LANDS = {"plains", "island", "swamp", "mountain", "forest",
                            "wastes", "snow-covered plains", "snow-covered island",
                            "snow-covered swamp", "snow-covered mountain", "snow-covered forest"}
-            original_lands = [c for c in deck_cards if c.get("category") == "Land" or c.get("card_name", "").lower() in BASIC_LANDS]
-            updated_lands = [c for c in updated_deck["cards"] if c.get("category") == "Land" or c.get("card_name", "").lower() in BASIC_LANDS]
-            original_land_count = sum(c.get("quantity", 1) for c in original_lands)
-            updated_land_count = sum(c.get("quantity", 1) for c in updated_lands)
 
-            # Se l'AI ha rimosso più del 30% delle terre senza motivo, ripristina le terre originali
-            if original_land_count > 0 and updated_land_count < original_land_count * 0.7:
-                print(f"⚠️ AI ha rimosso troppe terre ({original_land_count} → {updated_land_count}), ripristino terre originali")
+            # Range terre validi in base al totale carte
+            def get_land_range(n):
+                if n <= 40:   return (15, 18)
+                if n <= 60:   return (15, 25)
+                if n <= 75:   return (20, 28)
+                if n <= 80:   return (22, 30)
+                return (33, 38)  # Commander 99/100
+
+            land_min, land_max = get_land_range(total_cards)
+
+            updated_lands = [c for c in updated_deck["cards"] if c.get("category") == "Land" or c.get("card_name", "").lower() in BASIC_LANDS]
+            updated_land_count = sum(c.get("quantity", 1) for c in updated_lands)
+            original_lands = [c for c in deck_cards if c.get("category") == "Land" or c.get("card_name", "").lower() in BASIC_LANDS]
+            original_land_count = sum(c.get("quantity", 1) for c in original_lands)
+
+            # Intervieni solo se l'AI è uscita dal range valido
+            if updated_land_count < land_min:
+                print(f"⚠️ Troppe poche terre ({updated_land_count}), minimo {land_min} per {total_cards} carte — ripristino terre originali")
                 non_land_updated = [c for c in updated_deck["cards"] if c.get("category") != "Land" and c.get("card_name", "").lower() not in BASIC_LANDS]
                 updated_deck["cards"] = non_land_updated + original_lands
                 # Ribilancia il totale
                 current_total = sum(c.get("quantity", 1) for c in updated_deck["cards"])
-                if current_total != total_cards:
-                    diff = total_cards - current_total
-                    if diff > 0 and non_land_updated:
-                        non_land_updated[-1]["quantity"] = non_land_updated[-1].get("quantity", 1) + diff
-                    elif diff < 0 and non_land_updated:
-                        non_land_updated[-1]["quantity"] = max(1, non_land_updated[-1].get("quantity", 1) + diff)
+                diff = total_cards - current_total
+                if diff != 0 and non_land_updated:
+                    non_land_updated[-1]["quantity"] = max(1, non_land_updated[-1].get("quantity", 1) + diff)
+            elif updated_land_count > land_max:
+                print(f"⚠️ Troppe terre ({updated_land_count}), massimo {land_max} per {total_cards} carte — riduco")
+                # Riduci le terre in eccesso togliendo dalle terre non-base prima
+                excess = updated_land_count - land_max
+                non_basic_lands = [c for c in updated_lands if c.get("card_name", "").lower() not in BASIC_LANDS]
+                for land in non_basic_lands:
+                    if excess <= 0:
+                        break
+                    remove = min(excess, land.get("quantity", 1) - 1)
+                    land["quantity"] = land.get("quantity", 1) - remove
+                    excess -= remove
+                # Se ancora troppe, riduci le terre base
+                if excess > 0:
+                    basic_lands = [c for c in updated_lands if c.get("card_name", "").lower() in BASIC_LANDS]
+                    for land in basic_lands:
+                        if excess <= 0:
+                            break
+                        remove = min(excess, land.get("quantity", 1) - 1)
+                        land["quantity"] = land.get("quantity", 1) - remove
+                        excess -= remove
+                # Rimuovi carte con quantity 0
+                updated_deck["cards"] = [c for c in updated_deck["cards"] if c.get("quantity", 0) > 0]
 
             updated_deck = enforce_deck_size(updated_deck, deck_format, saved_deck.colors)
             # Arricchisci cmc dal DB MTG (fallback al valore fornito dall'AI)
