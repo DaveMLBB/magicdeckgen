@@ -548,7 +548,7 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
           </div>
         </div>
 
-        {/* Pannello destro: suggerimenti (prima del primo messaggio) → carte (dopo) */}
+        {/* Pannello destro: suggerimenti → carte dopo primo messaggio */}
         <div className="abb-suggestions-panel">
           {history.length === 0 ? (
             <>
