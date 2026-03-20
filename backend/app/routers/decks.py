@@ -515,3 +515,53 @@ def get_templates_sitemap(
             for r in rows
         ]
     }
+
+
+@router.get("/public/templates/search")
+def search_public_templates(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(40, ge=1, le=100),
+    format: str = Query(None),
+    colors: str = Query(None),       # es. "R" o "U,B"
+    name: str = Query(None),         # ricerca per nome
+    db: Session = Depends(get_db)
+):
+    """Ricerca template con filtri per pagina /decks."""
+    from app.models import DeckTemplate
+    from sqlalchemy import or_
+
+    query = db.query(DeckTemplate).filter(
+        DeckTemplate.slug != None,
+        DeckTemplate.slug != ''
+    )
+    if format:
+        query = query.filter(DeckTemplate.format == format)
+    if name:
+        query = query.filter(DeckTemplate.name.ilike(f"%{name}%"))
+    if colors:
+        for c in colors.split(','):
+            c = c.strip()
+            if c:
+                query = query.filter(DeckTemplate.colors.ilike(f"%{c}%"))
+
+    total = query.count()
+    rows = query.order_by(DeckTemplate.id).offset((page - 1) * page_size).limit(page_size).all()
+
+    return {
+        "total": total,
+        "page": page,
+        "total_pages": max(1, (total + page_size - 1) // page_size),
+        "has_next": page * page_size < total,
+        "has_prev": page > 1,
+        "templates": [
+            {
+                "id": t.id,
+                "slug": t.slug,
+                "name": t.name,
+                "format": t.format,
+                "colors": t.colors,
+                "source": t.source,
+            }
+            for t in rows
+        ]
+    }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Navigate } from 'react-router-dom'
 import AIDeckBuilderAnon from './AIDeckBuilderAnon'
 import CardSynergyAnon from './CardSynergyAnon'
 import CardTwinsAnon from './CardTwinsAnon'
@@ -90,7 +90,7 @@ export default function TryPage({ lang = 'it' }) {
   if (activeTool === 'boost')        return <><AIDeckBoostAnon {...commonProps} />{trialModal}</>
   if (activeTool === 'tournament')   return <><TournamentDeckBuilderAnon {...commonProps} />{trialModal}</>
   if (activeTool === 'card-search')  return <CardSearchAnon language={language} onBack={handleBack} />
-  if (activeTool === 'decks')        return <PublicDecksAnon language={language} onBack={handleBack} />
+  if (activeTool === 'decks')        return <Navigate to="/decks" replace />
   if (activeTool === 'collections')  return <PublicCollectionsAnon language={language} onBack={handleBack} />
   if (activeTool === 'arena-import') return <ArenaImportAnon language={language} onBack={handleBack} />
   if (activeTool === 'scanner')      return <><CardScannerAnon {...commonProps} />{trialModal}</>
