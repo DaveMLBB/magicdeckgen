@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 import bcrypt
@@ -62,7 +62,7 @@ def generate_verification_token():
 
 # Endpoints
 @router.post("/register")
-def register(user_data: UserRegister, db: Session = Depends(get_db)):
+def register(user_data: UserRegister, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Registra un nuovo utente"""
     # Verifica se email già esiste
     existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -149,27 +149,18 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
         db.add(referral_transaction)
 
     db.commit()
-    
-    # Invia email di verifica tramite Brevo (non blocca la registrazione se fallisce)
-    email_sent = False
-    try:
-        email_sent = send_verification_email(user_data.email, verification_token)
-        if not email_sent:
-            logger.error(f"send_verification_email returned False for user {new_user.id} ({user_data.email})")
-    except Exception as e:
-        logger.error(f"Exception sending verification email to {user_data.email} (user_id={new_user.id}): {e}")
 
-    # Invia email onboarding giorno 1 (non blocca la registrazione se fallisce)
-    try:
-        send_onboarding_day1_email(user_data.email)
-    except Exception as e:
-        logger.error(f"Exception sending onboarding day1 email to {user_data.email}: {e}")
-    
+    # Email inviate DOPO la risposta — non bloccano la registrazione
+    email_to = user_data.email
+    token_copy = verification_token
+    background_tasks.add_task(send_verification_email, email_to, token_copy)
+    background_tasks.add_task(send_onboarding_day1_email, email_to)
+
     return {
         "message": "Registration completed. Check your email to verify your account. You received 100 free tokens!",
         "user_id": new_user.id,
         "welcome_tokens": welcome_tokens + referral_bonus,
-        "email_sent": email_sent
+        "email_sent": True
     }
 
 @router.post("/login", response_model=Token)
