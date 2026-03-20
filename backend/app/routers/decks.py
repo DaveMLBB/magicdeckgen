@@ -480,7 +480,7 @@ def get_public_template_by_slug(slug: str, db: Session = Depends(get_db)):
         raw_type  = c.card_type or (mtg.types if mtg else None) or (mtg.type_line if mtg else None) or 'Other'
         # Normalize to first type word (e.g. "Creature — Elf" → "Creature")
         card_type = raw_type.split('—')[0].split(',')[0].strip() if raw_type else 'Other'
-        rarity    = c.rarity or (mtg.rarity if mtg else None)
+        rarity    = mtg.rarity if mtg else None  # DeckTemplateCard has no rarity field
 
         groups.setdefault(card_type, []).append({
             "name": c.card_name,
