@@ -66,10 +66,15 @@ export default function PublicDeckPage() {
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
+    // Try saved deck first, then template
     fetch(`${API_URL}/api/saved-decks/public/deck/${slug}`)
       .then(r => {
-        if (!r.ok) throw new Error('Deck not found');
-        return r.json();
+        if (r.ok) return r.json();
+        // Fallback to tournament template
+        return fetch(`${API_URL}/api/decks/public/template/${slug}`).then(r2 => {
+          if (!r2.ok) throw new Error('Deck not found');
+          return r2.json();
+        });
       })
       .then(setDeck)
       .catch(e => setError(e.message))

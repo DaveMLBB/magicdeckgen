@@ -27,11 +27,19 @@ export default function PublicDecksIndex() {
     setLoading(true);
     const params = new URLSearchParams({ page, page_size: 40 });
     if (format) params.set('format', format);
-    fetch(`${API_URL}/api/saved-decks/public/search?${params}`)
-      .then(r => r.json())
-      .then(setData)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+
+    // Fetch both saved public decks and tournament templates in parallel
+    Promise.all([
+      fetch(`${API_URL}/api/saved-decks/public/search?${params}`).then(r => r.json()).catch(() => ({ decks: [], pagination: {} })),
+      fetch(`${API_URL}/api/decks/public/templates/sitemap?page=${page}&page_size=40${format ? `&format=${format}` : ''}`).then(r => r.json()).catch(() => ({ templates: [], total: 0 })),
+    ]).then(([savedData, templateData]) => {
+      const savedDecks = (savedData.decks || []).map(d => ({ ...d, _type: 'saved' }));
+      const templates = (templateData.templates || []).map(t => ({ ...t, id: t.slug, _type: 'template' }));
+      setData({
+        decks: [...savedDecks, ...templates],
+        pagination: savedData.pagination || { total: templateData.total, page, total_pages: Math.ceil(templateData.total / 40), has_next: page * 40 < templateData.total, has_prev: page > 1 },
+      });
+    }).finally(() => setLoading(false));
   }, [page, format]);
 
   const decks = data?.decks || [];

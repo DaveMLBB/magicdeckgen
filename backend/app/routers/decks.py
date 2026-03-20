@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException, Query
 from sqlalchemy.orm import Session
 from collections import defaultdict
 from app.database import get_db
@@ -436,4 +436,82 @@ def get_available_formats(db: Session = Depends(get_db)):
     
     return {
         "formats": [{"name": fmt, "count": count} for fmt, count in formats if fmt != "Unknown"]
+    }
+
+
+# ─── PUBLIC INDEXABLE TEMPLATE PAGES ────────────────────────────────────────
+
+@router.get("/public/template/{slug}")
+def get_public_template_by_slug(slug: str, db: Session = Depends(get_db)):
+    """
+    Endpoint pubblico (no auth) per pagine SEO dei mazzi template.
+    Restituisce un deck template con tutte le carte raggruppate per tipo.
+    """
+    from app.models import DeckTemplate, DeckTemplateCard
+
+    template = db.query(DeckTemplate).filter(DeckTemplate.slug == slug).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    cards = db.query(DeckTemplateCard).filter(
+        DeckTemplateCard.deck_template_id == template.id
+    ).all()
+
+    groups: dict = {}
+    for c in cards:
+        ctype = c.card_type or "Other"
+        groups.setdefault(ctype, []).append({
+            "name": c.card_name,
+            "quantity": c.quantity,
+            "mana_cost": c.mana_cost,
+            "colors": c.colors,
+        })
+
+    total_cards = sum(c.quantity for c in cards)
+
+    return {
+        "id": template.id,
+        "slug": template.slug,
+        "name": template.name,
+        "format": template.format,
+        "colors": template.colors,
+        "source": template.source,
+        "total_cards": total_cards,
+        "cards": [
+            {"name": c.card_name, "quantity": c.quantity,
+             "card_type": c.card_type, "mana_cost": c.mana_cost}
+            for c in cards
+        ],
+        "cards_by_type": groups,
+    }
+
+
+@router.get("/public/templates/sitemap")
+def get_templates_sitemap(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(500, ge=1, le=1000),
+    format: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Lista slug/url per sitemap dei template."""
+    from app.models import DeckTemplate
+
+    query = db.query(DeckTemplate.slug, DeckTemplate.name, DeckTemplate.format).filter(
+        DeckTemplate.slug != None,
+        DeckTemplate.slug != ''
+    )
+    if format:
+        query = query.filter(DeckTemplate.format == format)
+
+    query = query.order_by(DeckTemplate.id)
+    total = query.count()
+    rows = query.offset((page - 1) * page_size).limit(page_size).all()
+
+    return {
+        "total": total,
+        "page": page,
+        "templates": [
+            {"slug": r.slug, "name": r.name, "format": r.format, "url": f"/decks/{r.slug}"}
+            for r in rows
+        ]
     }

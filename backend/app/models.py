@@ -132,6 +132,7 @@ class DeckTemplate(Base):
     source = Column(String)  # MTGJson, MTGTop8, etc.
     format = Column(String)  # standard, modern, commander, etc.
     colors = Column(String, nullable=True)  # W,U,B,R,G
+    slug = Column(String, nullable=True, index=True)  # URL-friendly slug per pagine SEO
 
 class DeckTemplateCard(Base):
     __tablename__ = "deck_template_cards"

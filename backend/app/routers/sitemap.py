@@ -26,10 +26,17 @@ STATIC_URLS = [
 @router.get("/sitemap.xml", response_class=Response)
 def sitemap_xml(db: Session = Depends(get_db)):
     """Genera sitemap XML con tutte le pagine pubbliche dei mazzi."""
-    decks = db.query(SavedDeck.slug, SavedDeck.updated_at).filter(
+    from app.models import DeckTemplate
+
+    saved = db.query(SavedDeck.slug, SavedDeck.updated_at).filter(
         SavedDeck.is_public == True,
         SavedDeck.slug != None,
         SavedDeck.slug != ''
+    ).all()
+
+    templates = db.query(DeckTemplate.slug).filter(
+        DeckTemplate.slug != None,
+        DeckTemplate.slug != ''
     ).all()
 
     urls = []
@@ -44,8 +51,8 @@ def sitemap_xml(db: Session = Depends(get_db)):
             f"  </url>"
         )
 
-    # Dynamic deck pages
-    for deck in decks:
+    # Dynamic saved deck pages (user public decks)
+    for deck in saved:
         lastmod = deck.updated_at.strftime("%Y-%m-%d") if deck.updated_at else "2024-01-01"
         urls.append(
             f"  <url>\n"
@@ -53,6 +60,16 @@ def sitemap_xml(db: Session = Depends(get_db)):
             f"    <lastmod>{lastmod}</lastmod>\n"
             f"    <changefreq>monthly</changefreq>\n"
             f"    <priority>0.6</priority>\n"
+            f"  </url>"
+        )
+
+    # Dynamic template pages (7000+ tournament decks)
+    for t in templates:
+        urls.append(
+            f"  <url>\n"
+            f"    <loc>{SITE_URL}/decks/{t.slug}</loc>\n"
+            f"    <changefreq>monthly</changefreq>\n"
+            f"    <priority>0.7</priority>\n"
             f"  </url>"
         )
 
