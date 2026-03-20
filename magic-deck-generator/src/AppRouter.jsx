@@ -3,6 +3,8 @@ import App from './App';
 import LandingPage from './pages/public/LandingPage';
 import WelcomePage from './pages/WelcomePage';
 import TryPage from './pages/public/TryPage';
+import PublicDeckPage from './pages/public/PublicDeckPage';
+import PublicDecksIndex from './pages/public/PublicDecksIndex';
 import { CedhDeckBuilderEN, CedhDeckBuilderIT } from './pages/public/formats/CedhDeckBuilder';
 import { PremodernDeckBuilderEN, PremodernDeckBuilderIT } from './pages/public/formats/PremodernDeckBuilder';
 import { PauperDeckBuilderEN, PauperDeckBuilderIT } from './pages/public/formats/PauperDeckBuilder';
@@ -28,6 +30,10 @@ function AppRouter() {
       <Route path="/it/costruttore-mazzi-vintage-da-collezione" element={<VintageDeckBuilderIT />} />
       <Route path="/it/costruttore-mazzi-highlander-da-collezione" element={<HighlanderDeckBuilderIT />} />
       
+      {/* Public Deck Pages - SEO indexable */}
+      <Route path="/decks" element={<PublicDecksIndex />} />
+      <Route path="/decks/:slug" element={<PublicDeckPage />} />
+
       {/* Root and all other paths - Protected app */}
       <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/try" element={<TryPage lang="it" />} />

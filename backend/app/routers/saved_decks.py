@@ -5,8 +5,17 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models import User, SavedDeck, SavedDeckCard, Card, MTGCard
 from datetime import datetime
+import re
 
 router = APIRouter()
+
+
+def _slugify(name: str) -> str:
+    s = name.lower().strip()
+    s = re.sub(r'[^\w\s-]', '', s)
+    s = re.sub(r'[\s_]+', '-', s)
+    s = re.sub(r'-+', '-', s)
+    return s.strip('-')
 
 class DeckCardInput(BaseModel):
     card_name: str
@@ -187,8 +196,13 @@ def create_deck(
     db.add(deck)
     db.commit()
     db.refresh(deck)
-    
-    # Link collections
+
+    # Auto-generate slug for public decks
+    if deck_input.is_public and not deck.slug:
+        base = _slugify(deck_input.name) or "deck"
+        deck.slug = f"{base}-{deck.id}"
+        db.commit()
+        db.refresh(deck)
     if deck_input.collection_ids:
         for coll_id in deck_input.collection_ids:
             db.execute(
@@ -420,6 +434,10 @@ def update_deck(
         deck.description = description
     if is_public is not None:
         deck.is_public = is_public
+        # Auto-generate slug when making public
+        if is_public and not deck.slug:
+            base = _slugify(deck.name) or "deck"
+            deck.slug = f"{base}-{deck.id}"
     
     deck.updated_at = datetime.utcnow()
     db.commit()
@@ -873,6 +891,7 @@ def search_public_decks(
         
         decks_data.append({
             "id": deck.id,
+            "slug": deck.slug,
             "name": deck.name,
             "description": deck.description,
             "format": deck.format,
@@ -897,3 +916,109 @@ def search_public_decks(
             "has_prev": page > 1
         }
     }
+
+
+# ─── PUBLIC INDEXABLE DECK PAGES ────────────────────────────────────────────
+
+@router.get("/public/deck/{slug}")
+def get_public_deck_by_slug(slug: str, db: Session = Depends(get_db)):
+    """
+    Endpoint pubblico (no auth) per pagine SEO indicizzabili.
+    Restituisce un mazzo pubblico con tutte le carte, raggruppate per tipo.
+    """
+    deck = db.query(SavedDeck).filter(
+        SavedDeck.slug == slug,
+        SavedDeck.is_public == True
+    ).first()
+
+    if not deck:
+        raise HTTPException(status_code=404, detail="Deck not found")
+
+    cards = db.query(SavedDeckCard).filter(SavedDeckCard.deck_id == deck.id).all()
+
+    # Group cards by type
+    groups: dict = {}
+    for c in cards:
+        ctype = c.card_type or "Other"
+        groups.setdefault(ctype, []).append({
+            "name": c.card_name,
+            "quantity": c.quantity,
+            "mana_cost": c.mana_cost,
+            "rarity": c.rarity,
+            "colors": c.colors,
+        })
+
+    total_cards = sum(c.quantity for c in cards)
+
+    return {
+        "id": deck.id,
+        "slug": deck.slug,
+        "name": deck.name,
+        "description": deck.description,
+        "format": deck.format,
+        "colors": deck.colors,
+        "archetype": deck.archetype,
+        "total_cards": total_cards,
+        "created_at": deck.created_at.isoformat() if deck.created_at else None,
+        "cards": [
+            {"name": c.card_name, "quantity": c.quantity, "card_type": c.card_type,
+             "mana_cost": c.mana_cost, "rarity": c.rarity}
+            for c in cards
+        ],
+        "cards_by_type": groups,
+    }
+
+
+@router.get("/public/sitemap")
+def get_public_decks_sitemap(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(500, ge=1, le=1000),
+    db: Session = Depends(get_db)
+):
+    """
+    Restituisce lista di slug/url per generare la sitemap dinamica.
+    """
+    query = db.query(SavedDeck.slug, SavedDeck.name, SavedDeck.updated_at).filter(
+        SavedDeck.is_public == True,
+        SavedDeck.slug != None,
+        SavedDeck.slug != ''
+    ).order_by(SavedDeck.updated_at.desc())
+
+    total = query.count()
+    rows = query.offset((page - 1) * page_size).limit(page_size).all()
+
+    return {
+        "total": total,
+        "page": page,
+        "decks": [
+            {
+                "slug": r.slug,
+                "name": r.name,
+                "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+                "url": f"/decks/{r.slug}"
+            }
+            for r in rows
+        ]
+    }
+
+
+@router.post("/{deck_id}/publish")
+def publish_deck(deck_id: int, user_id: int, db: Session = Depends(get_db)):
+    """
+    Rende un mazzo pubblico e genera/aggiorna il suo slug.
+    """
+    deck = db.query(SavedDeck).filter(
+        SavedDeck.id == deck_id,
+        SavedDeck.user_id == user_id
+    ).first()
+    if not deck:
+        raise HTTPException(status_code=404, detail="Deck not found")
+
+    deck.is_public = True
+    if not deck.slug:
+        base = _slugify(deck.name) or f"deck"
+        deck.slug = f"{base}-{deck.id}"
+
+    db.commit()
+    db.refresh(deck)
+    return {"slug": deck.slug, "url": f"/decks/{deck.slug}"}

@@ -96,6 +96,7 @@ class SavedDeck(Base):
     source = Column(String, nullable=True)  # "imported", "manual", "from_search"
     completion_percentage = Column(Integer, default=0)  # % di carte possedute
     is_public = Column(Boolean, default=False)  # Se il mazzo è pubblico e ricercabile
+    slug = Column(String, nullable=True, index=True)  # URL-friendly slug per pagine pubbliche
     user_id = Column(Integer, ForeignKey('users.id'), index=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

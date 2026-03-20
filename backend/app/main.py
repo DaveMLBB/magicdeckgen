@@ -5,6 +5,7 @@ from app.database import engine, Base, get_db
 from app.routers import cards, decks, auth, subscriptions, collections, mtg_cards, saved_decks, gdpr, tokens, ai_builder, ai_boost, feedback, chat, arena_import
 from app.routers import card_scan
 from app.routers import anonymous_trial_router
+from app.routers.sitemap import router as sitemap_router
 from app.models import SiteVisit
 from app.services.scheduler import start_scheduler, stop_scheduler
 from sqlalchemy.orm import Session
@@ -61,6 +62,7 @@ app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(arena_import.router, prefix="/api/arena", tags=["arena"])
 app.include_router(card_scan.router, prefix="/api/scan", tags=["scan"])
 app.include_router(anonymous_trial_router.router, prefix="/api/trial", tags=["trial"])
+app.include_router(sitemap_router, tags=["sitemap"])
 
 @app.get("/")
 def root():
