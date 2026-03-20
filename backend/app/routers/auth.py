@@ -153,8 +153,21 @@ def register(user_data: UserRegister, background_tasks: BackgroundTasks, db: Ses
     # Email inviate DOPO la risposta — non bloccano la registrazione
     email_to = user_data.email
     token_copy = verification_token
-    background_tasks.add_task(send_verification_email, email_to, token_copy)
-    background_tasks.add_task(send_onboarding_day1_email, email_to)
+
+    def _send_verification():
+        try:
+            send_verification_email(email_to, token_copy)
+        except Exception as e:
+            logger.error(f"Background email verifica fallita per {email_to}: {e}", exc_info=True)
+
+    def _send_onboarding():
+        try:
+            send_onboarding_day1_email(email_to)
+        except Exception as e:
+            logger.error(f"Background email onboarding fallita per {email_to}: {e}", exc_info=True)
+
+    background_tasks.add_task(_send_verification)
+    background_tasks.add_task(_send_onboarding)
 
     return {
         "message": "Registration completed. Check your email to verify your account. You received 100 free tokens!",
