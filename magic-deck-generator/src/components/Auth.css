@@ -582,6 +582,87 @@
 .lp-final-cta p { color: var(--c-muted); font-size: 1.05rem; margin-bottom: 2.5rem; line-height: 1.6; }
 .lp-final-cta-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
 
+/* ── Pricing ── */
+.lp-section-subtitle {
+  text-align: center;
+  color: var(--c-muted);
+  font-size: 1rem;
+  margin-top: -0.5rem;
+  margin-bottom: 2rem;
+}
+
+.lp-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.lp-pricing-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 1rem;
+  padding: 2rem 1.75rem;
+  position: relative;
+}
+
+.lp-pricing-card-popular {
+  border-color: rgba(124,58,237,0.5);
+  background: rgba(124,58,237,0.08);
+}
+
+.lp-pricing-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.lp-pricing-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.lp-pricing-price {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 0.25rem;
+}
+
+.lp-pricing-desc {
+  font-size: 0.85rem;
+  color: var(--c-muted);
+  margin-bottom: 1.25rem;
+}
+
+.lp-pricing-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.lp-pricing-features li {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.75);
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.lp-pricing-features li:last-child {
+  border-bottom: none;
+}
+
 /* ── Footer ── */
 .lp-footer {
   background: rgba(0,0,0,0.4);

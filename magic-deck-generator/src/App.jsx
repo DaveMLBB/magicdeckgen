@@ -110,7 +110,6 @@ function App() {
   const [hoveredCard, setHoveredCard] = useState(null)
   const [cardImageUrl, setCardImageUrl] = useState(null)
   const [imageLoading, setImageLoading] = useState(false)
-  const [animatedBg, setAnimatedBg] = useState(() => localStorage.getItem('animatedBg') === 'true')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
   const [cardSearchInitialQuery, setCardSearchInitialQuery] = useState('')
@@ -1998,7 +1997,6 @@ function App() {
 
   return (
     <div className="app">
-      {animatedBg && <RandomArtBackground />}
 
       {/* Maintenance banner — disabled */}
 
@@ -2023,13 +2021,6 @@ function App() {
                 <button className={`lang-btn ${language === 'it' ? 'active' : ''}`} onClick={() => setLanguage('it')}>🇮🇹</button>
                 <button className={`lang-btn ${language === 'en' ? 'active' : ''}`} onClick={() => setLanguage('en')}>🇬🇧</button>
               </div>
-              <button
-                className="app-topbar-icon-btn desktop-only"
-                onClick={() => { const next = !animatedBg; setAnimatedBg(next); localStorage.setItem('animatedBg', String(next)) }}
-                title={language === 'it' ? 'Sfondo animato' : 'Animated background'}
-              >
-                {animatedBg ? '🖼️' : '🚫'}
-              </button>
               <button className="app-topbar-icon-btn desktop-only" title={language === 'it' ? 'Guida' : 'Guide'} onClick={() => setShowGuide(true)}>❓</button>
               {subscriptionStatus && (
                 <button className="app-topbar-tokens" onClick={() => setCurrentView('subscriptions')}>
@@ -2122,11 +2113,6 @@ function App() {
                     onClick={() => { setShowGuide(true); setMobileMenuOpen(false) }}
                     title={language === 'it' ? 'Guida' : 'Guide'}
                   >❓</button>
-                  <button
-                    className={`mobile-menu-footer-btn ${!animatedBg ? 'inactive' : ''}`}
-                    onClick={() => { const next = !animatedBg; setAnimatedBg(next); localStorage.setItem('animatedBg', String(next)) }}
-                    title={language === 'it' ? 'Sfondo animato' : 'Animated bg'}
-                  >{animatedBg ? '🖼️' : '🚫'}</button>
                   <div className="mobile-menu-lang">
                     <button className={`mobile-lang-btn ${language === 'it' ? 'active' : ''}`} onClick={() => setLanguage('it')}>🇮🇹</button>
                     <button className={`mobile-lang-btn ${language === 'en' ? 'active' : ''}`} onClick={() => setLanguage('en')}>🇬🇧</button>

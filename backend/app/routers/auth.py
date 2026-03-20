@@ -8,7 +8,7 @@ import secrets
 import logging
 from app.database import get_db
 from app.models import User, PolicyAcceptance
-from app.email import send_verification_email
+from app.email import send_verification_email, send_onboarding_day1_email
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +158,12 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
             logger.error(f"send_verification_email returned False for user {new_user.id} ({user_data.email})")
     except Exception as e:
         logger.error(f"Exception sending verification email to {user_data.email} (user_id={new_user.id}): {e}")
+
+    # Invia email onboarding giorno 1 (non blocca la registrazione se fallisce)
+    try:
+        send_onboarding_day1_email(user_data.email)
+    except Exception as e:
+        logger.error(f"Exception sending onboarding day1 email to {user_data.email}: {e}")
     
     return {
         "message": "Registration completed. Check your email to verify your account. You received 100 free tokens!",

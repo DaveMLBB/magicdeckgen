@@ -227,3 +227,112 @@
     display: none;
   }
 }
+
+/* Verify email banner */
+.dashboard-verify-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: rgba(245, 158, 11, 0.15);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.4);
+  padding: 0.85rem 2rem;
+  font-size: 0.9rem;
+  color: #fbbf24;
+}
+
+.dashboard-verify-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.dashboard-verify-btn {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+  border-radius: 6px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.dashboard-verify-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.3);
+}
+
+.dashboard-verify-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.dashboard-verify-dismiss {
+  background: transparent;
+  border: none;
+  color: rgba(251, 191, 36, 0.5);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.4rem;
+  transition: color 0.2s;
+}
+
+.dashboard-verify-dismiss:hover {
+  color: #fbbf24;
+}
+
+/* Getting started section */
+.dashboard-getting-started {
+  margin-bottom: 2rem;
+}
+
+.dashboard-section-header {
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-section-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.3rem;
+}
+
+.dashboard-section-desc {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dashboard-grid-highlight .dashboard-card-featured {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.dashboard-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 2rem 0 1.5rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.dashboard-section-divider::before,
+.dashboard-section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .dashboard-verify-banner {
+    padding: 0.75rem 1rem;
+    font-size: 0.82rem;
+  }
+}

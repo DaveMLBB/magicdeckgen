@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import './Dashboard.css'
 import FeedbackForm from './FeedbackForm'
 
@@ -124,17 +125,91 @@ const features = [
   },
 ]
 
+const API_URL = import.meta.env.PROD
+  ? 'https://api.magicdeckbuilder.app.cloudsw.site'
+  : 'http://localhost:8000'
+
+// Feature IDs da mostrare nella sezione "Inizia da qui" per nuovi utenti
+const GETTING_STARTED_IDS = ['ai-deck-builder', 'main', 'card-synergy', 'card-twins']
+
 export default function Dashboard({ language, onNavigate, subscriptionStatus, user }) {
+  const il = language === 'it'
+  const [verifyBannerDismissed, setVerifyBannerDismissed] = useState(
+    () => localStorage.getItem('verifyBannerDismissed') === 'true'
+  )
+  const [resendStatus, setResendStatus] = useState(null) // null | 'sending' | 'sent' | 'error'
+
+  const showVerifyBanner = !user?.isVerified && !verifyBannerDismissed
+
+  // Considera "nuovo utente" se ha ancora tutti o quasi tutti i token di benvenuto
+  const isNewUser = subscriptionStatus && subscriptionStatus.tokens >= 90
+
   const t = {
-    welcome: language === 'it' ? 'Bentornato' : 'Welcome back',
-    subtitle: language === 'it'
-      ? 'Cosa vuoi fare oggi?'
-      : 'What do you want to do today?',
-    tokens: language === 'it' ? 'token disponibili' : 'tokens available',
+    welcome: il ? 'Bentornato' : 'Welcome back',
+    subtitle: il ? 'Cosa vuoi fare oggi?' : 'What do you want to do today?',
+    tokens: il ? 'token disponibili' : 'tokens available',
+    verifyBanner: il
+      ? '⚠️ Verifica la tua email per sbloccare tutte le funzionalità. Controlla la casella di posta.'
+      : '⚠️ Verify your email to unlock all features. Check your inbox.',
+    resendEmail: il ? 'Reinvia email' : 'Resend email',
+    resendSending: il ? 'Invio...' : 'Sending...',
+    resendSent: il ? '✅ Email inviata!' : '✅ Email sent!',
+    resendError: il ? '❌ Errore, riprova' : '❌ Error, try again',
+    dismiss: il ? 'Ignora' : 'Dismiss',
+    gettingStarted: il ? '🚀 Inizia da qui' : '🚀 Start here',
+    gettingStartedDesc: il
+      ? 'Queste sono le funzionalità più utili per cominciare. Hai 100 token gratuiti.'
+      : 'These are the most useful features to start with. You have 100 free tokens.',
+    allTools: il ? 'Tutti gli strumenti' : 'All tools',
   }
+
+  const handleResendVerification = async () => {
+    setResendStatus('sending')
+    try {
+      const res = await fetch(`${API_URL}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        }
+      })
+      setResendStatus(res.ok ? 'sent' : 'error')
+    } catch {
+      setResendStatus('error')
+    }
+  }
+
+  const handleDismissBanner = () => {
+    localStorage.setItem('verifyBannerDismissed', 'true')
+    setVerifyBannerDismissed(true)
+  }
+
+  const gettingStartedFeatures = features.filter(f => GETTING_STARTED_IDS.includes(f.id))
 
   return (
     <div className="dashboard">
+      {/* Banner verifica email */}
+      {showVerifyBanner && (
+        <div className="dashboard-verify-banner">
+          <span>{t.verifyBanner}</span>
+          <div className="dashboard-verify-actions">
+            <button
+              className="dashboard-verify-btn"
+              onClick={handleResendVerification}
+              disabled={resendStatus === 'sending' || resendStatus === 'sent'}
+            >
+              {resendStatus === 'sending' ? t.resendSending
+                : resendStatus === 'sent' ? t.resendSent
+                : resendStatus === 'error' ? t.resendError
+                : t.resendEmail}
+            </button>
+            <button className="dashboard-verify-dismiss" onClick={handleDismissBanner}>
+              {t.dismiss}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="dashboard-hero">
         <div className="dashboard-hero-inner">
           <div className="dashboard-title-row">
@@ -160,6 +235,41 @@ export default function Dashboard({ language, onNavigate, subscriptionStatus, us
       </div>
 
       <div className="dashboard-grid-container">
+        {/* Sezione "Inizia da qui" per nuovi utenti */}
+        {isNewUser && (
+          <div className="dashboard-getting-started">
+            <div className="dashboard-section-header">
+              <h2 className="dashboard-section-title">{t.gettingStarted}</h2>
+              <p className="dashboard-section-desc">{t.gettingStartedDesc}</p>
+            </div>
+            <div className="dashboard-grid dashboard-grid-highlight">
+              {gettingStartedFeatures.map((feature) => (
+                <button
+                  key={feature.id}
+                  className="dashboard-card dashboard-card-featured"
+                  onClick={() => onNavigate(feature.id)}
+                  style={{ '--card-gradient': feature.gradient, '--card-color': feature.color }}
+                >
+                  <div className="dashboard-card-glow" />
+                  <div className="dashboard-card-icon">{feature.icon}</div>
+                  <div className="dashboard-card-body">
+                    <h3 className="dashboard-card-title">
+                      {il ? feature.labelIt : feature.labelEn}
+                    </h3>
+                    <p className="dashboard-card-desc">
+                      {il ? feature.descIt : feature.descEn}
+                    </p>
+                  </div>
+                  <div className="dashboard-card-arrow">→</div>
+                </button>
+              ))}
+            </div>
+            <div className="dashboard-section-divider">
+              <span>{t.allTools}</span>
+            </div>
+          </div>
+        )}
+
         <div className="dashboard-grid">
           {features.map((feature) => (
             <button
@@ -172,10 +282,10 @@ export default function Dashboard({ language, onNavigate, subscriptionStatus, us
               <div className="dashboard-card-icon">{feature.icon}</div>
               <div className="dashboard-card-body">
                 <h3 className="dashboard-card-title">
-                  {language === 'it' ? feature.labelIt : feature.labelEn}
+                  {il ? feature.labelIt : feature.labelEn}
                 </h3>
                 <p className="dashboard-card-desc">
-                  {language === 'it' ? feature.descIt : feature.descEn}
+                  {il ? feature.descIt : feature.descEn}
                 </p>
               </div>
               <div className="dashboard-card-arrow">→</div>

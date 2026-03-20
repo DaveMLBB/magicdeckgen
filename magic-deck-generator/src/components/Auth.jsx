@@ -395,6 +395,44 @@ function Auth({ onLogin, language, setLanguage }) {
               </div>
             </section>
 
+            {/* ── PRICING ── */}
+            <section className="lp-section lp-section-dark">
+              <h2 className="lp-section-title">🪙 {il ? 'Prezzi Semplici' : 'Simple Pricing'}</h2>
+              <p className="lp-section-subtitle">{il ? 'Inizia gratis. Paga solo se vuoi fare di più.' : 'Start free. Pay only if you want to do more.'}</p>
+              <div className="lp-pricing-grid">
+                <div className="lp-pricing-card">
+                  <div className="lp-pricing-name">{il ? 'Gratuito' : 'Free'}</div>
+                  <div className="lp-pricing-price">€0</div>
+                  <div className="lp-pricing-desc">{il ? '100 token di benvenuto' : '100 welcome tokens'}</div>
+                  <ul className="lp-pricing-features">
+                    <li>✅ {il ? 'AI Deck Builder' : 'AI Deck Builder'}</li>
+                    <li>✅ {il ? 'Confronta mazzi' : 'Deck compare'}</li>
+                    <li>✅ {il ? 'AI Synergy & Gemelli' : 'AI Synergy & Twins'}</li>
+                    <li>✅ {il ? 'Cerca carte (39k+)' : 'Card search (39k+)'}</li>
+                    <li>✅ {il ? 'Collezioni & mazzi salvati' : 'Collections & saved decks'}</li>
+                  </ul>
+                  <button className="lp-btn-primary" style={{width:'100%', marginTop:'1rem'}} onClick={() => { setIsLogin(false); setShowAuthForm(true) }}>
+                    {il ? 'Inizia gratis' : 'Start free'}
+                  </button>
+                </div>
+                <div className="lp-pricing-card lp-pricing-card-popular">
+                  <div className="lp-pricing-badge">{il ? 'Più usato' : 'Most popular'}</div>
+                  <div className="lp-pricing-name">{il ? 'Token Pack' : 'Token Pack'}</div>
+                  <div className="lp-pricing-price">{il ? 'da €2' : 'from €2'}</div>
+                  <div className="lp-pricing-desc">{il ? 'Ricarica quando vuoi' : 'Top up whenever you want'}</div>
+                  <ul className="lp-pricing-features">
+                    <li>✅ {il ? 'Tutto del piano gratuito' : 'Everything in free'}</li>
+                    <li>✅ {il ? 'Token extra senza scadenza' : 'Extra tokens, no expiry'}</li>
+                    <li>✅ {il ? 'Nessun abbonamento' : 'No subscription'}</li>
+                    <li>✅ {il ? 'Coupon e codici referral' : 'Coupons & referral codes'}</li>
+                  </ul>
+                  <button className="lp-btn-primary" style={{width:'100%', marginTop:'1rem'}} onClick={() => { setIsLogin(false); setShowAuthForm(true) }}>
+                    {il ? 'Registrati e acquista' : 'Sign up & buy'}
+                  </button>
+                </div>
+              </div>
+            </section>
+
             {/* ── FINAL CTA ── */}
             <section className="lp-final-cta">
               <div className="lp-final-cta-inner">
