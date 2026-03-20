@@ -284,6 +284,67 @@ def create_deck(
         "tokens_remaining": user.tokens
     }
 
+@router.get("/public/deck/{slug}")
+def get_public_deck_by_slug(slug: str, db: Session = Depends(get_db)):
+    """Endpoint pubblico SEO - deve stare PRIMA di /{deck_id}"""
+    deck = db.query(SavedDeck).filter(
+        SavedDeck.slug == slug,
+        SavedDeck.is_public == True
+    ).first()
+
+    if not deck:
+        raise HTTPException(status_code=404, detail="Deck not found")
+
+    cards = db.query(SavedDeckCard).filter(SavedDeckCard.deck_id == deck.id).all()
+
+    card_names = list({c.card_name for c in cards})
+    mtg_rows = db.query(
+        MTGCard.name, MTGCard.mana_cost, MTGCard.mana_value,
+        MTGCard.types, MTGCard.type_line, MTGCard.rarity
+    ).filter(
+        MTGCard.name.in_(card_names),
+        MTGCard.lang == 'en'
+    ).distinct(MTGCard.name).all()
+    mtg_lookup = {r.name: r for r in mtg_rows}
+
+    groups: dict = {}
+    cards_out = []
+    for c in cards:
+        mtg = mtg_lookup.get(c.card_name)
+        mana_cost = c.mana_cost or (mtg.mana_cost if mtg else None)
+        cmc       = float(mtg.mana_value) if mtg and mtg.mana_value is not None else None
+        raw_type  = c.card_type or (mtg.types if mtg else None) or (mtg.type_line if mtg else None) or 'Other'
+        card_type = raw_type.split('—')[0].split(',')[0].strip() if raw_type else 'Other'
+        rarity    = c.rarity or (mtg.rarity if mtg else None)
+        groups.setdefault(card_type, []).append({"name": c.card_name, "quantity": c.quantity, "mana_cost": mana_cost, "cmc": cmc, "rarity": rarity})
+        cards_out.append({"name": c.card_name, "quantity": c.quantity, "card_type": card_type, "mana_cost": mana_cost, "cmc": cmc, "rarity": rarity})
+
+    total_cards = sum(c.quantity for c in cards)
+    return {
+        "id": deck.id, "slug": deck.slug, "name": deck.name, "description": deck.description,
+        "format": deck.format, "colors": deck.colors, "archetype": deck.archetype,
+        "total_cards": total_cards, "created_at": deck.created_at.isoformat() if deck.created_at else None,
+        "cards": cards_out, "cards_by_type": groups,
+    }
+
+
+@router.get("/public/sitemap")
+def get_public_decks_sitemap(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(500, ge=1, le=1000),
+    db: Session = Depends(get_db)
+):
+    query = db.query(SavedDeck.slug, SavedDeck.name, SavedDeck.updated_at).filter(
+        SavedDeck.is_public == True, SavedDeck.slug != None, SavedDeck.slug != ''
+    ).order_by(SavedDeck.updated_at.desc())
+    total = query.count()
+    rows = query.offset((page - 1) * page_size).limit(page_size).all()
+    return {"total": total, "page": page, "decks": [
+        {"slug": r.slug, "name": r.name, "updated_at": r.updated_at.isoformat() if r.updated_at else None, "url": f"/decks/{r.slug}"}
+        for r in rows
+    ]}
+
+
 @router.get("/{deck_id}")
 def get_deck_details(
     deck_id: int,
@@ -294,9 +355,6 @@ def get_deck_details(
     deck = db.query(SavedDeck).filter(SavedDeck.id == deck_id).first()
     if not deck:
         raise HTTPException(status_code=404, detail="Deck not found")
-    
-    # Get linked collections
-    from app.models import CardCollection, saved_deck_collections
     linked_collections = db.query(CardCollection).join(
         saved_deck_collections,
         CardCollection.id == saved_deck_collections.c.collection_id
@@ -919,108 +977,7 @@ def search_public_decks(
 
 
 # ─── PUBLIC INDEXABLE DECK PAGES ────────────────────────────────────────────
-
-@router.get("/public/deck/{slug}")
-def get_public_deck_by_slug(slug: str, db: Session = Depends(get_db)):
-    """
-    Endpoint pubblico (no auth) per pagine SEO indicizzabili.
-    Arricchisce i dati con JOIN su mtg_cards per mana_cost, cmc, card_type reali.
-    """
-    deck = db.query(SavedDeck).filter(
-        SavedDeck.slug == slug,
-        SavedDeck.is_public == True
-    ).first()
-
-    if not deck:
-        raise HTTPException(status_code=404, detail="Deck not found")
-
-    cards = db.query(SavedDeckCard).filter(SavedDeckCard.deck_id == deck.id).all()
-
-    # Enrich with mtg_cards data
-    card_names = list({c.card_name for c in cards})
-    mtg_rows = db.query(
-        MTGCard.name, MTGCard.mana_cost, MTGCard.mana_value,
-        MTGCard.types, MTGCard.type_line, MTGCard.rarity
-    ).filter(
-        MTGCard.name.in_(card_names),
-        MTGCard.lang == 'en'
-    ).distinct(MTGCard.name).all()
-    mtg_lookup = {r.name: r for r in mtg_rows}
-
-    groups: dict = {}
-    cards_out = []
-    for c in cards:
-        mtg = mtg_lookup.get(c.card_name)
-        mana_cost = c.mana_cost or (mtg.mana_cost if mtg else None)
-        cmc       = float(mtg.mana_value) if mtg and mtg.mana_value is not None else None
-        raw_type  = c.card_type or (mtg.types if mtg else None) or (mtg.type_line if mtg else None) or 'Other'
-        card_type = raw_type.split('—')[0].split(',')[0].strip() if raw_type else 'Other'
-        rarity    = c.rarity or (mtg.rarity if mtg else None)
-
-        groups.setdefault(card_type, []).append({
-            "name": c.card_name,
-            "quantity": c.quantity,
-            "mana_cost": mana_cost,
-            "cmc": cmc,
-            "rarity": rarity,
-        })
-        cards_out.append({
-            "name": c.card_name,
-            "quantity": c.quantity,
-            "card_type": card_type,
-            "mana_cost": mana_cost,
-            "cmc": cmc,
-            "rarity": rarity,
-        })
-
-    total_cards = sum(c.quantity for c in cards)
-
-    return {
-        "id": deck.id,
-        "slug": deck.slug,
-        "name": deck.name,
-        "description": deck.description,
-        "format": deck.format,
-        "colors": deck.colors,
-        "archetype": deck.archetype,
-        "total_cards": total_cards,
-        "created_at": deck.created_at.isoformat() if deck.created_at else None,
-        "cards": cards_out,
-        "cards_by_type": groups,
-    }
-
-
-@router.get("/public/sitemap")
-def get_public_decks_sitemap(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(500, ge=1, le=1000),
-    db: Session = Depends(get_db)
-):
-    """
-    Restituisce lista di slug/url per generare la sitemap dinamica.
-    """
-    query = db.query(SavedDeck.slug, SavedDeck.name, SavedDeck.updated_at).filter(
-        SavedDeck.is_public == True,
-        SavedDeck.slug != None,
-        SavedDeck.slug != ''
-    ).order_by(SavedDeck.updated_at.desc())
-
-    total = query.count()
-    rows = query.offset((page - 1) * page_size).limit(page_size).all()
-
-    return {
-        "total": total,
-        "page": page,
-        "decks": [
-            {
-                "slug": r.slug,
-                "name": r.name,
-                "updated_at": r.updated_at.isoformat() if r.updated_at else None,
-                "url": f"/decks/{r.slug}"
-            }
-            for r in rows
-        ]
-    }
+# (moved before /{deck_id} to avoid route conflict — see above)
 
 
 @router.post("/{deck_id}/publish")
