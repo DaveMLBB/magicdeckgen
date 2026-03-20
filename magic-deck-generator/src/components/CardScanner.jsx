@@ -103,7 +103,7 @@ function captureFrame(videoEl, canvas) {
 }
 
 // ── Camera hook ───────────────────────────────────────────────────────────────
-function useCamera(selectedCamera, tr) {
+function useCamera(selectedCamera, enabled, tr) {
   const videoRef  = useRef(null)
   const streamRef = useRef(null)
   const [cameraReady, setCameraReady] = useState(false)
@@ -118,7 +118,7 @@ function useCamera(selectedCamera, tr) {
     setCameraReady(false)
   }, [])
 
-  const startCamera = useCallback(async (deviceId) => {
+  const startCamera = useCallback(async (deviceId, signal) => {
     stopCamera()
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -128,19 +128,34 @@ function useCamera(selectedCamera, tr) {
           facingMode: deviceId ? undefined : 'environment',
         }
       })
+      // Se il componente è stato smontato mentre aspettavamo il permesso, ferma subito lo stream
+      if (signal?.aborted) {
+        stream.getTracks().forEach(t => t.stop())
+        return
+      }
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        videoRef.current.onloadedmetadata = () => setCameraReady(true)
+        videoRef.current.onloadedmetadata = () => {
+          if (!signal?.aborted) setCameraReady(true)
+        }
       }
       setError(null)
     } catch { setError(tr.errorCamera); setCameraReady(false) }
   }, [tr, stopCamera])
 
   useEffect(() => {
-    if (selectedCamera !== null) startCamera(selectedCamera)
-    return stopCamera
-  }, [selectedCamera])
+    if (!enabled || selectedCamera === null) {
+      stopCamera()
+      return
+    }
+    const controller = new AbortController()
+    startCamera(selectedCamera, controller.signal)
+    return () => {
+      controller.abort()
+      stopCamera()
+    }
+  }, [selectedCamera, enabled])
 
   return { videoRef, cameraReady, error, stopCamera }
 }
@@ -228,7 +243,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   useEffect(() => { scanDelayRef.current = scanDelay }, [scanDelay])
   useEffect(() => { forcedSetRef.current = forcedSet }, [forcedSet])
 
-  const { videoRef, cameraReady, error: camError, stopCamera } = useCamera(selectedCamera, tr)
+  const { videoRef, cameraReady, error: camError, stopCamera } = useCamera(selectedCamera, isScanning, tr)
   useEffect(() => () => { scanningRef.current = false; stopCamera() }, [stopCamera])
 
   useEffect(() => {
@@ -274,6 +289,11 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
   // ── Scan cycle ────────────────────────────────────────────────────────────
   const runOneCycle = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) return
+    // Aspetta che il video sia pronto (camera appena avviata)
+    if (!videoRef.current.videoWidth) {
+      await new Promise(r => setTimeout(r, 500))
+      if (!scanningRef.current) return
+    }
     setScanPhase('capturing')
     const imageB64 = captureFrame(videoRef.current, canvasRef.current)
     setScanPhase('waiting')
@@ -501,7 +521,7 @@ function ScannerPanel({ user, language, collections, selectedCollectionId, setSe
 
       {!isScanning ? (
         <button className="cs2-scan-btn start" onClick={startScanning}
-          disabled={!cameraReady || collections.length === 0}>
+          disabled={collections.length === 0}>
           {tr.captureStart}
         </button>
       ) : (
