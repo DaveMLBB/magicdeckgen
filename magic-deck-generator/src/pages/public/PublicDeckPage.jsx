@@ -59,25 +59,27 @@ function DeckStats({ cards }) {
   const nonLand = cards.filter(c => c.card_type !== 'Land' && c.card_type !== 'Basic Land');
   const totalNonLand = nonLand.reduce((s, c) => s + c.quantity, 0);
 
-  // Mana curve (CMC from mana_cost string)
-  const parseCmc = (mc) => {
+  // Use cmc field directly from backend (enriched from mtg_cards.mana_value)
+  const getCmc = (card) => {
+    if (card.cmc != null) return card.cmc;
+    // Fallback: parse mana_cost string
+    const mc = card.mana_cost;
     if (!mc) return 0;
     const generic = mc.match(/\{(\d+)\}/);
     const colored = (mc.match(/\{[WUBRGC]\}/g) || []).length;
-    const x = mc.includes('{X}') ? 0 : 0;
-    return (generic ? parseInt(generic[1]) : 0) + colored + x;
+    return (generic ? parseInt(generic[1]) : 0) + colored;
   };
 
   const curve = {};
   nonLand.forEach(c => {
-    const cmc = Math.min(parseCmc(c.mana_cost), 7);
+    const cmc = Math.min(getCmc(c), 7);
     const label = cmc >= 7 ? '7+' : String(cmc);
     curve[label] = (curve[label] || 0) + c.quantity;
   });
 
   const maxCurve = Math.max(...Object.values(curve), 1);
   const avgCmc = totalNonLand > 0
-    ? (nonLand.reduce((s, c) => s + parseCmc(c.mana_cost) * c.quantity, 0) / totalNonLand).toFixed(2)
+    ? (nonLand.reduce((s, c) => s + getCmc(c) * c.quantity, 0) / totalNonLand).toFixed(2)
     : '—';
 
   // Type breakdown

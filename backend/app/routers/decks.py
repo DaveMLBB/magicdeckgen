@@ -445,9 +445,10 @@ def get_available_formats(db: Session = Depends(get_db)):
 def get_public_template_by_slug(slug: str, db: Session = Depends(get_db)):
     """
     Endpoint pubblico (no auth) per pagine SEO dei mazzi template.
-    Restituisce un deck template con tutte le carte raggruppate per tipo.
+    Arricchisce i dati con JOIN su mtg_cards per mana_cost, cmc, card_type reali.
     """
-    from app.models import DeckTemplate, DeckTemplateCard
+    from app.models import DeckTemplate, DeckTemplateCard, MTGCard
+    from sqlalchemy import func
 
     template = db.query(DeckTemplate).filter(DeckTemplate.slug == slug).first()
     if not template:
@@ -457,14 +458,44 @@ def get_public_template_by_slug(slug: str, db: Session = Depends(get_db)):
         DeckTemplateCard.deck_template_id == template.id
     ).all()
 
+    # Build lookup from mtg_cards for enrichment (one query, group by name)
+    card_names = list({c.card_name for c in cards})
+    mtg_rows = db.query(
+        MTGCard.name, MTGCard.mana_cost, MTGCard.mana_value,
+        MTGCard.types, MTGCard.type_line, MTGCard.rarity
+    ).filter(
+        MTGCard.name.in_(card_names),
+        MTGCard.lang == 'en'
+    ).distinct(MTGCard.name).all()
+
+    mtg_lookup = {r.name: r for r in mtg_rows}
+
     groups: dict = {}
+    cards_out = []
     for c in cards:
-        ctype = c.card_type or "Other"
-        groups.setdefault(ctype, []).append({
+        mtg = mtg_lookup.get(c.card_name)
+        mana_cost = c.mana_cost or (mtg.mana_cost if mtg else None)
+        cmc       = float(mtg.mana_value) if mtg and mtg.mana_value is not None else None
+        # Determine card_type: prefer stored, fallback to mtg_cards types field
+        raw_type  = c.card_type or (mtg.types if mtg else None) or (mtg.type_line if mtg else None) or 'Other'
+        # Normalize to first type word (e.g. "Creature — Elf" → "Creature")
+        card_type = raw_type.split('—')[0].split(',')[0].strip() if raw_type else 'Other'
+        rarity    = c.rarity or (mtg.rarity if mtg else None)
+
+        groups.setdefault(card_type, []).append({
             "name": c.card_name,
             "quantity": c.quantity,
-            "mana_cost": c.mana_cost,
-            "colors": c.colors,
+            "mana_cost": mana_cost,
+            "cmc": cmc,
+            "rarity": rarity,
+        })
+        cards_out.append({
+            "name": c.card_name,
+            "quantity": c.quantity,
+            "card_type": card_type,
+            "mana_cost": mana_cost,
+            "cmc": cmc,
+            "rarity": rarity,
         })
 
     total_cards = sum(c.quantity for c in cards)
@@ -477,11 +508,7 @@ def get_public_template_by_slug(slug: str, db: Session = Depends(get_db)):
         "colors": template.colors,
         "source": template.source,
         "total_cards": total_cards,
-        "cards": [
-            {"name": c.card_name, "quantity": c.quantity,
-             "card_type": c.card_type, "mana_cost": c.mana_cost}
-            for c in cards
-        ],
+        "cards": cards_out,
         "cards_by_type": groups,
     }
 
