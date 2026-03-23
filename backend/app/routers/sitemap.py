@@ -1,7 +1,7 @@
 """
 Sitemap XML dinamica per le pagine dei mazzi (deck_templates + saved_decks pubblici).
-Esposta su /api/sitemap-decks.xml (singolo file, max 50k URL)
-e /api/sitemap-decks-{n}.xml per file paginati se necessario.
+Esposta su /sitemap-decks-{n}.xml (paginata, max 50k URL/file).
+Tutto sotto il dominio principale, proxato da Caddy.
 """
 from fastapi import APIRouter, Depends, Response, Query
 from sqlalchemy.orm import Session
@@ -10,16 +10,15 @@ from app.models import SavedDeck
 
 router = APIRouter()
 
-SITE_URL = "https://magicdeckbuilder.app.cloudsw.site"
-API_URL  = "https://api.magicdeckbuilder.app.cloudsw.site"
-PAGE_SIZE = 5000  # URL per file sitemap
+SITE_URL  = "https://magicdeckbuilder.app.cloudsw.site"
+PAGE_SIZE = 5000  # URL per file sitemap (limite Google: 50k)
 
 
-def _url_entry(loc, lastmod=None, changefreq="monthly", priority="0.7"):
-    parts = [f"  <url>", f"    <loc>{loc}</loc>"]
+def _url_entry(loc, lastmod=None):
+    parts = ["  <url>", f"    <loc>{loc}</loc>"]
     if lastmod:
         parts.append(f"    <lastmod>{lastmod}</lastmod>")
-    parts += [f"    <changefreq>{changefreq}</changefreq>", f"    <priority>{priority}</priority>", "  </url>"]
+    parts.append("  </url>")
     return "\n".join(parts)
 
 
@@ -32,59 +31,23 @@ def _wrap_urlset(entries):
     )
 
 
-@router.get("/sitemap-decks-index.xml", response_class=Response)
-def sitemap_decks_index(db: Session = Depends(get_db)):
-    """
-    Sitemap index che punta ai file paginati.
-    Da aggiungere al sitemap.xml principale del frontend.
-    """
-    from app.models import DeckTemplate
-
-    total_templates = db.query(DeckTemplate).filter(
-        DeckTemplate.slug != None, DeckTemplate.slug != ''
-    ).count()
-    total_saved = db.query(SavedDeck).filter(
-        SavedDeck.is_public == True,
-        SavedDeck.slug != None, SavedDeck.slug != ''
-    ).count()
-    total = total_templates + total_saved
-    num_pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
-
-    entries = []
-    for i in range(1, num_pages + 1):
-        entries.append(
-            f"  <sitemap>\n"
-            f"    <loc>{API_URL}/api/sitemap-decks-{i}.xml</loc>\n"
-            f"    <lastmod>2026-03-20</lastmod>\n"
-            f"  </sitemap>"
-        )
-
-    xml = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        + "\n".join(entries)
-        + "\n</sitemapindex>"
-    )
-    return Response(content=xml, media_type="application/xml")
-
-
 @router.get("/sitemap-decks-{page}.xml", response_class=Response)
+@router.head("/sitemap-decks-{page}.xml", response_class=Response)
 def sitemap_decks_page(page: int, db: Session = Depends(get_db)):
-    """Sitemap paginata per i mazzi. Es: /api/sitemap-decks-1.xml"""
+    """Sitemap paginata per i mazzi. Es: /sitemap-decks-1.xml"""
     from app.models import DeckTemplate
 
-    offset = (page - 1) * PAGE_SIZE
+    offset    = (page - 1) * PAGE_SIZE
     remaining = PAGE_SIZE
+    entries   = []
 
-    entries = []
-
-    # Prima i template (7000+)
+    # Prima i template (7000+) — nessun lastmod perché non hanno updated_at
     templates = db.query(DeckTemplate.slug).filter(
         DeckTemplate.slug != None, DeckTemplate.slug != ''
     ).order_by(DeckTemplate.id).offset(offset).limit(remaining).all()
 
     for t in templates:
-        entries.append(_url_entry(f"{SITE_URL}/decks/{t.slug}", priority="0.7"))
+        entries.append(_url_entry(f"{SITE_URL}/decks/{t.slug}"))
 
     remaining -= len(templates)
 
@@ -101,7 +64,7 @@ def sitemap_decks_page(page: int, db: Session = Depends(get_db)):
 
         for d in saved:
             lastmod = d.updated_at.strftime("%Y-%m-%d") if d.updated_at else None
-            entries.append(_url_entry(f"{SITE_URL}/decks/{d.slug}", lastmod=lastmod, priority="0.6"))
+            entries.append(_url_entry(f"{SITE_URL}/decks/{d.slug}", lastmod=lastmod))
 
     if not entries:
         return Response(status_code=404)
@@ -111,10 +74,7 @@ def sitemap_decks_page(page: int, db: Session = Depends(get_db)):
 
 @router.get("/sitemap-decks.xml", response_class=Response)
 def sitemap_decks_single(db: Session = Depends(get_db)):
-    """
-    Sitemap singola con tutti i mazzi (fino a 50k URL).
-    Comoda per siti con meno di 50k pagine.
-    """
+    """Sitemap singola con tutti i mazzi (fino a 50k URL)."""
     from app.models import DeckTemplate
 
     templates = db.query(DeckTemplate.slug).filter(
@@ -128,9 +88,9 @@ def sitemap_decks_single(db: Session = Depends(get_db)):
 
     entries = []
     for t in templates:
-        entries.append(_url_entry(f"{SITE_URL}/decks/{t.slug}", priority="0.7"))
+        entries.append(_url_entry(f"{SITE_URL}/decks/{t.slug}"))
     for d in saved:
         lastmod = d.updated_at.strftime("%Y-%m-%d") if d.updated_at else None
-        entries.append(_url_entry(f"{SITE_URL}/decks/{d.slug}", lastmod=lastmod, priority="0.6"))
+        entries.append(_url_entry(f"{SITE_URL}/decks/{d.slug}", lastmod=lastmod))
 
     return Response(content=_wrap_urlset(entries), media_type="application/xml")
