@@ -32,7 +32,7 @@ def _wrap_urlset(entries):
     )
 
 
-@router.get("/api/sitemap-decks-index.xml", response_class=Response)
+@router.get("/sitemap-decks-index.xml", response_class=Response)
 def sitemap_decks_index(db: Session = Depends(get_db)):
     """
     Sitemap index che punta ai file paginati.
@@ -68,7 +68,7 @@ def sitemap_decks_index(db: Session = Depends(get_db)):
     return Response(content=xml, media_type="application/xml")
 
 
-@router.get("/api/sitemap-decks-{page}.xml", response_class=Response)
+@router.get("/sitemap-decks-{page}.xml", response_class=Response)
 def sitemap_decks_page(page: int, db: Session = Depends(get_db)):
     """Sitemap paginata per i mazzi. Es: /api/sitemap-decks-1.xml"""
     from app.models import DeckTemplate
@@ -109,7 +109,7 @@ def sitemap_decks_page(page: int, db: Session = Depends(get_db)):
     return Response(content=_wrap_urlset(entries), media_type="application/xml")
 
 
-@router.get("/api/sitemap-decks.xml", response_class=Response)
+@router.get("/sitemap-decks.xml", response_class=Response)
 def sitemap_decks_single(db: Session = Depends(get_db)):
     """
     Sitemap singola con tutti i mazzi (fino a 50k URL).
