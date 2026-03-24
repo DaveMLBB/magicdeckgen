@@ -117,7 +117,7 @@ const SUGGESTIONS = {
   ]
 }
 
-function AIDeckBoost({ user, language, onBack, onSaved }) {
+function AIDeckBoost({ user, language, onBack, onSaved, onTokensUpdate }) {
   const tr = t[language] || t.en
   const messagesEndRef = useRef(null)
 
@@ -242,6 +242,7 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
       setHistory([...newHistory, assistantMsg])
       setTokens(data.tokens_remaining)
       if (user) user.tokens = data.tokens_remaining
+      if (onTokensUpdate) onTokensUpdate()
 
       if (data.deck_modified && data.updated_deck?.cards) {
         // Preserva il cmc dalle carte originali se l'AI non lo restituisce
@@ -431,6 +432,43 @@ function AIDeckBoost({ user, language, onBack, onSaved }) {
               )}
             </div>
           )}
+
+          {/* Diff modifiche */}
+          {deckModified && (() => {
+            const origMap = Object.fromEntries(originalCards.map(c => [c.card_name, c.quantity]))
+            const currMap = Object.fromEntries(currentCards.map(c => [c.card_name, c.quantity]))
+            const added = currentCards.filter(c => !origMap[c.card_name] || c.quantity > origMap[c.card_name])
+              .map(c => ({ card_name: c.card_name, quantity: c.quantity - (origMap[c.card_name] || 0) }))
+            const removed = originalCards.filter(c => !currMap[c.card_name] || c.quantity > currMap[c.card_name])
+              .map(c => ({ card_name: c.card_name, quantity: c.quantity - (currMap[c.card_name] || 0) }))
+            return (
+              <>
+                <p className="abb-panel-title">🔄 {language === 'it' ? 'Ultime modifiche' : 'Last changes'}</p>
+                {added.length > 0 && (
+                  <div className="abb-diff-section">
+                    <p className="abb-diff-label added">➕ {language === 'it' ? 'Aggiunte' : 'Added'}</p>
+                    {added.map((c, i) => (
+                      <div key={i} className="abb-diff-row added" onClick={() => setPreviewCard(c.card_name)} style={{ cursor: 'pointer' }}>
+                        <span className="abb-card-qty">{c.quantity}x</span>
+                        <span className="abb-card-name">{c.card_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {removed.length > 0 && (
+                  <div className="abb-diff-section">
+                    <p className="abb-diff-label removed">➖ {language === 'it' ? 'Rimosse' : 'Removed'}</p>
+                    {removed.map((c, i) => (
+                      <div key={i} className="abb-diff-row removed" onClick={() => setPreviewCard(c.card_name)} style={{ cursor: 'pointer' }}>
+                        <span className="abb-card-qty">{c.quantity}x</span>
+                        <span className="abb-card-name">{c.card_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )
+          })()}
 
           {/* Azioni */}
           <div className="abb-deck-actions">

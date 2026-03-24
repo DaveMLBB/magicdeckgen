@@ -1376,16 +1376,16 @@ function App() {
       )
     }
     if (currentView === 'card-synergy') {
-      return <CardSynergy user={user} subscriptionStatus={subscriptionStatus} onBack={() => setCurrentView('dashboard')} language={language} />
+      return <CardSynergy user={user} subscriptionStatus={subscriptionStatus} onBack={() => setCurrentView('dashboard')} language={language} onTokensUpdate={() => loadSubscriptionStatus(user.token)} />
     }
     if (currentView === 'card-twins') {
-      return <CardTwins user={user} subscriptionStatus={subscriptionStatus} onBack={() => setCurrentView('dashboard')} language={language} />
+      return <CardTwins user={user} subscriptionStatus={subscriptionStatus} onBack={() => setCurrentView('dashboard')} language={language} onTokensUpdate={() => loadSubscriptionStatus(user.token)} />
     }
     if (currentView === 'ai-deck-builder') {
-      return <AIDeckBuilder user={user} onBack={() => setCurrentView('dashboard')} language={language} onSaved={() => setCurrentView('saved-decks')} />
+      return <AIDeckBuilder user={user} onBack={() => setCurrentView('dashboard')} language={language} onSaved={() => setCurrentView('saved-decks')} onTokensUpdate={() => loadSubscriptionStatus(user.token)} />
     }
     if (currentView === 'ai-deck-boost') {
-      return <AIDeckBoost user={user} language={language} onBack={() => setCurrentView('dashboard')} onSaved={() => setCurrentView('saved-decks')} />
+      return <AIDeckBoost user={user} language={language} onBack={() => setCurrentView('dashboard')} onSaved={() => setCurrentView('saved-decks')} onTokensUpdate={() => loadSubscriptionStatus(user.token)} />
     }
     if (currentView === 'arena-import') {
       return <ArenaImport user={user} language={language} onNavigate={setCurrentView} />

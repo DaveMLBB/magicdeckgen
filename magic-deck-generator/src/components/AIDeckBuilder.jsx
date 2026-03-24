@@ -103,7 +103,7 @@ const tr = {
   }
 }
 
-function AIDeckBuilder({ user, language, onBack, onSaved }) {
+function AIDeckBuilder({ user, language, onBack, onSaved, onTokensUpdate }) {
   const t = tr[language] || tr.en
   const messagesEndRef = useRef(null)
 
@@ -191,6 +191,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
       setHistory([...newHistory, assistantMsg])
       setTokens(data.tokens_remaining)
       if (user) user.tokens = data.tokens_remaining
+      if (onTokensUpdate) onTokensUpdate()
 
       if (data.deck_updated && data.deck?.cards) {
         const prevCards = prevDeckRef.current?.cards || []

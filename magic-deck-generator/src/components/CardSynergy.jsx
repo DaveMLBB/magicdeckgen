@@ -117,7 +117,7 @@ const translations = {
   }
 }
 
-function CardSynergy({ user, subscriptionStatus, onBack, language }) {
+function CardSynergy({ user, subscriptionStatus, onBack, language, onTokensUpdate }) {
   const t = translations[language] || translations.en
 
   const [seedCards, setSeedCards] = useState([''])
@@ -228,6 +228,7 @@ function CardSynergy({ user, subscriptionStatus, onBack, language }) {
       setResult(data)
       setTokens(data.tokens_remaining)
       if (user) user.tokens = data.tokens_remaining
+      if (onTokensUpdate) onTokensUpdate()
     } catch {
       setError(t.errorGeneric)
     }
