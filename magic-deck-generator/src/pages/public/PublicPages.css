@@ -535,8 +535,10 @@
   min-width: 200px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   border-radius: 4px;
-  margin-top: 0.5rem;
   padding: 0.5rem 0;
+  /* padding-top copre il gap tra trigger e menu senza creare spazio vuoto */
+  padding-top: calc(0.5rem + 8px);
+  margin-top: -8px;
 }
 
 .seo-public-page .nav-dropdown:hover .dropdown-content {

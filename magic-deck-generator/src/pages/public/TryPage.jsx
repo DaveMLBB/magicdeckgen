@@ -12,6 +12,8 @@ import ArenaImportAnon from './ArenaImportAnon'
 import CardScannerAnon from './CardScannerAnon'
 import FeedbackForm from '../../components/FeedbackForm'
 import TrialLimitModal from '../../components/TrialLimitModal'
+import ToolPageWrapper from './seo/ToolPageWrapper'
+import PublicNav from '../../components/public/PublicNav'
 import { isTrialLimitError, getTrialLimitMessage } from '../../utils/anonymousTrial'
 import './TryPage.css'
 
@@ -84,11 +86,27 @@ export default function TryPage({ lang = 'it' }) {
 
   const commonProps = { language, onBack: handleBack, onTrialLimit: handleTrialLimit }
 
-  if (activeTool === 'deck-builder') return <><AIDeckBuilderAnon {...commonProps} />{trialModal}</>
-  if (activeTool === 'synergy')      return <><CardSynergyAnon {...commonProps} />{trialModal}</>
-  if (activeTool === 'twins')        return <><CardTwinsAnon {...commonProps} />{trialModal}</>
+  if (activeTool === 'deck-builder') return (
+    <ToolPageWrapper toolId="deck-builder" lang={language}>
+      <AIDeckBuilderAnon {...commonProps} />{trialModal}
+    </ToolPageWrapper>
+  )
+  if (activeTool === 'synergy') return (
+    <ToolPageWrapper toolId="synergy" lang={language}>
+      <CardSynergyAnon {...commonProps} />{trialModal}
+    </ToolPageWrapper>
+  )
+  if (activeTool === 'twins') return (
+    <ToolPageWrapper toolId="twins" lang={language}>
+      <CardTwinsAnon {...commonProps} />{trialModal}
+    </ToolPageWrapper>
+  )
   if (activeTool === 'boost')        return <><AIDeckBoostAnon {...commonProps} />{trialModal}</>
-  if (activeTool === 'tournament')   return <><TournamentDeckBuilderAnon {...commonProps} />{trialModal}</>
+  if (activeTool === 'tournament')   return (
+    <ToolPageWrapper toolId="tournament" lang={language}>
+      <TournamentDeckBuilderAnon {...commonProps} />{trialModal}
+    </ToolPageWrapper>
+  )
   if (activeTool === 'card-search')  return <CardSearchAnon language={language} onBack={handleBack} />
   if (activeTool === 'decks')        return <Navigate to="/decks" replace />
   if (activeTool === 'collections')  return <PublicCollectionsAnon language={language} onBack={handleBack} />
@@ -153,6 +171,62 @@ export default function TryPage({ lang = 'it' }) {
         <button className="try-cta-btn" onClick={() => navigate('/')}>
           {language === 'it' ? 'Registrati Gratis' : 'Sign Up Free'}
         </button>
+      </div>
+
+      {/* SEO text block — real content for indexing */}
+      <div className="try-seo-block">
+        <div className="try-seo-inner">
+          {language === 'en' ? (
+            <>
+              <h2>Free MTG Tools — No Registration Required</h2>
+              <p>
+                Magic Deck Builder offers a complete suite of AI-powered tools for Magic: The Gathering players.
+                Try every tool for free without creating an account. Build decks, find synergies, discover card
+                alternatives, and match your collection against 7,200+ tournament decklists — all in your browser.
+              </p>
+              <h3>What Each Tool Does</h3>
+              <ul>
+                <li><strong>AI Deck Builder</strong> — Describe any deck in plain text and get a complete, tournament-ready list with sideboard, strategy notes, and upgrade path. Works for all formats: Standard, Modern, Pioneer, Legacy, Commander, Pauper, and more.</li>
+                <li><strong>AI Synergy Finder</strong> — Enter 1–5 seed cards and discover the most synergistic cards to build around them. Results are grouped by role: Enabler, Payoff, Removal, Ramp, and Support.</li>
+                <li><strong>AI Card Twins</strong> — Find functional equivalents for any card. Budget replacements, upgrades, or cards that fill the same role. Each result rated: Functional Copy, Superior, Inferior, or Lateral.</li>
+                <li><strong>Tournament Deck Builder</strong> — Upload your collection and instantly see which of 7,200+ competitive tournament decks you can build. See your completion % and exactly which cards you're missing.</li>
+                <li><strong>Card Search</strong> — Search 392,000+ Magic cards by name, type, color, CMC, format, rarity, and card text. Full Italian and English support.</li>
+                <li><strong>Arena Import</strong> — Paste any deck list from MTG Arena or MTGO and instantly visualize it with card images, mana curve, and type breakdown.</li>
+              </ul>
+              <h3>How the Free Trial Works</h3>
+              <p>
+                AI tools (Deck Builder, Synergy Finder, Card Twins) have a monthly free trial limit — 2 uses per month
+                without registration. Card Search, Arena Import, and Public Decks are completely free with no limits.
+                Sign up free to get 100 welcome tokens and unlock unlimited access to all AI tools.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2>Strumenti MTG Gratuiti — Senza Registrazione</h2>
+              <p>
+                Magic Deck Builder offre una suite completa di strumenti AI per i giocatori di Magic: The Gathering.
+                Prova ogni strumento gratuitamente senza creare un account. Costruisci mazzi, trova sinergie, scopri
+                alternative alle carte e confronta la tua collezione con 7.200+ decklist da torneo — tutto nel browser.
+              </p>
+              <h3>Cosa Fa Ogni Strumento</h3>
+              <ul>
+                <li><strong>AI Deck Builder</strong> — Descrivi qualsiasi mazzo in testo libero e ottieni una lista completa e pronta per tornei con sideboard, note strategiche e percorso di upgrade. Funziona per tutti i formati: Standard, Modern, Pioneer, Legacy, Commander, Pauper e altri.</li>
+                <li><strong>AI Synergy Finder</strong> — Inserisci 1–5 carte di partenza e scopri le carte più sinergiche per costruire attorno ad esse. I risultati sono raggruppati per ruolo: Enabler, Payoff, Removal, Ramp e Support.</li>
+                <li><strong>AI Card Twins</strong> — Trova equivalenti funzionali per qualsiasi carta. Sostituti budget, upgrade o carte che ricoprono lo stesso ruolo. Ogni risultato valutato: Copia Funzionale, Superiore, Inferiore o Laterale.</li>
+                <li><strong>Tournament Deck Builder</strong> — Carica la tua collezione e vedi istantaneamente quali dei 7.200+ mazzi da torneo competitivi puoi costruire. Vedi la tua % di completamento e esattamente quali carte ti mancano.</li>
+                <li><strong>Cerca Carte</strong> — Cerca 392.000+ carte Magic per nome, tipo, colore, CMC, formato, rarità e testo. Supporto completo italiano e inglese.</li>
+                <li><strong>Arena Import</strong> — Incolla qualsiasi lista di mazzi da MTG Arena o MTGO e visualizzala istantaneamente con immagini delle carte, curva di mana e suddivisione per tipo.</li>
+              </ul>
+              <h3>Come Funziona la Prova Gratuita</h3>
+              <p>
+                Gli strumenti AI (Deck Builder, Synergy Finder, Card Twins) hanno un limite di prova mensile gratuita —
+                2 utilizzi al mese senza registrazione. Cerca Carte, Arena Import e Mazzi Pubblici sono completamente
+                gratuiti senza limiti. Registrati gratis per ottenere 100 token di benvenuto e sbloccare l'accesso
+                illimitato a tutti gli strumenti AI.
+              </p>
+            </>
+          )}
+        </div>
       </div>
 
       {trialModal}
