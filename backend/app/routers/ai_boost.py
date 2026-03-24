@@ -154,16 +154,17 @@ Carte: {json.dumps(deck_cards, ensure_ascii=False)}{collection_constraint}
 
 REGOLE ASSOLUTE — NON VIOLARLE MAI:
 1. {size_rule}
-2. Le TERRE (category "Land") devono rispettare questi range in base al totale carte:
+2. Fai SOLO le modifiche esplicitamente richieste dall'utente. NON "migliorare" o "ottimizzare" altre parti del mazzo non menzionate.
+3. Se l'utente chiede di aggiungere X copie di una carta, togli esattamente X copie di un'altra carta (preferibilmente dello stesso tipo o la carta più simile). NON toccare altre carte.
+4. Le TERRE (category "Land") devono rispettare questi range in base al totale carte:
    - 40 carte: 15-18 terre
    - 60 carte: 15-25 terre (ideale ~22-24 per mazzi normali, ~18-20 per mazzi aggro con curva bassa)
    - 75 carte: 20-28 terre
    - 80 carte: 22-30 terre
    - 99/100 carte (Commander): 33-38 terre
-   - Regola generale: circa il 35-40% del mazzo per mazzi midrange/control, 25-30% per aggro con curva bassa
    - Se l'utente non chiede esplicitamente di cambiare le terre, MANTIENI il numero attuale SE è già nel range corretto.
-3. Terre base (Plains, Island, Swamp, Mountain, Forest, Wastes e varianti snow-covered) sono SEMPRE permesse anche se non nella collezione.
-4. Bilancia la curva di mana: distribuisci le carte non-terra su costi 1-6+ in modo sensato per il formato.
+5. Terre base (Plains, Island, Swamp, Mountain, Forest, Wastes e varianti snow-covered) sono SEMPRE permesse anche se non nella collezione.
+6. Bilancia la curva di mana solo se esplicitamente richiesto dall'utente.
 
 ISTRUZIONI:
 - Rispondi SEMPRE in {lang_label}
