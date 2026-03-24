@@ -36,8 +36,8 @@ function AppRouter() {
 
       {/* Root and all other paths - Protected app */}
       <Route path="/welcome" element={<WelcomePage />} />
-      <Route path="/try" element={<TryPage lang="it" />} />
-      <Route path="/try/:toolId" element={<TryPage lang="it" />} />
+      <Route path="/try" element={<TryPage lang={navigator.language?.toLowerCase().startsWith('it') ? 'it' : 'en'} />} />
+      <Route path="/try/:toolId" element={<TryPage lang={navigator.language?.toLowerCase().startsWith('it') ? 'it' : 'en'} />} />
       <Route path="/en/try" element={<TryPage lang="en" />} />
       <Route path="/en/try/:toolId" element={<TryPage lang="en" />} />
       <Route path="/*" element={<App />} />

@@ -55,7 +55,12 @@ function App() {
   const location = useLocation()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'it')
+  const [language, setLanguage] = useState(() => {
+    const saved = localStorage.getItem('language')
+    if (saved) return saved
+    const browserLang = navigator.language || navigator.userLanguage || 'en'
+    return browserLang.toLowerCase().startsWith('it') ? 'it' : 'en'
+  })
   const [cards, setCards] = useState([])
   const [decks, setDecks] = useState([])
   const [deckLoading, setDeckLoading] = useState(false)
