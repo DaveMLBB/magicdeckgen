@@ -47,7 +47,7 @@ function CardArtBackground({ cardName }) {
 }
 
 const API_URL = import.meta.env.PROD 
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
+  ? 'https://api.mtgdecksbuilder.com' 
   : 'http://localhost:8000'
 
 function App() {

@@ -5,7 +5,7 @@ import { cardImageCache } from '../utils/cardImageCache'
 import './CardPreviewModal.css'
 
 const API_URL = import.meta.env.PROD
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site'
+  ? 'https://api.mtgdecksbuilder.com'
   : 'http://localhost:8000'
 
 const CardDetailImage = React.memo(function CardDetailImage({ card, language }) {

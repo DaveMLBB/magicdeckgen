@@ -4,7 +4,7 @@ import { cardImageCache } from '../utils/cardImageCache'
 import { exportCollectionCSV, exportCollectionManaBox, exportCollectionXLSX, exportCollectionTXT } from '../utils/exportCards'
 
 const API_URL = import.meta.env.PROD 
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
+  ? 'https://api.mtgdecksbuilder.com' 
   : 'http://localhost:8000'
 
 function Collection({ user, collection, onBack, onSelectDeck, language, onShowSubscriptions, onUploadComplete, onLimitError }) {

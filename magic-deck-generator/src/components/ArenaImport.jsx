@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import './ArenaImport.css'
 
 const API_URL = import.meta.env.PROD
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site'
+  ? 'https://api.mtgdecksbuilder.com'
   : 'http://localhost:8000'
 
 const LOG_PATHS = {

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import './DataExportButton.css'
 
 const API_URL = import.meta.env.PROD 
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
+  ? 'https://api.mtgdecksbuilder.com' 
   : 'http://localhost:8000'
 
 function DataExportButton({ token, onExportComplete, language = 'en' }) {

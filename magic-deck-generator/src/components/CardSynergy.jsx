@@ -3,7 +3,7 @@ import './CardSynergy.css'
 import CardPreviewModal from './CardPreviewModal'
 
 const API_URL = import.meta.env.PROD
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site'
+  ? 'https://api.mtgdecksbuilder.com'
   : 'http://localhost:8000'
 
 const FORMATS = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'commander', 'pauper', 'historic', 'explorer']

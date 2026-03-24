@@ -2,7 +2,7 @@ import { useState } from 'react'
 import './AccountDeletionFlow.css'
 
 const API_URL = import.meta.env.PROD 
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
+  ? 'https://api.mtgdecksbuilder.com' 
   : 'http://localhost:8000'
 
 function AccountDeletionFlow({ user, token, onDeletionInitiated, language = 'en' }) {

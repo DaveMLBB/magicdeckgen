@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './CookieSettings.css'
 
 const API_URL = import.meta.env.PROD 
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
+  ? 'https://api.mtgdecksbuilder.com' 
   : 'http://localhost:8000'
 
 function CookieSettings({ user, language = 'en', onBack }) {

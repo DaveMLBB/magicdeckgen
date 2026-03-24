@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './SavedDecksList.css'
 
 const API_URL = import.meta.env.PROD 
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
+  ? 'https://api.mtgdecksbuilder.com' 
   : 'http://localhost:8000'
 
 function SavedDecksList({ user, onBack, onSelectDeck, language, onShowSubscriptions, onLimitError }) {

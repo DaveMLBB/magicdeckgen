@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { isTrialLimitError } from '../../utils/anonymousTrial'
 
 const API_URL = import.meta.env.PROD
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site'
+  ? 'https://api.mtgdecksbuilder.com'
   : 'http://localhost:8000'
 
 const TR = {

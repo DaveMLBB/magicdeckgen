@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './LegalPages.css'
 
 const API_URL = import.meta.env.PROD 
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
+  ? 'https://api.mtgdecksbuilder.com' 
   : 'http://localhost:8000'
 
 function LegalPages({ pageType, user, language = 'en', onBack }) {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './EmailPreferences.css'
 
 const API_URL = import.meta.env.PROD 
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
+  ? 'https://api.mtgdecksbuilder.com' 
   : 'http://localhost:8000'
 
 function EmailPreferences({ user, language = 'en', onBack }) {

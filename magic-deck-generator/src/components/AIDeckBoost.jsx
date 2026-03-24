@@ -4,7 +4,7 @@ import './AIDeckBuilder.css'
 import CardPreviewModal from './CardPreviewModal'
 
 const API_URL = import.meta.env.PROD
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site'
+  ? 'https://api.mtgdecksbuilder.com'
   : 'http://localhost:8000'
 
 const CATEGORY_COLORS = {

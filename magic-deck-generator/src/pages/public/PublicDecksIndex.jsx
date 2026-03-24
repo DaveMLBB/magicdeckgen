@@ -8,7 +8,7 @@ import './PublicPages.css';
 import './PublicDecksIndex.css';
 
 const API_URL = import.meta.env.PROD
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site'
+  ? 'https://api.mtgdecksbuilder.com'
   : 'http://localhost:8000';
 
 const COLOR_OPTIONS = [

@@ -2,11 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import './Chat.css'
 
 const API_URL = import.meta.env.PROD
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site'
+  ? 'https://api.mtgdecksbuilder.com'
   : 'http://localhost:8000'
 
 const WS_URL = import.meta.env.PROD
-  ? 'wss://api.magicdeckbuilder.app.cloudsw.site'
+  ? 'wss://api.mtgdecksbuilder.com'
   : 'ws://localhost:8000'
 
 const T = {

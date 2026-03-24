@@ -4,7 +4,7 @@ import { getTrialHeaders, isTrialLimitError } from '../../utils/anonymousTrial'
 import '../../components/CardSynergy.css'
 
 const API_URL = import.meta.env.PROD
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site'
+  ? 'https://api.mtgdecksbuilder.com'
   : 'http://localhost:8000'
 
 const FORMATS = ['standard','pioneer','modern','legacy','vintage','commander','pauper']

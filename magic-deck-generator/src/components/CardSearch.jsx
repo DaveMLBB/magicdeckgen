@@ -4,7 +4,7 @@ import './CardSearch.css'
 import { cardImageCache } from '../utils/cardImageCache'
 
 const API_URL = import.meta.env.PROD 
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site' 
+  ? 'https://api.mtgdecksbuilder.com' 
   : 'http://localhost:8000'
 
 // Componente per caricare le immagini delle carte con lazy loading

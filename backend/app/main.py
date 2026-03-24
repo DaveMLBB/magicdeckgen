@@ -28,7 +28,9 @@ allowed_origins = [
     "http://localhost:8000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:8000",
-    "https://magicdeckbuilder.app.cloudsw.site"
+    "https://magicdeckbuilder.app.cloudsw.site",
+    "https://mtgdecksbuilder.com",
+    "https://www.mtgdecksbuilder.com",
 ]
 
 # Add production frontend URL from environment if set
@@ -66,7 +68,7 @@ app.include_router(sitemap_router, tags=["sitemap"])
 
 @app.get("/")
 def root():
-    return {"message": "Magic Deck Generator API"}
+    return {"status": "ok"}
 
 
 @app.post("/api/visit")

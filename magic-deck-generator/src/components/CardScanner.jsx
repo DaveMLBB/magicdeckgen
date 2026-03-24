@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import './CardScanner.css'
 
 const API_URL = import.meta.env.PROD
-  ? 'https://api.magicdeckbuilder.app.cloudsw.site'
+  ? 'https://api.mtgdecksbuilder.com'
   : 'http://localhost:8000'
 
 const t = {
