@@ -56,6 +56,10 @@ const t = {
     uniqueCardsLabel: 'Carte Uniche',
     manaCurve: 'Curva di Mana',
     types: 'Tipi',
+    deckSizeLabel: '📏 Dimensione mazzo',
+    deckSizeDefault: 'Standard (rispetta il formato)',
+    deckSizeFree: 'Libero (nessun vincolo)',
+    deckSizeCommander: 'Commander (100 carte)',
   },
   en: {
     title: '⚡ AI Deck Boost',
@@ -91,6 +95,10 @@ const t = {
     uniqueCardsLabel: 'Unique Cards',
     manaCurve: 'Mana Curve',
     types: 'Types',
+    deckSizeLabel: '📏 Deck size',
+    deckSizeDefault: 'Standard (respect format)',
+    deckSizeFree: 'Free (no limit)',
+    deckSizeCommander: 'Commander (100 cards)',
   }
 }
 
@@ -144,6 +152,7 @@ function AIDeckBoost({ user, language, onBack, onSaved, onTokensUpdate }) {
   const prevCardsRef = useRef([])
   const [collections, setCollections] = useState([])
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
+  const [deckSizeOverride, setDeckSizeOverride] = useState('default') // 'default' | 'free' | '100'
   const [mobileTab, setMobileTab] = useState('chat') // 'chat' | 'cards' | 'options'
 
   // Carica lista mazzi salvati e collezioni
@@ -216,9 +225,10 @@ function AIDeckBoost({ user, language, onBack, onSaved, onTokensUpdate }) {
           user_id: user.userId,
           deck_id: selectedDeckId,
           message: userMsg,
-          history: history,  // history PRIMA del nuovo messaggio
+          history: history,
           current_deck: { cards: currentCards },
-          collection_id: selectedCollectionId || null
+          collection_id: selectedCollectionId || null,
+          deck_size_override: deckSizeOverride === 'free' ? 0 : deckSizeOverride === '100' ? 100 : null
         })
       })
       const data = await res.json()
@@ -452,6 +462,20 @@ function AIDeckBoost({ user, language, onBack, onSaved, onTokensUpdate }) {
               )}
             </div>
           )}
+
+          {/* Dimensione mazzo */}
+          <div>
+            <p className="abb-panel-title">{tr.deckSizeLabel}</p>
+            <select
+              className="abb-deck-select"
+              value={deckSizeOverride}
+              onChange={e => { setDeckSizeOverride(e.target.value); setHistory([]) }}
+            >
+              <option value="default">{tr.deckSizeDefault}</option>
+              <option value="free">{tr.deckSizeFree}</option>
+              <option value="100">{tr.deckSizeCommander}</option>
+            </select>
+          </div>
 
           {/* Diff modifiche */}
           {lastDiff && (

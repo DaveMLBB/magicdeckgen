@@ -40,6 +40,7 @@ class BoostDeckInput(BaseModel):
     history: List[ChatMessage] = []     # cronologia chat precedente
     current_deck: Optional[dict] = None # stato attuale del mazzo (se già modificato)
     collection_id: Optional[int] = None # collezione da usare come vincolo
+    deck_size_override: Optional[int] = None  # se impostato, ignora il vincolo delle 60 carte
 
 @router.post("/boost-deck")
 async def boost_deck(
@@ -108,6 +109,10 @@ async def boost_deck(
     deck_name = saved_deck.name or "Mazzo senza nome"
     total_cards = sum(c.get("quantity", 1) for c in deck_cards)
 
+    # Determina il target size
+    target_size = input_data.deck_size_override if input_data.deck_size_override else total_cards
+    size_rule = f"Il mazzo PUÒ avere qualsiasi numero di carte — l'utente ha disabilitato il vincolo sul numero di carte." if input_data.deck_size_override == 0 else f"Il mazzo DEVE avere esattamente {target_size} carte totali (somma di tutte le quantity)."
+
     # Carica la collezione se fornita (max 300 carte uniche)
     collection_constraint = ""
     if input_data.collection_id:
@@ -148,7 +153,7 @@ Totale carte: {total_cards}
 Carte: {json.dumps(deck_cards, ensure_ascii=False)}{collection_constraint}
 
 REGOLE ASSOLUTE — NON VIOLARLE MAI:
-1. Il mazzo DEVE avere esattamente {total_cards} carte totali (somma di tutte le quantity).
+1. {size_rule}
 2. Le TERRE (category "Land") devono rispettare questi range in base al totale carte:
    - 40 carte: 15-18 terre
    - 60 carte: 15-25 terre (ideale ~22-24 per mazzi normali, ~18-20 per mazzi aggro con curva bassa)
@@ -282,7 +287,7 @@ Se deck_modified è false, updated_deck può essere null."""
                 # Rimuovi carte con quantity 0
                 updated_deck["cards"] = [c for c in updated_deck["cards"] if c.get("quantity", 0) > 0]
 
-            updated_deck = enforce_deck_size(updated_deck, deck_format, saved_deck.colors)
+            updated_deck = enforce_deck_size(updated_deck, deck_format, saved_deck.colors) if input_data.deck_size_override != 0 else updated_deck
             # Arricchisci cmc dal DB MTG (fallback al valore fornito dall'AI)
             # Costruisci lookup dalle carte originali per preservare cmc esistente
             original_cmc = {c["card_name"]: c.get("cmc", 0) for c in deck_cards}
