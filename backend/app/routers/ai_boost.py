@@ -41,6 +41,7 @@ class BoostDeckInput(BaseModel):
     current_deck: Optional[dict] = None # stato attuale del mazzo (se già modificato)
     collection_id: Optional[int] = None # collezione da usare come vincolo
     deck_size_override: Optional[int] = None  # se impostato, ignora il vincolo delle 60 carte
+    arena_only: bool = False  # se True, usa solo carte disponibili su MTG Arena
 
 @router.post("/boost-deck")
 async def boost_deck(
@@ -145,12 +146,14 @@ REGOLE COLLEZIONE:
 - Se una carta del mazzo attuale non è nella collezione, sostituiscila con un'alternativa disponibile nella lista
 - NON inventare carte che non sono nella lista sopra (eccetto le 5 eccezioni e le terre base)"""
 
+    arena_constraint = "\nVINCOLO MTG ARENA: Usa SOLO carte disponibili su MTG Arena (Standard, Pioneer, Historic, Explorer, Alchemy). Escludi carte presenti solo in Legacy, Vintage, Modern o altri formati non supportati da Arena." if input_data.arena_only else ""
+
     system_prompt = f"""Sei un esperto costruttore di mazzi Magic: The Gathering. Stai aiutando un giocatore a modificare il suo mazzo esistente tramite una conversazione.
 
 MAZZO ATTUALE: "{deck_name}"
 Formato: {deck_format}
 Totale carte: {total_cards}
-Carte: {json.dumps(deck_cards, ensure_ascii=False)}{collection_constraint}
+Carte: {json.dumps(deck_cards, ensure_ascii=False)}{collection_constraint}{arena_constraint}
 
 REGOLE ASSOLUTE — NON VIOLARLE MAI:
 1. {size_rule}
@@ -188,14 +191,19 @@ Formato risposta JSON:
 {{
   "message": "La tua risposta testuale qui",
   "deck_modified": true/false,
-  "updated_deck": {{
-    "cards": [
-      {{"card_name": "Nome Carta", "quantity": 4, "cmc": 2, "category": "Creature|Instant|Sorcery|Enchantment|Equipment|Artifact|Planeswalker|Land|Other", "role": "ruolo"}}
+  "changes": {{
+    "add": [
+      {{"card_name": "Nome Carta", "quantity": 1, "cmc": 2, "category": "Land", "role": ""}}
+    ],
+    "remove": [
+      {{"card_name": "Nome Carta", "quantity": 1}}
     ]
   }}
 }}
 
-Se deck_modified è false, updated_deck può essere null."""
+IMPORTANTE: "changes" contiene SOLO le carte da aggiungere e rimuovere, NON il mazzo completo.
+Se deck_modified è false, changes può essere null.
+Le quantità in "add" e "remove" devono bilanciarsi (stessa somma totale) per mantenere il totale carte invariato (a meno che l'utente non chieda esplicitamente di cambiare il numero totale)."""
 
     # Costruisci la lista messaggi con la history
     messages = [{"role": "system", "content": system_prompt}]
@@ -205,7 +213,7 @@ Se deck_modified è false, updated_deck può essere null."""
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-5.2",
+            model="gpt-5.1",
             messages=messages,
             temperature=0.7,
             max_completion_tokens=10000,
@@ -232,75 +240,52 @@ Se deck_modified è false, updated_deck può essere null."""
 
         assistant_message = result.get("message", "")
         deck_modified = result.get("deck_modified", False)
-        updated_deck = result.get("updated_deck")
+        changes = result.get("changes")
 
-        # Se il mazzo è stato modificato, applica enforce_deck_size
-        if deck_modified and updated_deck and updated_deck.get("cards"):
-            BASIC_LANDS = {"plains", "island", "swamp", "mountain", "forest",
-                           "wastes", "snow-covered plains", "snow-covered island",
-                           "snow-covered swamp", "snow-covered mountain", "snow-covered forest"}
+        # Applica le modifiche chirurgicamente sul mazzo corrente
+        if deck_modified and changes:
+            # Lavora su una copia del mazzo corrente come dict {card_name: card}
+            cards_map = {c["card_name"]: dict(c) for c in deck_cards}
 
-            # Range terre validi in base al totale carte
-            def get_land_range(n):
-                if n <= 40:   return (15, 18)
-                if n <= 60:   return (15, 25)
-                if n <= 75:   return (20, 28)
-                if n <= 80:   return (22, 30)
-                return (33, 38)  # Commander 99/100
+            # Rimuovi le carte indicate
+            for rem in (changes.get("remove") or []):
+                name = rem.get("card_name")
+                qty = rem.get("quantity", 1)
+                if name in cards_map:
+                    cards_map[name]["quantity"] = cards_map[name].get("quantity", 0) - qty
+                    if cards_map[name]["quantity"] <= 0:
+                        del cards_map[name]
 
-            land_min, land_max = get_land_range(total_cards)
+            # Aggiungi le carte indicate
+            for add in (changes.get("add") or []):
+                name = add.get("card_name")
+                qty = add.get("quantity", 1)
+                if name in cards_map:
+                    cards_map[name]["quantity"] = cards_map[name].get("quantity", 0) + qty
+                else:
+                    cards_map[name] = {
+                        "card_name": name,
+                        "quantity": qty,
+                        "cmc": add.get("cmc", 0),
+                        "category": add.get("category", "Other"),
+                        "role": add.get("role", "")
+                    }
 
-            updated_lands = [c for c in updated_deck["cards"] if c.get("category") == "Land" or c.get("card_name", "").lower() in BASIC_LANDS]
-            updated_land_count = sum(c.get("quantity", 1) for c in updated_lands)
-            original_lands = [c for c in deck_cards if c.get("category") == "Land" or c.get("card_name", "").lower() in BASIC_LANDS]
-            original_land_count = sum(c.get("quantity", 1) for c in original_lands)
+            updated_deck = {"cards": list(cards_map.values())}
 
-            # Intervieni solo se l'AI è uscita dal range valido
-            if updated_land_count < land_min:
-                print(f"⚠️ Troppe poche terre ({updated_land_count}), minimo {land_min} per {total_cards} carte — ripristino terre originali")
-                non_land_updated = [c for c in updated_deck["cards"] if c.get("category") != "Land" and c.get("card_name", "").lower() not in BASIC_LANDS]
-                updated_deck["cards"] = non_land_updated + original_lands
-                # Ribilancia il totale
-                current_total = sum(c.get("quantity", 1) for c in updated_deck["cards"])
-                diff = total_cards - current_total
-                if diff != 0 and non_land_updated:
-                    non_land_updated[-1]["quantity"] = max(1, non_land_updated[-1].get("quantity", 1) + diff)
-            elif updated_land_count > land_max:
-                print(f"⚠️ Troppe terre ({updated_land_count}), massimo {land_max} per {total_cards} carte — riduco")
-                # Riduci le terre in eccesso togliendo dalle terre non-base prima
-                excess = updated_land_count - land_max
-                non_basic_lands = [c for c in updated_lands if c.get("card_name", "").lower() not in BASIC_LANDS]
-                for land in non_basic_lands:
-                    if excess <= 0:
-                        break
-                    remove = min(excess, land.get("quantity", 1) - 1)
-                    land["quantity"] = land.get("quantity", 1) - remove
-                    excess -= remove
-                # Se ancora troppe, riduci le terre base
-                if excess > 0:
-                    basic_lands = [c for c in updated_lands if c.get("card_name", "").lower() in BASIC_LANDS]
-                    for land in basic_lands:
-                        if excess <= 0:
-                            break
-                        remove = min(excess, land.get("quantity", 1) - 1)
-                        land["quantity"] = land.get("quantity", 1) - remove
-                        excess -= remove
-                # Rimuovi carte con quantity 0
-                updated_deck["cards"] = [c for c in updated_deck["cards"] if c.get("quantity", 0) > 0]
-
-            updated_deck = enforce_deck_size(updated_deck, deck_format, saved_deck.colors) if input_data.deck_size_override != 0 else updated_deck
-            # Arricchisci cmc dal DB MTG (fallback al valore fornito dall'AI)
-            # Costruisci lookup dalle carte originali per preservare cmc esistente
+            # Arricchisci cmc dal DB MTG
             original_cmc = {c["card_name"]: c.get("cmc", 0) for c in deck_cards}
-            for card in updated_deck.get("cards", []):
+            for card in updated_deck["cards"]:
                 mtg = db.query(MTGCard).filter(MTGCard.name == card.get("card_name")).first()
                 if mtg and mtg.mana_value is not None:
                     card["cmc"] = int(mtg.mana_value)
-                elif card.get("cmc") is None or card.get("cmc") == 0:
-                    # fallback: usa il cmc della carta originale se era già nel mazzo
+                elif not card.get("cmc"):
                     card["cmc"] = original_cmc.get(card["card_name"], 0)
+
+            if input_data.deck_size_override != 0:
+                updated_deck = enforce_deck_size(updated_deck, deck_format, saved_deck.colors)
         else:
-            # Restituisce il mazzo corrente invariato
+            deck_modified = False
             updated_deck = {"cards": deck_cards}
 
         print(f"✅ AI Beck Boost: deck_modified={deck_modified}, message={assistant_message[:60]}")

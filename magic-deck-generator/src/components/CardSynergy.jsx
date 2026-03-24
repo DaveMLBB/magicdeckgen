@@ -73,6 +73,8 @@ const translations = {
     copied: '✅ Copiato!',
     searchCard: 'Cerca carta...',
     suggestions: 'Suggerimenti',
+    arenaLabel: '🎮 Solo MTG Arena',
+    arenaHint: 'Usa solo carte disponibili su Arena',
   },
   en: {
     title: '✨ AI Synergy Finder',
@@ -114,6 +116,8 @@ const translations = {
     copied: '✅ Copied!',
     searchCard: 'Search card...',
     suggestions: 'Suggestions',
+    arenaLabel: '🎮 MTG Arena only',
+    arenaHint: 'Use only cards available on Arena',
   }
 }
 
@@ -135,6 +139,7 @@ function CardSynergy({ user, subscriptionStatus, onBack, language, onTokensUpdat
   const [previewCard, setPreviewCard] = useState(null)
   const [sortMode, setSortMode] = useState('priority')
   const [filterPriority, setFilterPriority] = useState('all')
+  const [arenaOnly, setArenaOnly] = useState(false)
   const [copied, setCopied] = useState(false)
   const suggestionsRef = useRef({ list: [], idx: null })
   const [suggestTick, setSuggestTick] = useState(0)
@@ -211,6 +216,7 @@ function CardSynergy({ user, subscriptionStatus, onBack, language, onTokensUpdat
           card_names: validCards,
           format: format || null,
           strategy: strategy || null,
+          arena_only: arenaOnly,
         })
       })
       const data = await res.json()
@@ -343,6 +349,17 @@ function CardSynergy({ user, subscriptionStatus, onBack, language, onTokensUpdat
                     <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                   ))}
                 </select>
+              </div>
+              <div className="cs-option-group">
+                <label className="cs-label cs-arena-label">
+                  <input
+                    type="checkbox"
+                    checked={arenaOnly}
+                    onChange={e => setArenaOnly(e.target.checked)}
+                  />
+                  {t.arenaLabel}
+                </label>
+                {arenaOnly && <p className="cs-arena-hint">{t.arenaHint}</p>}
               </div>
             </div>
           </div>

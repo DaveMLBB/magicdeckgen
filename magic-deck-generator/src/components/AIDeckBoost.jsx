@@ -60,6 +60,8 @@ const t = {
     deckSizeDefault: 'Standard (rispetta il formato)',
     deckSizeFree: 'Libero (nessun vincolo)',
     deckSizeCommander: 'Commander (100 carte)',
+    arenaLabel: '🎮 Solo MTG Arena',
+    arenaHint: 'Usa solo carte disponibili su Arena',
   },
   en: {
     title: '⚡ AI Deck Boost',
@@ -99,6 +101,8 @@ const t = {
     deckSizeDefault: 'Standard (respect format)',
     deckSizeFree: 'Free (no limit)',
     deckSizeCommander: 'Commander (100 cards)',
+    arenaLabel: '🎮 MTG Arena only',
+    arenaHint: 'Use only cards available on Arena',
   }
 }
 
@@ -153,6 +157,7 @@ function AIDeckBoost({ user, language, onBack, onSaved, onTokensUpdate }) {
   const [collections, setCollections] = useState([])
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
   const [deckSizeOverride, setDeckSizeOverride] = useState('default') // 'default' | 'free' | '100'
+  const [arenaOnly, setArenaOnly] = useState(false)
   const [mobileTab, setMobileTab] = useState('chat') // 'chat' | 'cards' | 'options'
 
   // Carica lista mazzi salvati e collezioni
@@ -228,7 +233,8 @@ function AIDeckBoost({ user, language, onBack, onSaved, onTokensUpdate }) {
           history: history,
           current_deck: { cards: currentCards },
           collection_id: selectedCollectionId || null,
-          deck_size_override: deckSizeOverride === 'free' ? 0 : deckSizeOverride === '100' ? 100 : null
+          deck_size_override: deckSizeOverride === 'free' ? 0 : deckSizeOverride === '100' ? 100 : null,
+          arena_only: arenaOnly
         })
       })
       const data = await res.json()
@@ -475,6 +481,19 @@ function AIDeckBoost({ user, language, onBack, onSaved, onTokensUpdate }) {
               <option value="free">{tr.deckSizeFree}</option>
               <option value="100">{tr.deckSizeCommander}</option>
             </select>
+          </div>
+
+          {/* MTG Arena */}
+          <div className="abb-arena-toggle">
+            <label className="abb-toggle-label">
+              <input
+                type="checkbox"
+                checked={arenaOnly}
+                onChange={e => { setArenaOnly(e.target.checked); setHistory([]) }}
+              />
+              <span>{tr.arenaLabel}</span>
+            </label>
+            {arenaOnly && <p className="abb-collection-hint">{tr.arenaHint}</p>}
           </div>
 
           {/* Diff modifiche */}

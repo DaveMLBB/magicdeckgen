@@ -178,12 +178,14 @@ class FindSynergiesInput(BaseModel):
     card_names: List[str]  # 1-5 seed cards
     format: Optional[str] = None
     strategy: Optional[str] = None  # aggro, control, combo, midrange, etc.
+    arena_only: bool = False
 
 class FindTwinsInput(BaseModel):
     user_id: int
     card_names: List[str]  # 1-5 cards to find twins for
     format: Optional[str] = None  # restrict to a specific format
     budget: Optional[str] = None  # any, budget, expensive
+    arena_only: bool = False
 
 class BuildDeckInput(BaseModel):
     user_id: int
@@ -193,6 +195,7 @@ class BuildDeckInput(BaseModel):
     budget: Optional[str] = None  # budget, affordable, any, expensive
     deck_size: Optional[int] = 60  # 60 or 100 (commander)
     collection_id: Optional[int] = None  # restrict to cards in this collection
+    arena_only: bool = False
 
 @router.post("/build-deck")
 async def build_deck(
@@ -794,7 +797,7 @@ async def find_twins(
             cards_data.append({"name": card_name, "text": "", "types": "", "colors": "", "cmc": 0})
 
     try:
-        result = await find_twins_with_ai(cards_data, input_data.format, input_data.budget, language)
+        result = await find_twins_with_ai(cards_data, input_data.format, input_data.budget, language, input_data.arena_only)
     except Exception as e:
         import traceback
         print(f"❌ AI twins failed: {str(e)}")
@@ -811,7 +814,7 @@ async def find_twins(
     }
 
 
-async def find_twins_with_ai(cards: list, format: Optional[str], budget: Optional[str], language: str) -> dict:
+async def find_twins_with_ai(cards: list, format: Optional[str], budget: Optional[str], language: str, arena_only: bool = False) -> dict:
     """
     Usa Groq (Llama 3.3 70B) per trovare carte funzionalmente equivalenti.
     """
@@ -830,6 +833,7 @@ async def find_twins_with_ai(cards: list, format: Optional[str], budget: Optiona
     lang_label = "Italian (italiano)" if language == "it" else "English"
     format_line = f"Restrict results to cards legal in: {format}" if format else "Any format/legality is acceptable"
     budget_line = f"Budget preference: {budget}" if budget else "No budget restriction"
+    arena_line = "\nIMPORTANT: Use ONLY cards available on MTG Arena (Standard, Pioneer, Historic, Explorer, Alchemy sets). Do NOT suggest cards only available in Legacy, Vintage, Modern paper-only sets." if arena_only else ""
 
     cards_block = "\n".join(
         f"- {c['name']} | Types: {c.get('types','')} {c.get('subtypes','')} | Colors: {c.get('colors','')} | CMC: {c.get('cmc','')} | Rarity: {c.get('rarity','')} | Text: {c.get('text','')[:300]}"
@@ -842,7 +846,7 @@ SOURCE CARDS (the user wants to find cards that do the same thing):
 {cards_block}
 
 {format_line}
-{budget_line}
+{budget_line}{arena_line}
 
 TASK:
 For EACH source card, find 3-8 Magic: The Gathering cards that are functionally equivalent or very similar. 
@@ -948,7 +952,7 @@ async def find_synergies(
             seed_cards_data.append({"name": card_name, "text": "", "types": "", "colors": ""})
 
     try:
-        result = await find_synergies_with_ai(seed_cards_data, input_data.format, input_data.strategy, language)
+        result = await find_synergies_with_ai(seed_cards_data, input_data.format, input_data.strategy, language, input_data.arena_only)
     except Exception as e:
         import traceback
         print(f"❌ AI synergy failed: {str(e)}")
@@ -965,7 +969,7 @@ async def find_synergies(
     }
 
 
-async def find_synergies_with_ai(seed_cards: list, format: Optional[str], strategy: Optional[str], language: str) -> dict:
+async def find_synergies_with_ai(seed_cards: list, format: Optional[str], strategy: Optional[str], language: str, arena_only: bool = False) -> dict:
     """
     Usa Groq (Llama 3.3 70B) per trovare carte sinergiche con le carte seme.
     """
@@ -984,6 +988,7 @@ async def find_synergies_with_ai(seed_cards: list, format: Optional[str], strate
     lang_label = "Italian (italiano)" if language == "it" else "English"
     format_line = f"Format: {format}" if format else "Format: any/casual"
     strategy_line = f"Preferred strategy/archetype: {strategy}" if strategy else "Strategy: not specified, suggest what fits best"
+    arena_line = "\nIMPORTANT: Use ONLY cards available on MTG Arena (Standard, Pioneer, Historic, Explorer, Alchemy sets). Do NOT suggest cards only available in Legacy, Vintage, Modern paper-only sets." if arena_only else ""
 
     cards_block = "\n".join(
         f"- {c['name']} | Types: {c.get('types','')} {c.get('subtypes','')} | Colors: {c.get('colors','')} | CMC: {c.get('cmc','')} | Text: {c.get('text','')[:200]}"
@@ -997,7 +1002,7 @@ SEED CARDS:
 {cards_block}
 
 {format_line}
-{strategy_line}
+{strategy_line}{arena_line}
 
 TASK:
 1. Analyze the seed cards: identify their mechanics, synergies, themes, and strategies.
@@ -1436,6 +1441,7 @@ class ChatBuildDeckInput(BaseModel):
     format: Optional[str] = None
     colors: Optional[str] = None
     current_deck: Optional[dict] = None  # stato attuale del mazzo in costruzione
+    arena_only: bool = False
 
 @router.post("/chat-build-deck")
 async def chat_build_deck(
@@ -1495,7 +1501,8 @@ Carte disponibili: {card_list}
 
     format_line = f"Formato: {input_data.format}" if input_data.format else ""
     colors_line = f"Colori: {input_data.colors}" if input_data.colors else ""
-    constraints = "\n".join(filter(None, [format_line, colors_line]))
+    arena_line = "VINCOLO MTG ARENA: Usa SOLO carte disponibili su MTG Arena (Standard, Pioneer, Historic, Explorer, Alchemy). Escludi carte presenti solo in Legacy, Vintage, Modern o altri formati non supportati da Arena." if input_data.arena_only else ""
+    constraints = "\n".join(filter(None, [format_line, colors_line, arena_line]))
 
     # Stato attuale del mazzo (se già in costruzione)
     current_deck_context = ""

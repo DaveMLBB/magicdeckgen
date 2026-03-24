@@ -60,6 +60,8 @@ const translations = {
     sortByPrice: 'Per prezzo',
     analyzed: 'Carte analizzate',
     example: 'Esempi:',
+    arenaLabel: '🎮 Solo MTG Arena',
+    arenaHint: 'Usa solo carte disponibili su Arena',
   },
   en: {
     title: '🪞 AI Twins',
@@ -99,6 +101,8 @@ const translations = {
     sortByPrice: 'By price',
     analyzed: 'Analyzed cards',
     example: 'Examples:',
+    arenaLabel: '🎮 MTG Arena only',
+    arenaHint: 'Use only cards available on Arena',
   }
 }
 
@@ -131,6 +135,7 @@ function CardTwins({ user, subscriptionStatus, onBack, language, onTokensUpdate 
   }, [subscriptionStatus?.tokens, user?.tokens])
   const [sortMode, setSortMode] = useState('similarity')
   const [filterRel, setFilterRel] = useState('all')
+  const [arenaOnly, setArenaOnly] = useState(false)
   const [copied, setCopied] = useState(false)
   const [previewCard, setPreviewCard] = useState(null)
   const suggestionsRef = useRef({ list: [], idx: null })
@@ -181,7 +186,7 @@ function CardTwins({ user, subscriptionStatus, onBack, language, onTokensUpdate 
       const res = await fetch(`${API_URL}/api/ai/find-twins?language=${language}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.userId, card_names: valid, format: format || null, budget: budget || null })
+        body: JSON.stringify({ user_id: user.userId, card_names: valid, format: format || null, budget: budget || null, arena_only: arenaOnly })
       })
       const data = await res.json()
       if (!res.ok) { setError(res.status === 429 ? t.errorRateLimit : res.status === 403 ? t.errorTokens : (data.detail || t.errorGeneric)); setLoading(false); return }
@@ -284,6 +289,17 @@ function CardTwins({ user, subscriptionStatus, onBack, language, onTokensUpdate 
                 <select className="ct-select" value={budget} onChange={e => setBudget(e.target.value)}>
                   {BUDGETS.map(b => <option key={b.value} value={b.value}>{b.label[language] || b.label.en}</option>)}
                 </select>
+              </div>
+              <div className="ct-option-group">
+                <label className="ct-label ct-arena-label">
+                  <input
+                    type="checkbox"
+                    checked={arenaOnly}
+                    onChange={e => setArenaOnly(e.target.checked)}
+                  />
+                  {t.arenaLabel}
+                </label>
+                {arenaOnly && <p className="ct-arena-hint">{t.arenaHint}</p>}
               </div>
             </div>
           </div>

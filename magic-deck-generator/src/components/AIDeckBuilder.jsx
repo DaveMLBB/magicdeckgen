@@ -69,6 +69,8 @@ const tr = {
     errorGeneric: 'Errore durante la generazione. Riprova.',
     errorDemoLimit: "⚠️ L'AI ha raggiunto il limite di richieste. Torna domani!",
     errorRateLimit: '⏱️ Limite raggiunto: max 3 richieste AI al minuto. Attendi e riprova.',
+    arenaLabel: '🎮 Solo MTG Arena',
+    arenaHint: 'Usa solo carte disponibili su Arena',
   },
   en: {
     title: '🏗️ AI Deck Builder',
@@ -100,6 +102,8 @@ const tr = {
     errorGeneric: 'Error during generation. Please try again.',
     errorDemoLimit: '⚠️ AI has reached its request limit. Come back tomorrow!',
     errorRateLimit: '⏱️ Rate limit: max 3 AI requests per minute. Wait and retry.',
+    arenaLabel: '🎮 MTG Arena only',
+    arenaHint: 'Use only cards available on Arena',
   }
 }
 
@@ -126,6 +130,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved, onTokensUpdate }) {
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
   const [format, setFormat] = useState('')
   const [colors, setColors] = useState('')
+  const [arenaOnly, setArenaOnly] = useState(false)
   const [mobileTab, setMobileTab] = useState('chat') // 'chat' | 'deck'
 
   // Calcola diff carte tra deck precedente e attuale
@@ -166,6 +171,7 @@ function AIDeckBuilder({ user, language, onBack, onSaved, onTokensUpdate }) {
           format: format || null,
           colors: colors || null,
           current_deck: currentDeck || null,
+          arena_only: arenaOnly,
         })
       })
       const data = await res.json()
@@ -374,6 +380,19 @@ function AIDeckBuilder({ user, language, onBack, onSaved, onTokensUpdate }) {
               placeholder="WU, BRG, WUBRG..."
               maxLength={5}
             />
+          </div>
+
+          {/* MTG Arena */}
+          <div className="abb-arena-toggle">
+            <label className="abb-toggle-label">
+              <input
+                type="checkbox"
+                checked={arenaOnly}
+                onChange={e => setArenaOnly(e.target.checked)}
+              />
+              <span>{t.arenaLabel}</span>
+            </label>
+            {arenaOnly && <p className="abb-collection-hint">{t.arenaHint}</p>}
           </div>
 
           {/* Collezione opzionale */}
