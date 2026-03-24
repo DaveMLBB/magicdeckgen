@@ -122,11 +122,15 @@ const LandingPage = ({ lang = 'en' }) => {
   const canonicalPath = lang === 'en' ? '/en/mtg-deck-builder-from-collection' : '/it/costruttore-mazzi-mtg-da-collezione';
 
   const formats = [
+    { name: 'Standard', slug: lang === 'en' ? 'standard-deck-builder-from-collection' : 'costruttore-mazzi-standard-da-collezione' },
+    { name: 'Modern', slug: lang === 'en' ? 'modern-deck-builder-from-collection' : 'costruttore-mazzi-modern-da-collezione' },
+    { name: 'Pioneer', slug: lang === 'en' ? 'pioneer-deck-builder-from-collection' : 'costruttore-mazzi-pioneer-da-collezione' },
+    { name: 'Legacy', slug: lang === 'en' ? 'legacy-deck-builder-from-collection' : 'costruttore-mazzi-legacy-da-collezione' },
     { name: 'cEDH', slug: lang === 'en' ? 'cedh-deck-builder-from-collection' : 'costruttore-mazzi-cedh-da-collezione' },
-    { name: 'Premodern', slug: lang === 'en' ? 'premodern-deck-builder-from-collection' : 'costruttore-mazzi-premodern-da-collezione' },
     { name: 'Pauper', slug: lang === 'en' ? 'pauper-deck-builder-from-collection' : 'costruttore-mazzi-pauper-da-collezione' },
     { name: 'Vintage', slug: lang === 'en' ? 'vintage-deck-builder-from-collection' : 'costruttore-mazzi-vintage-da-collezione' },
-    { name: 'Highlander', slug: lang === 'en' ? 'highlander-deck-builder-from-collection' : 'costruttore-mazzi-highlander-da-collezione' }
+    { name: 'Premodern', slug: lang === 'en' ? 'premodern-deck-builder-from-collection' : 'costruttore-mazzi-premodern-da-collezione' },
+    { name: 'Highlander', slug: lang === 'en' ? 'highlander-deck-builder-from-collection' : 'costruttore-mazzi-highlander-da-collezione' },
   ];
 
   const structuredData = {
@@ -243,6 +247,98 @@ const LandingPage = ({ lang = 'en' }) => {
                 <h3>{format.name}</h3>
                 <p>{lang === 'en' ? 'Build decks →' : 'Costruisci mazzi →'}</p>
               </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── ARCHETYPES + COMMANDER + GUIDES ── */}
+      <section style={{ padding: '5rem 2rem', background: 'rgba(15,15,35,0.6)' }}>
+        <div className="container">
+          <h2>{lang === 'en' ? 'Explore by Archetype' : 'Esplora per Archetipo'}</h2>
+          <p className="section-subtitle">
+            {lang === 'en' ? 'Find the best decks for your playstyle' : 'Trova i mazzi migliori per il tuo stile di gioco'}
+          </p>
+          <div className="formats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+            {[
+              { icon: '⚡', name: 'Aggro', en: 'mtg-aggro-deck-builder', it: 'costruttore-mazzi-aggro-mtg', color: 'linear-gradient(135deg,#c53030,#e53e3e)' },
+              { icon: '🛡️', name: 'Control', en: 'mtg-control-deck-builder', it: 'costruttore-mazzi-control-mtg', color: 'linear-gradient(135deg,#2b6cb0,#3182ce)' },
+              { icon: '🔄', name: 'Combo', en: 'mtg-combo-deck-builder', it: 'costruttore-mazzi-combo-mtg', color: 'linear-gradient(135deg,#6b46c1,#805ad5)' },
+              { icon: '⚖️', name: 'Midrange', en: 'mtg-midrange-deck-builder', it: 'costruttore-mazzi-midrange-mtg', color: 'linear-gradient(135deg,#276749,#38a169)' },
+            ].map(a => (
+              <Link key={a.name} to={`/${lang}/${lang === 'en' ? a.en : a.it}`} className="format-card" style={{ background: a.color }}>
+                <h3>{a.icon} {a.name}</h3>
+                <p>{lang === 'en' ? 'Build decks →' : 'Costruisci mazzi →'}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding: '5rem 2rem' }}>
+        <div className="container">
+          <h2>{lang === 'en' ? 'Popular Commander Decks' : 'Mazzi Commander Popolari'}</h2>
+          <p className="section-subtitle">
+            {lang === 'en' ? 'Build from your collection around the most popular commanders' : 'Costruisci dalla tua collezione attorno ai comandanti più popolari'}
+          </p>
+          <div className="formats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            {[
+              { name: 'Atraxa', sub: 'Superfriends / Proliferate', en: 'commander/atraxa-deck-builder', it: 'comandante/atraxa-costruttore-mazzo' },
+              { name: 'Kenrith', sub: '5-Color Goodstuff', en: 'commander/kenrith-deck-builder', it: 'comandante/kenrith-costruttore-mazzo' },
+              { name: 'Yuriko', sub: 'Ninja Tribal', en: 'commander/yuriko-deck-builder', it: 'comandante/yuriko-costruttore-mazzo' },
+              { name: 'Edgar Markov', sub: 'Vampire Tribal', en: 'commander/edgar-markov-deck-builder', it: 'comandante/edgar-markov-costruttore-mazzo' },
+            ].map(c => (
+              <Link key={c.name} to={`/${lang}/${lang === 'en' ? c.en : c.it}`} className="format-card" style={{ background: 'linear-gradient(135deg,#1a1a2e,#16213e)' }}>
+                <h3>👑 {c.name}</h3>
+                <p>{c.sub} →</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding: '5rem 2rem', background: 'rgba(15,15,35,0.6)' }}>
+        <div className="container">
+          <h2>{lang === 'en' ? 'Guides & Resources' : 'Guide e Risorse'}</h2>
+          <div className="features-grid">
+            {[
+              {
+                icon: '💰', title: lang === 'en' ? 'Budget Under $25' : 'Budget Sotto €25',
+                desc: lang === 'en' ? 'Competitive decks you can build for under $25' : 'Mazzi competitivi per meno di €25',
+                link: `/${lang}/${lang === 'en' ? 'budget-mtg-deck-builder-under-25' : 'costruttore-mazzi-mtg-budget-sotto-25'}`,
+              },
+              {
+                icon: '💎', title: lang === 'en' ? 'Budget Under $100' : 'Budget Sotto €100',
+                desc: lang === 'en' ? 'Semi-budget competitive decks under $100' : 'Mazzi semi-budget competitivi sotto €100',
+                link: `/${lang}/${lang === 'en' ? 'budget-mtg-deck-builder-under-100' : 'costruttore-mazzi-mtg-budget-sotto-100'}`,
+              },
+              {
+                icon: '👑', title: lang === 'en' ? 'Best Cards for Commander' : 'Migliori Carte per Commander',
+                desc: lang === 'en' ? 'The ultimate Commander staples list' : 'La lista definitiva degli staple Commander',
+                link: `/${lang}/${lang === 'en' ? 'best-cards-for-commander' : 'migliori-carte-per-commander'}`,
+              },
+              {
+                icon: '⚡', title: lang === 'en' ? 'Best Cards for Modern' : 'Migliori Carte per Modern',
+                desc: lang === 'en' ? 'Essential Modern staples by category' : 'Staple Modern essenziali per categoria',
+                link: `/${lang}/${lang === 'en' ? 'best-cards-for-modern' : 'migliori-carte-per-modern'}`,
+              },
+              {
+                icon: '⚔️', title: lang === 'en' ? 'Aggro vs Control Guide' : 'Guida Aggro vs Control',
+                desc: lang === 'en' ? 'Master the most fundamental MTG matchup' : 'Padroneggia il matchup MTG più fondamentale',
+                link: `/${lang}/${lang === 'en' ? 'mtg-matchup-aggro-vs-control' : 'mtg-matchup-aggro-contro-control'}`,
+              },
+              {
+                icon: '🔄', title: lang === 'en' ? 'Combo vs Control Guide' : 'Guida Combo vs Control',
+                desc: lang === 'en' ? 'Timing, protection, and sideboard strategy' : 'Tempismo, protezione e strategia sideboard',
+                link: `/${lang}/${lang === 'en' ? 'mtg-matchup-combo-vs-control' : 'mtg-matchup-combo-contro-control'}`,
+              },
+            ].map((g, i) => (
+              <div key={i} className="feature-card">
+                <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>{g.icon}</div>
+                <h3>{g.title}</h3>
+                <p>{g.desc}</p>
+                <Link to={g.link}>{lang === 'en' ? 'Read guide →' : 'Leggi guida →'}</Link>
+              </div>
             ))}
           </div>
         </div>

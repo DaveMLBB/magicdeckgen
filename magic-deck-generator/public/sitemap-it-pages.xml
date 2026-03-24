@@ -13,6 +13,38 @@
 
   <!-- Format Pages IT -->
   <url>
+    <loc>https://mtgdecksbuilder.com/it/costruttore-mazzi-standard-da-collezione</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/standard-deck-builder-from-collection"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/costruttore-mazzi-standard-da-collezione"/>
+    <priority>0.9</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/costruttore-mazzi-modern-da-collezione</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/modern-deck-builder-from-collection"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/costruttore-mazzi-modern-da-collezione"/>
+    <priority>0.9</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/costruttore-mazzi-legacy-da-collezione</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/legacy-deck-builder-from-collection"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/costruttore-mazzi-legacy-da-collezione"/>
+    <priority>0.9</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/costruttore-mazzi-pioneer-da-collezione</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/pioneer-deck-builder-from-collection"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/costruttore-mazzi-pioneer-da-collezione"/>
+    <priority>0.9</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+
+  <url>
     <loc>https://mtgdecksbuilder.com/it/costruttore-mazzi-cedh-da-collezione</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/cedh-deck-builder-from-collection"/>
     <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/costruttore-mazzi-cedh-da-collezione"/>
@@ -93,6 +125,131 @@
     <loc>https://mtgdecksbuilder.com/try/arena-import</loc>
     <priority>0.6</priority>
     <changefreq>weekly</changefreq>
+  </url>
+
+  <!-- Commander Pages IT -->
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/comandante/atraxa-costruttore-mazzo</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/commander/atraxa-deck-builder"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/comandante/atraxa-costruttore-mazzo"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/comandante/kenrith-costruttore-mazzo</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/commander/kenrith-deck-builder"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/comandante/kenrith-costruttore-mazzo"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/comandante/yuriko-costruttore-mazzo</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/commander/yuriko-deck-builder"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/comandante/yuriko-costruttore-mazzo"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/comandante/edgar-markov-costruttore-mazzo</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/commander/edgar-markov-deck-builder"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/comandante/edgar-markov-costruttore-mazzo"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <!-- Archetype Pages IT -->
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/costruttore-mazzi-aggro-mtg</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/mtg-aggro-deck-builder"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/costruttore-mazzi-aggro-mtg"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/costruttore-mazzi-control-mtg</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/mtg-control-deck-builder"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/costruttore-mazzi-control-mtg"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/costruttore-mazzi-combo-mtg</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/mtg-combo-deck-builder"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/costruttore-mazzi-combo-mtg"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/costruttore-mazzi-midrange-mtg</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/mtg-midrange-deck-builder"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/costruttore-mazzi-midrange-mtg"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <!-- Budget Pages IT -->
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/costruttore-mazzi-mtg-budget-sotto-25</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/budget-mtg-deck-builder-under-25"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/costruttore-mazzi-mtg-budget-sotto-25"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/costruttore-mazzi-mtg-budget-sotto-100</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/budget-mtg-deck-builder-under-100"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/costruttore-mazzi-mtg-budget-sotto-100"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <!-- Matchup Pages IT -->
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/mtg-matchup-aggro-contro-control</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/mtg-matchup-aggro-vs-control"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/mtg-matchup-aggro-contro-control"/>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/mtg-matchup-combo-contro-control</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/mtg-matchup-combo-vs-control"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/mtg-matchup-combo-contro-control"/>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/mtg-matchup-aggro-contro-midrange</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/mtg-matchup-aggro-vs-midrange"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/mtg-matchup-aggro-contro-midrange"/>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <!-- Best Cards Pages IT -->
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/migliori-carte-per-commander</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/best-cards-for-commander"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/migliori-carte-per-commander"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+
+  <url>
+    <loc>https://mtgdecksbuilder.com/it/migliori-carte-per-modern</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mtgdecksbuilder.com/en/best-cards-for-modern"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://mtgdecksbuilder.com/it/migliori-carte-per-modern"/>
+    <priority>0.85</priority>
+    <changefreq>monthly</changefreq>
   </url>
 
 </urlset>
