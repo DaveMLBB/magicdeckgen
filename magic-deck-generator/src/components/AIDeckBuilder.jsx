@@ -346,8 +346,8 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
       </div>
 
       <div className="abb-layout">
-        {/* Pannello sinistro — opzioni (formato/colori/collezione) */}
-        <div className={`abb-deck-panel${mobileTab === 'deck' ? ' abb-mobile-visible' : ''}`}>
+        {/* Pannello destro: suggerimenti o diff mazzo — integrato nel tab Opzioni */}
+        <div className={`abb-deck-panel${mobileTab === 'deck' ? ' abb-mobile-visible' : ''}`} style={{ gap: '1rem' }}>
           {/* Formato e colori */}
           <div>
             <p className="abb-panel-title">{t.formatLabel}</p>
@@ -400,74 +400,59 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
             </div>
           )}
 
-          {/* Mazzo generato */}
-          <p className="abb-panel-title">🃏 {t.deckPanel}</p>
-          <div className="abb-card-list">
-            {(currentDeck?.cards || []).map((card, i) => (
-              <div
-                key={i}
-                className="abb-card-row"
-                onClick={() => setPreviewCard(card.card_name)}
-                title={card.card_name}
-              >
-                <span className="abb-card-qty">{card.quantity}x</span>
-                <span
-                  className="abb-card-dot"
-                  style={{ background: CATEGORY_COLORS[card.category] || CATEGORY_COLORS.Other }}
-                />
-                <span className="abb-card-name">{card.card_name}</span>
-              </div>
-            ))}
-          </div>
-          {totalCards > 0 && (
-            <div className="abb-card-total">{totalCards} {t.totalCards}</div>
-          )}
-
-          {/* Statistiche e curva mana */}
-          {deckStats && (
-            <div className="adb-stats">
-              <p className="abb-panel-title">{t.statsTitle}</p>
-              <div className="adb-stats-row">
-                <div className="adb-stat"><span className="adb-stat-val">{totalCards}</span><span className="adb-stat-lbl">{t.totalCards}</span></div>
-                <div className="adb-stat"><span className="adb-stat-val">{uniqueCards}</span><span className="adb-stat-lbl">{t.uniqueCardsLabel}</span></div>
-                <div className="adb-stat"><span className="adb-stat-val">{deckStats.avgCmc.toFixed(1)}</span><span className="adb-stat-lbl">{t.avgCmc}</span></div>
-              </div>
-
-              {/* Curva mana */}
-              {Object.keys(deckStats.curve).length > 0 && (
-                <div className="adb-curve">
-                  <p className="adb-curve-title">{t.manaCurve}</p>
-                  <div className="adb-curve-bars">
-                    {[0,1,2,3,4,5,6,7].map(cmc => {
-                      const count = deckStats.curve[cmc] || 0
-                      const max = Math.max(...Object.values(deckStats.curve), 1)
-                      return (
-                        <div key={cmc} className="adb-curve-col">
-                          <span className="adb-curve-count">{count || ''}</span>
-                          <div className="adb-curve-bar" style={{ height: `${(count / max) * 48}px` }} />
-                          <span className="adb-curve-label">{cmc === 7 ? '7+' : cmc}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
+          {/* Suggerimenti o diff */}
+          {history.length === 0 ? (
+            <>
+              <p className="abb-panel-title">{t.suggestionsTitle}</p>
+              {(SUGGESTIONS[language] || SUGGESTIONS.en).map((s, i) => (
+                <button
+                  key={i}
+                  className="abb-suggestion-btn"
+                  onClick={() => { setMessage(s.replace(/^[^\s]+ /, '')); setMobileTab('chat') }}
+                  disabled={loading}
+                >
+                  {s}
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              <p className="abb-panel-title">
+                {language === 'it' ? '🔄 Ultime modifiche' : '🔄 Last changes'}
+              </p>
+              {!deckDiff && !currentDeck && (
+                <p className="abb-diff-empty">
+                  {language === 'it' ? 'Nessun mazzo ancora generato.' : 'No deck generated yet.'}
+                </p>
+              )}
+              {!deckDiff && currentDeck && (
+                <p className="abb-diff-empty">
+                  {language === 'it' ? 'Nessuna modifica nell\'ultimo messaggio.' : 'No changes in last message.'}
+                </p>
+              )}
+              {deckDiff?.added?.length > 0 && (
+                <div className="abb-diff-section">
+                  <p className="abb-diff-label added">➕ {language === 'it' ? 'Aggiunte' : 'Added'}</p>
+                  {deckDiff.added.map((c, i) => (
+                    <div key={i} className="abb-diff-row added" onClick={() => setPreviewCard(c.card_name)} style={{ cursor: 'pointer' }}>
+                      <span className="abb-card-qty">{c.quantity}x</span>
+                      <span className="abb-card-name">{c.card_name}</span>
+                    </div>
+                  ))}
                 </div>
               )}
-
-              {/* Distribuzione tipi */}
-              <div className="adb-types">
-                <p className="adb-curve-title">{t.types}</p>
-                {Object.entries(deckStats.typeCount).sort((a,b) => b[1]-a[1]).map(([type, count]) => (
-                  <div key={type} className="adb-type-row">
-                    <span className="adb-type-dot" style={{ background: CATEGORY_COLORS[type] || CATEGORY_COLORS.Other }} />
-                    <span className="adb-type-name">{type}</span>
-                    <div className="adb-type-bar-wrap">
-                      <div className="adb-type-bar" style={{ width: `${(count/totalCards)*100}%`, background: CATEGORY_COLORS[type] || CATEGORY_COLORS.Other }} />
+              {deckDiff?.removed?.length > 0 && (
+                <div className="abb-diff-section">
+                  <p className="abb-diff-label removed">➖ {language === 'it' ? 'Rimosse' : 'Removed'}</p>
+                  {deckDiff.removed.map((c, i) => (
+                    <div key={i} className="abb-diff-row removed" onClick={() => setPreviewCard(c.card_name)} style={{ cursor: 'pointer' }}>
+                      <span className="abb-card-qty">{c.quantity}x</span>
+                      <span className="abb-card-name">{c.card_name}</span>
                     </div>
-                    <span className="adb-type-count">{count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {/* Azioni */}
@@ -593,66 +578,6 @@ function AIDeckBuilder({ user, language, onBack, onSaved }) {
           </div>
         </div>
 
-        {/* Pannello destro: suggerimenti o diff mazzo */}
-        <div className="abb-suggestions-panel">
-          {history.length === 0 ? (
-            <>
-              <p className="abb-panel-title">{t.suggestionsTitle}</p>
-              {(SUGGESTIONS[language] || SUGGESTIONS.en).map((s, i) => (
-                <button
-                  key={i}
-                  className="abb-suggestion-btn"
-                  onClick={() => setMessage(s.replace(/^[^\s]+ /, ''))}
-                  disabled={loading}
-                >
-                  {s}
-                </button>
-              ))}
-            </>
-          ) : (
-            <>
-              <p className="abb-panel-title">
-                {language === 'it' ? '🔄 Ultime modifiche' : '🔄 Last changes'}
-              </p>
-              {!deckDiff && !currentDeck && (
-                <p className="abb-diff-empty">
-                  {language === 'it' ? 'Nessun mazzo ancora generato.' : 'No deck generated yet.'}
-                </p>
-              )}
-              {!deckDiff && currentDeck && (
-                <p className="abb-diff-empty">
-                  {language === 'it' ? 'Nessuna modifica nell\'ultimo messaggio.' : 'No changes in last message.'}
-                </p>
-              )}
-              {deckDiff?.added?.length > 0 && (
-                <div className="abb-diff-section">
-                  <p className="abb-diff-label added">
-                    ➕ {language === 'it' ? 'Aggiunte' : 'Added'}
-                  </p>
-                  {deckDiff.added.map((c, i) => (
-                    <div key={i} className="abb-diff-row added" onClick={() => setPreviewCard(c.card_name)} style={{ cursor: 'pointer' }}>
-                      <span className="abb-card-qty">{c.quantity}x</span>
-                      <span className="abb-card-name">{c.card_name}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {deckDiff?.removed?.length > 0 && (
-                <div className="abb-diff-section">
-                  <p className="abb-diff-label removed">
-                    ➖ {language === 'it' ? 'Rimosse' : 'Removed'}
-                  </p>
-                  {deckDiff.removed.map((c, i) => (
-                    <div key={i} className="abb-diff-row removed" onClick={() => setPreviewCard(c.card_name)} style={{ cursor: 'pointer' }}>
-                      <span className="abb-card-qty">{c.quantity}x</span>
-                      <span className="abb-card-name">{c.card_name}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
       </div>
 
       {previewCard && (

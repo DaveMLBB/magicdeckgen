@@ -410,140 +410,68 @@
   30% { transform: translateY(-6px); }
 }
 
-/* Tab switcher mobile */
+/* Tab switcher — sempre visibile */
 .abb-mobile-tabs {
-  display: none;
+  display: flex;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--border-color, #334155);
+  background: var(--bg-secondary, #1e293b);
 }
-@media (max-width: 640px) {
-  .abb-mobile-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border-color, #334155);
-    background: var(--bg-secondary, #1e293b);
-    flex-shrink: 0;
-  }
-  .abb-mobile-tab {
-    flex: 1;
-    padding: 0.7rem;
-    background: none;
-    border: none;
-    color: var(--text-secondary, #94a3b8);
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: color 0.15s, border-color 0.15s;
-  }
-  .abb-mobile-tab.active {
-    color: #60a5fa;
-    border-bottom-color: #60a5fa;
-  }
-
-  /* Layout mobile: stack verticale, ogni pannello occupa tutto lo spazio */
-  .abb-layout {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  /* Nasconde tutti i pannelli di default su mobile */
-  .abb-deck-panel,
-  .abb-chat-panel,
-  .abb-mobile-cards-panel {
-    display: none !important;
-  }
-
-  /* Mostra solo il pannello attivo */
-  .abb-mobile-visible {
-    display: flex !important;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-    height: 100%;
-  }
-
-  /* Chat panel su mobile */
-  .abb-chat-panel.abb-mobile-visible {
-    border-right: none;
-  }
-
-  /* Deck panel (opzioni) su mobile */
-  .abb-deck-panel.abb-mobile-visible {
-    overflow-y: auto;
-    border-right: none;
-  }
+.abb-mobile-tab {
+  flex: 1;
+  padding: 0.7rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.abb-mobile-tab.active {
+  color: #60a5fa;
+  border-bottom-color: #60a5fa;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .abb-layout {
-    grid-template-columns: 260px 1fr;
-    grid-template-rows: auto 1fr;
-  }
-  /* Su tablet il pannello destro va sotto il pannello sinistro, sopra la chat */
-  .abb-suggestions-panel {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    border-left: none;
-    border-bottom: 1px solid var(--border-color, #334155);
-    flex-direction: row;
-    flex-wrap: wrap;
-    max-height: 120px;
-    overflow-y: auto;
-    padding: 0.5rem 1rem;
-    gap: 0.5rem;
-  }
-  .abb-suggestions-panel .abb-panel-title {
-    width: 100%;
-    margin-bottom: 0.25rem;
-  }
-  .abb-suggestions-panel .abb-suggestion-btn {
-    width: auto;
-    flex: 0 0 auto;
-    font-size: 0.75rem;
-    padding: 0.35rem 0.6rem;
-  }
-  .abb-suggestions-panel .abb-right-cards-list {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-  }
-  .abb-suggestions-panel .abb-diff-row {
-    flex: 0 0 auto;
-    background: var(--bg-card, #0f172a);
-    border: 1px solid var(--border-color, #334155);
-    border-radius: 6px;
-    padding: 0.2rem 0.5rem;
-    font-size: 0.75rem;
-  }
-  .abb-suggestions-panel .abb-right-stats {
-    display: flex;
-    flex-direction: row;
-    gap: 1rem;
-    width: 100%;
-    margin-bottom: 0.25rem;
-  }
-  .abb-chat-panel,
-  .abb-deck-panel {
-    grid-row: 2;
-  }
+/* Layout: stack verticale, ogni pannello occupa tutto lo spazio */
+.abb-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
-@media (max-width: 640px) {
-  .abb-layout {
-    /* già gestito nel blocco mobile-tabs sopra */
-  }
-  .abb-deck-panel,
-  .abb-chat-panel {
-    border-right: none;
-    border-bottom: none;
-    max-height: unset;
-  }
-  .abb-suggestions-panel {
-    display: none;
-  }
+
+/* Nasconde tutti i pannelli di default */
+.abb-deck-panel,
+.abb-chat-panel,
+.abb-mobile-cards-panel {
+  display: none !important;
+}
+
+/* Mostra solo il pannello attivo */
+.abb-mobile-visible {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+.abb-chat-panel.abb-mobile-visible {
+  border-right: none;
+}
+
+.abb-deck-panel.abb-mobile-visible {
+  overflow-y: auto;
+  border-right: none;
+}
+
+/* Pannello suggerimenti sempre nascosto (integrato nei tab) */
+.abb-suggestions-panel {
+  display: none;
 }
 
 /* Pannello mobile carte */
