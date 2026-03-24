@@ -140,6 +140,8 @@ function AIDeckBoost({ user, language, onBack, onSaved, onTokensUpdate }) {
   const [saveStatus, setSaveStatus] = useState(null)
   const [previewCard, setPreviewCard] = useState(null)
   const [deckModified, setDeckModified] = useState(false)
+  const [lastDiff, setLastDiff] = useState(null) // { added, removed } dell'ultimo messaggio
+  const prevCardsRef = useRef([])
   const [collections, setCollections] = useState([])
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
   const [mobileTab, setMobileTab] = useState('chat') // 'chat' | 'cards' | 'options'
