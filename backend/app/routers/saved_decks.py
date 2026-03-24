@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from pydantic import BaseModel
 from app.database import get_db
-from app.models import User, SavedDeck, SavedDeckCard, Card, MTGCard
+from app.models import User, SavedDeck, SavedDeckCard, Card, MTGCard, CardCollection
 from datetime import datetime
 import re
 
