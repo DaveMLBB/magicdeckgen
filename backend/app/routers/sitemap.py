@@ -10,7 +10,7 @@ from app.models import SavedDeck
 
 router = APIRouter()
 
-SITE_URL  = "https://magicdeckbuilder.app.cloudsw.site"
+SITE_URL  = "https://mtgdecksbuilder.com"
 PAGE_SIZE = 5000  # URL per file sitemap (limite Google: 50k)
 
 
