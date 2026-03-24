@@ -1376,7 +1376,7 @@ function App() {
       )
     }
     if (currentView === 'card-synergy') {
-      return <CardSynergy user={user} onBack={() => setCurrentView('dashboard')} language={language} />
+      return <CardSynergy user={user} subscriptionStatus={subscriptionStatus} onBack={() => setCurrentView('dashboard')} language={language} />
     }
     if (currentView === 'card-twins') {
       return <CardTwins user={user} onBack={() => setCurrentView('dashboard')} language={language} />

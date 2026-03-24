@@ -117,7 +117,7 @@ const translations = {
   }
 }
 
-function CardSynergy({ user, onBack, language }) {
+function CardSynergy({ user, subscriptionStatus, onBack, language }) {
   const t = translations[language] || translations.en
 
   const [seedCards, setSeedCards] = useState([''])
@@ -126,13 +126,15 @@ function CardSynergy({ user, onBack, language }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
-  const [tokens, setTokens] = useState(user?.tokens || 0)
+  const [tokens, setTokens] = useState(subscriptionStatus?.tokens ?? user?.tokens ?? 0)
 
   useEffect(() => {
-    if (user?.tokens != null) setTokens(user.tokens)
-  }, [user?.tokens])
+    if (subscriptionStatus?.tokens != null) setTokens(subscriptionStatus.tokens)
+    else if (user?.tokens != null) setTokens(user.tokens)
+  }, [subscriptionStatus?.tokens, user?.tokens])
   const [previewCard, setPreviewCard] = useState(null)
   const [sortMode, setSortMode] = useState('priority')
+  const [filterPriority, setFilterPriority] = useState('all')
   const [copied, setCopied] = useState(false)
   const suggestionsRef = useRef({ list: [], idx: null })
   const [suggestTick, setSuggestTick] = useState(0)
