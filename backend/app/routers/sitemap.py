@@ -69,7 +69,11 @@ def sitemap_decks_page(page: int, db: Session = Depends(get_db)):
     if not entries:
         return Response(status_code=404)
 
-    return Response(content=_wrap_urlset(entries), media_type="application/xml")
+    return Response(
+        content=_wrap_urlset(entries),
+        media_type="application/xml",
+        headers={"Cache-Control": "public, max-age=86400"}
+    )
 
 
 @router.get("/sitemap-decks.xml", response_class=Response)
