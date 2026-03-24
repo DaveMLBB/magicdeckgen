@@ -1379,7 +1379,7 @@ function App() {
       return <CardSynergy user={user} subscriptionStatus={subscriptionStatus} onBack={() => setCurrentView('dashboard')} language={language} />
     }
     if (currentView === 'card-twins') {
-      return <CardTwins user={user} onBack={() => setCurrentView('dashboard')} language={language} />
+      return <CardTwins user={user} subscriptionStatus={subscriptionStatus} onBack={() => setCurrentView('dashboard')} language={language} />
     }
     if (currentView === 'ai-deck-builder') {
       return <AIDeckBuilder user={user} onBack={() => setCurrentView('dashboard')} language={language} onSaved={() => setCurrentView('saved-decks')} />
