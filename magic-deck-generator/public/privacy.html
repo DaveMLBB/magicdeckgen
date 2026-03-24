@@ -122,7 +122,7 @@
         // Fetch privacy policy from backend
         const API_URL = window.location.hostname === 'localhost' 
             ? 'http://localhost:8000' 
-            : 'https://api.magicdeckbuilder.app.cloudsw.site';
+            : 'https://api.mtgdecksbuilder.com';
         
         fetch(`${API_URL}/api/gdpr/privacy-policy`)
             .then(res => res.json())

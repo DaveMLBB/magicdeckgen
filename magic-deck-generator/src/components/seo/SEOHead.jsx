@@ -9,7 +9,7 @@ const SEOHead = ({
   ogType = 'website',
   lang = 'en'
 }) => {
-  const siteUrl = 'https://magicdeckbuilder.app.cloudsw.site';
+  const siteUrl = 'https://mtgdecksbuilder.com';
   const fullCanonical = canonical ? `${siteUrl}${canonical}` : siteUrl;
   
   return (

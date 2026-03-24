@@ -25,7 +25,7 @@ STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 # Frontend URLs for redirect after checkout
 FRONTEND_URL = os.environ.get(
     "FRONTEND_URL",
-    "https://magicdeckbuilder.app.cloudsw.site" if os.environ.get("PRODUCTION") else "http://localhost:5173"
+    "https://mtgdecksbuilder.com" if os.environ.get("PRODUCTION") else "http://localhost:5173"
 )
 
 if STRIPE_SECRET_KEY:

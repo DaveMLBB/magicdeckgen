@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 
 const HreflangTags = ({ enUrl, itUrl }) => {
-  const siteUrl = 'https://magicdeckbuilder.app.cloudsw.site';
+  const siteUrl = 'https://mtgdecksbuilder.com';
   
   return (
     <Helmet>

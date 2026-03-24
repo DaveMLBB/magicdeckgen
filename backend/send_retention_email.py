@@ -15,7 +15,7 @@ BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@magicdeckbuilder.app")
 FROM_NAME = os.getenv("FROM_NAME", "Magic Deck Builder")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://magicdeckbuilder.app.cloudsw.site")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://mtgdecksbuilder.com")
 
 def send_retention_email(to_email: str) -> bool:
     headers = {

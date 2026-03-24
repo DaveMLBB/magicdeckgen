@@ -280,7 +280,7 @@ export default function PublicDeckPage() {
         keywords={keywords} ogType="article" lang="en" />
       <StructuredData type="Article" data={{
         headline: deck.name, description: seoDesc,
-        url: `https://magicdeckbuilder.app.cloudsw.site/decks/${deck.slug}`,
+        url: `https://mtgdecksbuilder.com/decks/${deck.slug}`,
         datePublished: deck.created_at, keywords,
         author: { '@type': 'Organization', name: 'Magic Deck Builder' },
       }} />

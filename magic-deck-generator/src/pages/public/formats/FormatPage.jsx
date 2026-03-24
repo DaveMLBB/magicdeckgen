@@ -172,13 +172,13 @@ const FormatPage = ({ format, lang = 'en' }) => {
           '@type': 'ListItem',
           position: 1,
           name: 'Home',
-          item: `https://magicdeckbuilder.app.cloudsw.site/${lang}/mtg-deck-builder-from-collection`
+          item: `https://mtgdecksbuilder.com/${lang}/mtg-deck-builder-from-collection`
         },
         {
           '@type': 'ListItem',
           position: 2,
           name: t.formatName,
-          item: `https://magicdeckbuilder.app.cloudsw.site${canonicalPath}`
+          item: `https://mtgdecksbuilder.com${canonicalPath}`
         }
       ]
     }
