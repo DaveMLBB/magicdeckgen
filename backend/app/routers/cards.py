@@ -895,14 +895,28 @@ def get_card_editions(card_id: int, db: Session = Depends(get_db)):
         db.query(MTGCard.set_code, MTGCard.set_name, MTGCard.collector_number,
                  MTGCard.rarity, MTGCard.price_eur, MTGCard.price_usd, MTGCard.image_url)
         .filter(MTGCard.name == card.name)
-        .order_by(MTGCard.set_name)
         .all()
     )
-    return {
-        "card_name": card.name,
-        "current_set_code": card.set_code,
-        "editions": [
-            {
+    
+    # Helper per calcolare prezzo valido (>= 0.02€)
+    def get_valid_price(price_eur, price_usd):
+        if price_eur is not None and price_eur >= 0.02:
+            return price_eur
+        if price_usd is not None and price_usd >= 0.02:
+            return price_usd
+        return None
+    
+    # Raggruppa per set_code e scegli la stampa con prezzo più basso valido
+    editions_by_set = {}
+    for e in editions:
+        set_key = e.set_code
+        if not set_key:
+            continue
+            
+        valid_price = get_valid_price(e.price_eur, e.price_usd)
+        
+        if set_key not in editions_by_set:
+            editions_by_set[set_key] = {
                 "set_code": e.set_code,
                 "set_name": e.set_name or e.set_code,
                 "collector_number": e.collector_number,
@@ -910,9 +924,46 @@ def get_card_editions(card_id: int, db: Session = Depends(get_db)):
                 "price_eur": e.price_eur,
                 "price_usd": e.price_usd,
                 "image_url": e.image_url,
+                "valid_price": valid_price,
             }
-            for e in editions
-        ]
+        else:
+            # Se questa stampa ha un prezzo valido migliore, sostituisci
+            existing_price = editions_by_set[set_key]["valid_price"]
+            if existing_price is None and valid_price is not None:
+                editions_by_set[set_key].update({
+                    "collector_number": e.collector_number,
+                    "rarity": e.rarity,
+                    "price_eur": e.price_eur,
+                    "price_usd": e.price_usd,
+                    "image_url": e.image_url,
+                    "valid_price": valid_price,
+                })
+            elif existing_price is not None and valid_price is not None and valid_price < existing_price:
+                editions_by_set[set_key].update({
+                    "collector_number": e.collector_number,
+                    "rarity": e.rarity,
+                    "price_eur": e.price_eur,
+                    "price_usd": e.price_usd,
+                    "image_url": e.image_url,
+                    "valid_price": valid_price,
+                })
+    
+    # Converti in lista e ordina: prima con prezzo valido (dal più basso), poi senza prezzo
+    editions_list = list(editions_by_set.values())
+    editions_with_price = [e for e in editions_list if e["valid_price"] is not None]
+    editions_without_price = [e for e in editions_list if e["valid_price"] is None]
+    
+    editions_with_price.sort(key=lambda e: e["valid_price"])
+    editions_without_price.sort(key=lambda e: e["set_name"] or "")
+    
+    # Rimuovi il campo helper valid_price
+    for e in editions_with_price + editions_without_price:
+        e.pop("valid_price", None)
+    
+    return {
+        "card_name": card.name,
+        "current_set_code": card.set_code,
+        "editions": editions_with_price + editions_without_price
     }
 
 
