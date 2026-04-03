@@ -670,8 +670,17 @@ def get_user_collection(
     else:
         mtg_rows = []
 
+    # Helper function to get valid price (>= 0.02€)
+    def get_valid_price(card):
+        """Restituisce il prezzo valido (EUR preferito, altrimenti USD) o None"""
+        if card.price_eur is not None and card.price_eur >= 0.02:
+            return card.price_eur
+        if card.price_usd is not None and card.price_usd >= 0.02:
+            return card.price_usd
+        return None
+    
     # Build a dict: (name, set_code) → MTGCard for exact matches
-    # and name → MTGCard for fallback
+    # Prefer cards with valid prices, and among those, the lowest price
     mtg_by_name_and_set: dict = {}
     mtg_by_name: dict = {}
     
@@ -679,17 +688,36 @@ def get_user_collection(
         # Store by (name, set_code) for exact matches
         if m.set_code:
             key = (m.name, m.set_code.lower())
-            if key not in mtg_by_name_and_set:
+            existing = mtg_by_name_and_set.get(key)
+            
+            if existing is None:
                 mtg_by_name_and_set[key] = m
+            else:
+                # Prefer card with valid price, then lowest price
+                existing_price = get_valid_price(existing)
+                new_price = get_valid_price(m)
+                
+                if existing_price is None and new_price is not None:
+                    # Existing has no valid price, new one does → replace
+                    mtg_by_name_and_set[key] = m
+                elif existing_price is not None and new_price is not None:
+                    # Both have valid prices → choose lowest
+                    if new_price < existing_price:
+                        mtg_by_name_and_set[key] = m
         
-        # Store by name for fallback (prefer cards with prices)
+        # Store by name for fallback (prefer cards with valid prices, then lowest)
         existing = mtg_by_name.get(m.name)
         if existing is None:
             mtg_by_name[m.name] = m
         else:
-            # Prefer cards with price_eur
-            if existing.price_eur is None and m.price_eur is not None:
+            existing_price = get_valid_price(existing)
+            new_price = get_valid_price(m)
+            
+            if existing_price is None and new_price is not None:
                 mtg_by_name[m.name] = m
+            elif existing_price is not None and new_price is not None:
+                if new_price < existing_price:
+                    mtg_by_name[m.name] = m
 
     # Format response
     cards_data = []
