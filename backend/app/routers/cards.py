@@ -1053,13 +1053,33 @@ def update_card_set(card_id: int, set_code: str, db: Session = Depends(get_db)):
     if not card:
         raise HTTPException(status_code=404, detail="Card not found")
 
-    # Verifica che il set esista per questa carta
-    edition = db.query(MTGCard).filter(
+    # Fetch all editions for this (name, set_code) - there may be multiple (foil, non-foil, etc.)
+    editions = db.query(MTGCard).filter(
         MTGCard.name == card.name,
         MTGCard.set_code == set_code
-    ).first()
-    if not edition:
+    ).all()
+    if not editions:
         raise HTTPException(status_code=404, detail="Edition not found for this card")
+
+    # Pick the edition with the lowest valid price (same logic as the collection endpoint)
+    # This avoids returning foil prices (which can be 2x non-foil) when non-foil exists
+    def get_valid_price(m):
+        if m.price_eur is not None and m.price_eur >= 0.02:
+            return m.price_eur
+        if m.price_usd is not None and m.price_usd >= 0.02:
+            return m.price_usd
+        return None
+
+    best_edition = editions[0]
+    best_price = get_valid_price(best_edition)
+    for e in editions[1:]:
+        p = get_valid_price(e)
+        if best_price is None and p is not None:
+            best_edition = e
+            best_price = p
+        elif best_price is not None and p is not None and p < best_price:
+            best_edition = e
+            best_price = p
 
     card.set_code = set_code
     db.commit()
@@ -1067,7 +1087,7 @@ def update_card_set(card_id: int, set_code: str, db: Session = Depends(get_db)):
         "updated": True,
         "card_id": card.id,
         "set_code": card.set_code,
-        "set_name": edition.set_name,
-        "price_eur": edition.price_eur,
-        "price_usd": edition.price_usd,
+        "set_name": best_edition.set_name,
+        "price_eur": best_edition.price_eur,
+        "price_usd": best_edition.price_usd,
     }
