@@ -570,10 +570,7 @@ def get_user_collection(
     Uses a single SQL query with LEFT JOIN + subquery for best MTGCard match.
     Pagination happens at DB level — no full table scan in Python.
     """
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    logger.info(f"📚 COLLECTION ENDPOINT CALLED - user_id={user_id}, collection_id={collection_id}, page={page}")
+    print(f"\n📚 COLLECTION ENDPOINT CALLED - user_id={user_id}, collection_id={collection_id}, page={page}")
     
     from app.models import MTGCard
     from sqlalchemy.orm import aliased
@@ -665,18 +662,18 @@ def get_user_collection(
     offset = (page - 1) * page_size
     page_cards_raw = q.offset(offset).limit(page_size).all()
     
-    logger.info(f"   Query returned {len(page_cards_raw)} cards (raw) for page {page}")
+    print(f"   Query returned {len(page_cards_raw)} cards (raw) for page {page}")
     
     # Log card IDs to check for duplicates
     card_ids_raw = [card.id for card in page_cards_raw]
     unique_ids_raw = set(card_ids_raw)
     
     if len(card_ids_raw) != len(unique_ids_raw):
-        logger.warning(f"   ⚠️  DUPLICATES FOUND in raw query results!")
-        logger.warning(f"   Total: {len(card_ids_raw)}, Unique: {len(unique_ids_raw)}")
-        logger.warning(f"   Card IDs: {card_ids_raw}")
+        print(f"   ⚠️  DUPLICATES FOUND in raw query results!")
+        print(f"   Total: {len(card_ids_raw)}, Unique: {len(unique_ids_raw)}")
+        print(f"   Card IDs: {card_ids_raw}")
     else:
-        logger.info(f"   ✓ No duplicates in raw query results")
+        print(f"   ✓ No duplicates in raw query results")
     
     # Deduplicate cards by ID (workaround for SQLAlchemy returning duplicates)
     seen_ids = set()
@@ -686,7 +683,7 @@ def get_user_collection(
             page_cards.append(card)
             seen_ids.add(card.id)
     
-    logger.info(f"   After deduplication: {len(page_cards)} cards")
+    print(f"   After deduplication: {len(page_cards)} cards")
 
     total_pages = (total_unique_cards + page_size - 1) // page_size
 
@@ -834,10 +831,7 @@ def get_collection_stats(
     db: Session = Depends(get_db)
 ):
     """Get statistics about user's collection"""
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    logger.info(f"📊 STATS ENDPOINT CALLED - user_id={user_id}, collection_id={collection_id}")
+    print(f"\n📊 STATS ENDPOINT CALLED - user_id={user_id}, collection_id={collection_id}")
     
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -850,18 +844,18 @@ def get_collection_stats(
     
     cards_raw = query.all()
     
-    logger.info(f"   Query returned {len(cards_raw)} cards (raw)")
+    print(f"   Query returned {len(cards_raw)} cards (raw)")
     
     # Log card IDs to check for duplicates
     card_ids_raw = [card.id for card in cards_raw]
     unique_ids_raw = set(card_ids_raw)
     
     if len(card_ids_raw) != len(unique_ids_raw):
-        logger.warning(f"   ⚠️  DUPLICATES FOUND in raw query results!")
-        logger.warning(f"   Total: {len(card_ids_raw)}, Unique: {len(unique_ids_raw)}")
-        logger.warning(f"   Card IDs: {card_ids_raw}")
+        print(f"   ⚠️  DUPLICATES FOUND in raw query results!")
+        print(f"   Total: {len(card_ids_raw)}, Unique: {len(unique_ids_raw)}")
+        print(f"   Card IDs: {card_ids_raw}")
     else:
-        logger.info(f"   ✓ No duplicates in raw query results")
+        print(f"   ✓ No duplicates in raw query results")
     
     # Deduplicate cards by ID (workaround for SQLAlchemy returning duplicates)
     seen_ids = set()
@@ -871,7 +865,7 @@ def get_collection_stats(
             cards.append(card)
             seen_ids.add(card.id)
     
-    logger.info(f"   After deduplication: {len(cards)} cards")
+    print(f"   After deduplication: {len(cards)} cards")
     
     # Calculate stats
     total_unique = len(cards)
