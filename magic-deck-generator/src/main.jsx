@@ -11,11 +11,9 @@ if (navigator.userAgent.includes('Firefox')) {
 }
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <HelmetProvider>
-      <BrowserRouter>
-        <AppRouter />
-      </BrowserRouter>
-    </HelmetProvider>
-  </StrictMode>,
+  <HelmetProvider>
+    <BrowserRouter>
+      <AppRouter />
+    </BrowserRouter>
+  </HelmetProvider>,
 )
