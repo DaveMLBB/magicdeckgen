@@ -10,6 +10,8 @@ const API_URL = import.meta.env.PROD
 function Collection({ user, collection, onBack, onSelectDeck, language, onShowSubscriptions, onUploadComplete, onLimitError }) {
   const [cards, setCardsInternal] = useState([])
   
+  console.log(`🔄 Collection component RENDER - cards in state: ${cards.length}`)
+  
   // Wrapper per tracciare setCards
   const setCards = (newCards) => {
     console.log(`📝 setCards called - Current: ${cards.length}, New: ${Array.isArray(newCards) ? newCards.length : 'function'}`)
