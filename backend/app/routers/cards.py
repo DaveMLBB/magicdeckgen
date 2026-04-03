@@ -670,26 +670,39 @@ def get_user_collection(
     else:
         mtg_rows = []
 
-    # Build a dict: name → best MTGCard (set_code match > has price_eur > first)
+    # Build a dict: (name, set_code) → MTGCard for exact matches
+    # and name → MTGCard for fallback
+    mtg_by_name_and_set: dict = {}
     mtg_by_name: dict = {}
+    
     for m in mtg_rows:
+        # Store by (name, set_code) for exact matches
+        if m.set_code:
+            key = (m.name, m.set_code.lower())
+            if key not in mtg_by_name_and_set:
+                mtg_by_name_and_set[key] = m
+        
+        # Store by name for fallback (prefer cards with prices)
         existing = mtg_by_name.get(m.name)
         if existing is None:
             mtg_by_name[m.name] = m
         else:
-            # Prefer set_code match (checked per-card below), then price_eur
+            # Prefer cards with price_eur
             if existing.price_eur is None and m.price_eur is not None:
                 mtg_by_name[m.name] = m
 
     # Format response
     cards_data = []
     for card in page_cards:
-        mtg_card = mtg_by_name.get(card.name)
-        # If card has a set_code, try to find exact match
-        if card.set_code and mtg_card and mtg_card.set_code != card.set_code:
-            exact = next((m for m in mtg_rows if m.name == card.name and m.set_code == card.set_code), None)
-            if exact:
-                mtg_card = exact
+        # PRIORITY 1: Exact match by name + set_code
+        mtg_card = None
+        if card.set_code:
+            key = (card.name, card.set_code.lower())
+            mtg_card = mtg_by_name_and_set.get(key)
+        
+        # PRIORITY 2: Fallback to any card with that name
+        if not mtg_card:
+            mtg_card = mtg_by_name.get(card.name)
 
         card_type = card.card_type or "Unknown"
         colors_val = card.colors or ""
