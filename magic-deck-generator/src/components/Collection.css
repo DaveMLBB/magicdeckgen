@@ -552,7 +552,8 @@
 }
 
 .cards-table {
-  overflow-x: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
   margin-bottom: 1.5rem;
   border-radius: 12px;
   border: 2px solid rgba(255,255,255,0.1);
@@ -2063,10 +2064,8 @@ tr:hover .qty-edit-icon { opacity: 0.6; }
   border-color: #a78bfa;
 }
 .set-picker-popover {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 200;
+  position: fixed;
+  z-index: 9999;
   background: #1e1b4b;
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 10px;
@@ -2074,6 +2073,7 @@ tr:hover .qty-edit-icon { opacity: 0.6; }
   max-width: 300px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   overflow: hidden;
+  margin-top: 4px;
 }
 .set-picker-header {
   display: flex;
