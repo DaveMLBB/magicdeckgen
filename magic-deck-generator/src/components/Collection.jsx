@@ -10,9 +10,8 @@ const API_URL = import.meta.env.PROD
 function Collection({ user, collection, onBack, onSelectDeck, language, onShowSubscriptions, onUploadComplete, onLimitError }) {
   const [cards, setCards] = useState([])
   
-  // Deduplicate cards to prevent visual duplication
+  // Deduplicate cards as safety net
   const uniqueCards = useMemo(() => {
-    console.log('🔍 useMemo deduplication running - input:', cards.length, 'cards')
     const seen = new Set()
     const unique = []
     for (const card of cards) {
@@ -20,10 +19,6 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
         seen.add(card.id)
         unique.push(card)
       }
-    }
-    console.log('   Output:', unique.length, 'unique cards')
-    if (cards.length !== unique.length) {
-      console.warn('   ⚠️ DUPLICATES REMOVED:', cards.length - unique.length, 'duplicates')
     }
     return unique
   }, [cards])
@@ -444,8 +439,6 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   }
 
   const loadCollection = async () => {
-    console.log('🔄 loadCollection CALLED')
-    console.log('   Current cards state:', cards.length, 'cards')
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -482,14 +475,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       const res = await fetch(`${API_URL}/api/cards/collection/${user.userId}?${params}`)
       const data = await res.json()
       
-      console.log('   API returned:', data.cards.length, 'cards')
-      console.log('   First 3 card names:', data.cards.slice(0, 3).map(c => c.name))
-      console.log('   Calling setCards...')
-      
       setCards(data.cards)
-      
-      console.log('   setCards completed')
-      
       setPagination(data.pagination)
     } catch (err) {
       console.error('Error loading collection:', err)

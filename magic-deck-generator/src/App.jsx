@@ -1336,6 +1336,10 @@ function App() {
       )
     }
     if (currentView === 'collection-detail') {
+      if (!selectedCollection) {
+        setCurrentView('collections')
+        return null
+      }
       return (
         <Collection
           user={user}
