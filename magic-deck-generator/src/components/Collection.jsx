@@ -340,11 +340,23 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   }, [setPickerCardId])
 
   useEffect(() => {
-    loadCollection()
-    loadStats()
-    // Reset selezione quando cambiano i filtri/ricerca
-    setSelectedCardIds([])
-    setSelectAllPages(false)
+    let isMounted = true
+    
+    const fetchData = async () => {
+      if (isMounted) {
+        await loadCollection()
+        await loadStats()
+        // Reset selezione quando cambiano i filtri/ricerca
+        setSelectedCardIds([])
+        setSelectAllPages(false)
+      }
+    }
+    
+    fetchData()
+    
+    return () => {
+      isMounted = false
+    }
   }, [page, search, sortBy, sortOrder, filters])
 
   useEffect(() => {
