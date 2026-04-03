@@ -2123,6 +2123,7 @@ tr:hover .qty-edit-icon { opacity: 0.6; }
 .set-picker-list {
   max-height: 220px;
   overflow-y: auto;
+  background: #16172d;
 }
 .set-picker-item {
   display: flex;
@@ -2130,7 +2131,7 @@ tr:hover .qty-edit-icon { opacity: 0.6; }
   gap: 8px;
   width: 100%;
   padding: 8px 12px;
-  background: none;
+  background: #16172d;
   border: none;
   border-bottom: 1px solid rgba(255,255,255,0.05);
   color: #e2e8f0;
@@ -2139,8 +2140,8 @@ tr:hover .qty-edit-icon { opacity: 0.6; }
   transition: background 0.12s;
   font-size: 0.85rem;
 }
-.set-picker-item:hover { background: rgba(255,255,255,0.07); }
-.set-picker-item.active { background: rgba(99,102,241,0.2); }
+.set-picker-item:hover { background: #1e1f3a; }
+.set-picker-item.active { background: rgba(99,102,241,0.3); }
 .set-picker-item:last-child { border-bottom: none; }
 .set-picker-code {
   font-weight: 700;

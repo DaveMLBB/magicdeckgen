@@ -900,12 +900,13 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
         setCards(prev => prev.map(c => {
           if (c.id === cardId) {
             // Sostituisci completamente i campi per evitare merge issues
+            // Forza conversione esplicita a Number per evitare concatenazione
             return {
               ...c,
               set_code: data.set_code,
               set_name: data.set_name,
-              price_eur: data.price_eur ?? null,
-              price_usd: data.price_usd ?? null,
+              price_eur: data.price_eur != null ? Number(data.price_eur) : null,
+              price_usd: data.price_usd != null ? Number(data.price_usd) : null,
             }
           }
           return c
