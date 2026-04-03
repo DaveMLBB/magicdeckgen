@@ -118,7 +118,6 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
   const [cardSearchInitialQuery, setCardSearchInitialQuery] = useState('')
-  const [sessionExpired, setSessionExpired] = useState(false)
   const [trialLimitInfo, setTrialLimitInfo] = useState(null) // { message: string }
 
   // Traduzioni
@@ -513,14 +512,18 @@ function App() {
     localStorage.removeItem('userId')
     localStorage.removeItem('userEmail')
     localStorage.removeItem('isVerified')
+    localStorage.removeItem('user')
     setUser(null)
     setCards([])
     setDecks([])
-    setSessionExpired(false)
   }
 
   const handleUnauthorized = () => {
-    if (user) setSessionExpired(true)
+    if (user) {
+      // Logout automatico immediato quando il token scade (401)
+      console.warn('🔒 Token scaduto o non valido - logout automatico')
+      handleLogout()
+    }
   }
 
   // Fetch interceptor globale per catturare i 401 e i 429 trial limit
@@ -2209,21 +2212,6 @@ function App() {
         />
       )}
 
-      {/* Session Expired Overlay */}
-      {sessionExpired && (
-        <div className="session-expired-overlay">
-          <div className="session-expired-modal">
-            <div className="session-expired-icon">🔒</div>
-            <h2>{language === 'it' ? 'Sessione scaduta' : 'Session expired'}</h2>
-            <p>{language === 'it' ? 'La tua sessione è scaduta o non è più valida. Effettua il logout e accedi di nuovo.' : 'Your session has expired or is no longer valid. Please log out and sign in again.'}</p>
-            <div className="session-expired-actions">
-              <button className="session-expired-logout-btn" onClick={handleLogout}>
-                🚪 {language === 'it' ? 'Esci e accedi di nuovo' : 'Logout & sign in again'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Upgrade Plan Modal */}
       {showUpgradeModal && (
