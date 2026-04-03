@@ -811,7 +811,8 @@ def get_collection_stats(
         raise HTTPException(status_code=404, detail="User not found")
     
     # Get all cards (filtered by collection if specified)
-    query = db.query(Card).filter(Card.user_id == user_id)
+    # Use DISTINCT to avoid duplicates from potential JOINs
+    query = db.query(Card).distinct().filter(Card.user_id == user_id)
     if collection_id:
         query = query.filter(Card.collection_id == collection_id)
     
