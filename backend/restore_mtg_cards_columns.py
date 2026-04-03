@@ -14,16 +14,26 @@ ATTENZIONE: Eseguire PRIMA sul database di sviluppo per test!
 import os
 import sys
 from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
+from pathlib import Path
 
 # Setup path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+BACKEND_DIR = Path(__file__).parent
+sys.path.insert(0, str(BACKEND_DIR))
 
-from app.config import settings
+# Carica variabili d'ambiente
+load_dotenv(BACKEND_DIR / ".env")
 
 def restore_columns():
     """Ripristina le colonne eliminate dalla tabella mtg_cards."""
     
-    engine = create_engine(settings.DATABASE_URL)
+    # Leggi DATABASE_URL da env
+    DATABASE_URL = os.environ.get(
+        "DATABASE_URL",
+        "postgresql://magicdeckgen:magicdeckgen_dev@localhost:5434/magicdeckgen"
+    )
+    
+    engine = create_engine(DATABASE_URL)
     
     print("=" * 80)
     print("RIPRISTINO COLONNE mtg_cards - Supporto Multilingua Completo")
