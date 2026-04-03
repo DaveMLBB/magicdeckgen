@@ -134,11 +134,6 @@ class MTGCard(Base):
     uuid          = Column(String, primary_key=True, index=True)  # = scryfall id
     scryfall_id   = Column(String, index=True, nullable=True)
     oracle_id     = Column(String, index=True, nullable=True)
-    arena_id      = Column(Integer, nullable=True)
-    mtgo_id       = Column(Integer, nullable=True)
-    mtgo_foil_id  = Column(Integer, nullable=True)
-    tcgplayer_id  = Column(Integer, nullable=True)
-    cardmarket_id = Column(Integer, nullable=True)
 
     # ── Nomi ────────────────────────────────────────────────────────────────
     name          = Column(String, index=True, nullable=False)
@@ -152,62 +147,34 @@ class MTGCard(Base):
     # ── Colori ──────────────────────────────────────────────────────────────
     colors        = Column(String, nullable=True)          # "W,U,B,R,G"
     color_identity= Column(String, nullable=True)
-    color_indicator = Column(String, nullable=True)
 
     # ── Tipo ────────────────────────────────────────────────────────────────
     type_line     = Column(String, index=True, nullable=True)
-    type_it       = Column(String, nullable=True)
     types         = Column(String, nullable=True)          # "Creature,Instant"
     subtypes      = Column(String, nullable=True)
     supertypes    = Column(String, nullable=True)
 
     # ── Testo ───────────────────────────────────────────────────────────────
     text          = Column(String, nullable=True)          # oracle_text
-    text_it       = Column(String, nullable=True)
-    flavor_text   = Column(String, nullable=True)
-    flavor_name   = Column(String, nullable=True)
 
     # ── Stats creature ──────────────────────────────────────────────────────
     power         = Column(String, nullable=True)
     toughness     = Column(String, nullable=True)
     loyalty       = Column(String, nullable=True)
-    defense       = Column(String, nullable=True)
-    hand_modifier = Column(String, nullable=True)
-    life_modifier = Column(String, nullable=True)
 
     # ── Set / Stampa ────────────────────────────────────────────────────────
     set_code      = Column(String, index=True, nullable=True)
     set_name      = Column(String, nullable=True)
-    set_type      = Column(String, nullable=True)
-    set_uri       = Column(String, nullable=True)
     collector_number = Column(String, nullable=True)
     rarity        = Column(String, index=True, nullable=True)
     released_at   = Column(String, nullable=True)          # "2024-01-01"
 
-    # ── Layout / Formato ────────────────────────────────────────────────────
-    layout        = Column(String, nullable=True)
-    border_color  = Column(String, nullable=True)
-    frame         = Column(String, nullable=True)
-    frame_effects = Column(String, nullable=True)          # JSON array
-    finishes      = Column(String, nullable=True)          # "nonfoil,foil"
-    oversized     = Column(Boolean, nullable=True)
+    # ── Flags ───────────────────────────────────────────────────────────────
     promo         = Column(Boolean, nullable=True)
     reprint       = Column(Boolean, nullable=True)
-    digital       = Column(Boolean, nullable=True)
-    full_art      = Column(Boolean, nullable=True)
-    textless      = Column(Boolean, nullable=True)
-    story_spotlight = Column(Boolean, nullable=True)
 
-    # ── Artista / Produzione ────────────────────────────────────────────────
-    artist        = Column(String, nullable=True)
-    artist_ids    = Column(String, nullable=True)          # JSON array
-    illustration_id = Column(String, nullable=True)
-    watermark     = Column(String, nullable=True)
-
-    # ── Keywords / Regole ───────────────────────────────────────────────────
+    # ── Keywords ────────────────────────────────────────────────────────────
     keywords      = Column(String, nullable=True)          # "Flying,Haste"
-    produced_mana = Column(String, nullable=True)
-    games         = Column(String, nullable=True)          # "paper,arena,mtgo"
 
     # ── Immagini ────────────────────────────────────────────────────────────
     image_url     = Column(String, nullable=True)          # normal
@@ -215,7 +182,6 @@ class MTGCard(Base):
     image_url_large = Column(String, nullable=True)
     image_url_art_crop = Column(String, nullable=True)
     image_url_border_crop = Column(String, nullable=True)
-    image_status  = Column(String, nullable=True)          # highres_scan, etc.
 
     # ── Legalità ────────────────────────────────────────────────────────────
     legalities    = Column(String, nullable=True)          # JSON dict
@@ -223,18 +189,8 @@ class MTGCard(Base):
     # ── Prezzi ──────────────────────────────────────────────────────────────
     price_usd         = Column(Float, nullable=True)
     price_usd_foil    = Column(Float, nullable=True)
-    price_usd_etched  = Column(Float, nullable=True)
     price_eur         = Column(Float, nullable=True)
     price_eur_foil    = Column(Float, nullable=True)
-    price_tix         = Column(Float, nullable=True)
-
-    # ── URI / Link ───────────────────────────────────────────────────────────
-    scryfall_uri  = Column(String, nullable=True)
-    rulings_uri   = Column(String, nullable=True)
-    prints_search_uri = Column(String, nullable=True)
-
-    # ── Carte double-faced (faces serializzate come JSON) ───────────────────
-    card_faces    = Column(String, nullable=True)          # JSON array
 
     # ── Metadata sync ───────────────────────────────────────────────────────
     last_synced_at = Column(DateTime, nullable=True)

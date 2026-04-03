@@ -102,15 +102,7 @@ def search_cards(
     # Filtro per testo
     if text:
         text_lower = text.lower()
-        if language == "it":
-            q = q.filter(
-                or_(
-                    func.lower(MTGCard.text).like(f"%{text_lower}%"),
-                    func.lower(MTGCard.text_it).like(f"%{text_lower}%")
-                )
-            )
-        else:
-            q = q.filter(func.lower(MTGCard.text).like(f"%{text_lower}%"))
+        q = q.filter(func.lower(MTGCard.text).like(f"%{text_lower}%"))
     
     # Filtro per power
     if power:

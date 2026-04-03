@@ -95,20 +95,11 @@ def _map(raw: dict) -> dict:
     imgs     = _img(raw)
     types, subtypes, supertypes = _types(raw.get("type_line", ""))
 
-    # card_faces serializzate come JSON (per double-faced)
-    faces = raw.get("card_faces")
-    faces_json = json.dumps(faces, ensure_ascii=False) if faces else None
-
     return {
         # Identificatori
         "uuid":           raw["id"],
         "scryfall_id":    raw["id"],
         "oracle_id":      raw.get("oracle_id"),
-        "arena_id":       raw.get("arena_id"),
-        "mtgo_id":        raw.get("mtgo_id"),
-        "mtgo_foil_id":   raw.get("mtgo_foil_id"),
-        "tcgplayer_id":   raw.get("tcgplayer_id"),
-        "cardmarket_id":  raw.get("cardmarket_id"),
         # Nomi
         "name":           raw.get("name", ""),
         "name_it":        None,   # popolato da sync lingue separate
@@ -119,73 +110,37 @@ def _map(raw: dict) -> dict:
         # Colori
         "colors":         _join(raw.get("colors")),
         "color_identity": _join(raw.get("color_identity")),
-        "color_indicator":_join(raw.get("color_indicator")),
         # Tipo
         "type_line":      raw.get("type_line"),
-        "type_it":        None,
         "types":          types,
         "subtypes":       subtypes,
         "supertypes":     supertypes,
         # Testo
         "text":           raw.get("oracle_text"),
-        "text_it":        None,
-        "flavor_text":    raw.get("flavor_text"),
-        "flavor_name":    raw.get("flavor_name"),
         # Stats
         "power":          raw.get("power"),
         "toughness":      raw.get("toughness"),
         "loyalty":        raw.get("loyalty"),
-        "defense":        raw.get("defense"),
-        "hand_modifier":  raw.get("hand_modifier"),
-        "life_modifier":  raw.get("life_modifier"),
         # Set
         "set_code":       raw.get("set"),
         "set_name":       raw.get("set_name"),
-        "set_type":       raw.get("set_type"),
-        "set_uri":        raw.get("set_uri"),
         "collector_number": raw.get("collector_number"),
         "rarity":         raw.get("rarity"),
         "released_at":    raw.get("released_at"),
-        # Layout
-        "layout":         raw.get("layout"),
-        "border_color":   raw.get("border_color"),
-        "frame":          raw.get("frame"),
-        "frame_effects":  _join(raw.get("frame_effects")),
-        "finishes":       _join(raw.get("finishes")),
-        "oversized":      raw.get("oversized"),
+        # Flags
         "promo":          raw.get("promo"),
         "reprint":        raw.get("reprint"),
-        "digital":        raw.get("digital"),
-        "full_art":       raw.get("full_art"),
-        "textless":       raw.get("textless"),
-        "story_spotlight":raw.get("story_spotlight"),
-        # Artista
-        "artist":         raw.get("artist"),
-        "artist_ids":     _join(raw.get("artist_ids")),
-        "illustration_id":raw.get("illustration_id"),
-        "watermark":      raw.get("watermark"),
         # Keywords
         "keywords":       _join(raw.get("keywords")),
-        "produced_mana":  _join(raw.get("produced_mana")),
-        "games":          _join(raw.get("games")),
         # Immagini
         **imgs,
-        "image_status":   raw.get("image_status"),
         # Legalità
         "legalities":     json.dumps(raw.get("legalities")) if raw.get("legalities") else None,
         # Prezzi
         "price_usd":          _f(prices.get("usd")),
         "price_usd_foil":     _f(prices.get("usd_foil")),
-        "price_usd_etched":   _f(prices.get("usd_etched")),
         "price_eur":          _f(prices.get("eur")),
         "price_eur_foil":     _f(prices.get("eur_foil")),
-        "price_tix":          _f(prices.get("tix")),
-        # URI
-        "scryfall_uri":       raw.get("scryfall_uri"),
-        "rulings_uri":        raw.get("rulings_uri"),
-        "prints_search_uri":  raw.get("prints_search_uri"),
-        # Double-faced
-        "card_faces":         faces_json,
         # Sync
         "last_synced_at":     datetime.now(timezone.utc),
     }
@@ -193,10 +148,10 @@ def _map(raw: dict) -> dict:
 
 # Campi che vengono aggiornati ad ogni sync (prezzi + immagini + legalità)
 UPDATE_FIELDS = [
-    "price_usd", "price_usd_foil", "price_usd_etched",
-    "price_eur", "price_eur_foil", "price_tix",
+    "price_usd", "price_usd_foil",
+    "price_eur", "price_eur_foil",
     "image_url", "image_url_small", "image_url_large",
-    "image_url_art_crop", "image_url_border_crop", "image_status",
+    "image_url_art_crop", "image_url_border_crop",
     "legalities", "keywords", "text", "type_line",
     "types", "subtypes", "supertypes",
     "set_name", "released_at", "reprint", "promo",
