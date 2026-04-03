@@ -1305,7 +1305,6 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   </tr>
                 </thead>
                 <tbody key={uniqueCards.map(c => c.id).join(',')}>
-                  {console.log('📋 Rendering tbody with', uniqueCards.length, 'cards')}
                   {uniqueCards.map((card) => (
                     <tr
                       key={card.id}
