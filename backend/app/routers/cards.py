@@ -658,7 +658,15 @@ def get_user_collection(
 
     # DB-level pagination
     offset = (page - 1) * page_size
-    page_cards = q.offset(offset).limit(page_size).all()
+    page_cards_raw = q.offset(offset).limit(page_size).all()
+    
+    # Deduplicate cards by ID (workaround for SQLAlchemy returning duplicates)
+    seen_ids = set()
+    page_cards = []
+    for card in page_cards_raw:
+        if card.id not in seen_ids:
+            page_cards.append(card)
+            seen_ids.add(card.id)
 
     total_pages = (total_unique_cards + page_size - 1) // page_size
 
@@ -815,15 +823,15 @@ def get_collection_stats(
     if collection_id:
         query = query.filter(Card.collection_id == collection_id)
     
-    cards = query.all()
+    cards_raw = query.all()
     
-    # DEBUG: Log card IDs to check for duplicates
-    card_ids = [card.id for card in cards]
-    unique_card_ids = set(card_ids)
-    if len(card_ids) != len(unique_card_ids):
-        print(f"⚠️  WARNING: Duplicate card IDs found in stats query!")
-        print(f"   Total cards: {len(card_ids)}, Unique IDs: {len(unique_card_ids)}")
-        print(f"   Card IDs: {card_ids}")
+    # Deduplicate cards by ID (workaround for SQLAlchemy returning duplicates)
+    seen_ids = set()
+    cards = []
+    for card in cards_raw:
+        if card.id not in seen_ids:
+            cards.append(card)
+            seen_ids.add(card.id)
     
     # Calculate stats
     total_unique = len(cards)
