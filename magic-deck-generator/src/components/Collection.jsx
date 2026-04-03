@@ -1227,7 +1227,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                 Non tutte le carte sono state tradotte in italiano. Anche le immagini di anteprima potrebbero essere disponibili solo in inglese.
               </div>
             )}
-            <div className="cards-table">
+            <div className={`cards-table ${setPickerCardId !== null ? 'picker-open' : ''}`}>
               {selectedCardIds.length > 0 || selectAllPages ? (
                 <div className="selection-bar">
                   <span className="selection-count">

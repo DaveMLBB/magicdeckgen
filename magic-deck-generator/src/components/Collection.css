@@ -1361,6 +1361,15 @@ tr:hover .qty-edit-icon { opacity: 0.6; }
   transform: translateX(4px);
 }
 
+/* Disable hover effects when set picker is open */
+.cards-table.picker-open tbody tr {
+  pointer-events: none;
+}
+
+.cards-table.picker-open .set-picker-popover {
+  pointer-events: auto;
+}
+
 @media (max-width: 1024px) {
   .card-preview-tooltip {
     right: 1rem;
@@ -2081,6 +2090,7 @@ tr:hover .qty-edit-icon { opacity: 0.6; }
   max-width: 300px;
   box-shadow: 0 16px 64px rgba(0,0,0,0.95), 0 0 0 1px rgba(255,255,255,0.15);
   overflow: hidden;
+  pointer-events: auto;
 }
 .set-picker-header {
   display: flex;
