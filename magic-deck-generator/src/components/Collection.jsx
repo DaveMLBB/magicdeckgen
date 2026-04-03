@@ -1326,7 +1326,11 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   </tr>
                 </thead>
                 <tbody>
-                  {cards.map((card) => (
+                  {console.log(`📋 Rendering table with ${cards.length} cards`)}
+                  {cards.map((card, index) => {
+                    if (index === 0) console.log(`   First card ID: ${card.id}`)
+                    if (index === cards.length - 1) console.log(`   Last card ID: ${card.id}`)
+                    return (
                     <tr
                       key={card.id}
                       className={`${card.locked ? 'locked-row' : 'clickable-row'} ${selectAllPages || selectedCardIds.includes(card.id) ? 'selected-row' : ''}`}
@@ -1433,7 +1437,8 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                           : renderManaCost(card.mana_cost)}
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
