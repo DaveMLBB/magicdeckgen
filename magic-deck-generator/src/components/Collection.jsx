@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import './Collection.css'
 import { cardImageCache } from '../utils/cardImageCache'
 import { exportCollectionCSV, exportCollectionManaBox, exportCollectionXLSX, exportCollectionTXT } from '../utils/exportCards'
@@ -8,18 +8,7 @@ const API_URL = import.meta.env.PROD
   : 'http://localhost:8000'
 
 function Collection({ user, collection, onBack, onSelectDeck, language, onShowSubscriptions, onUploadComplete, onLimitError }) {
-  const [cards, setCardsInternal] = useState([])
-  
-  console.log(`🔄 Collection component RENDER - cards in state: ${cards.length}`)
-  
-  // Wrapper per tracciare setCards
-  const setCards = (newCards) => {
-    console.log(`📝 setCards called - Current: ${cards.length}, New: ${Array.isArray(newCards) ? newCards.length : 'function'}`)
-    if (Array.isArray(newCards)) {
-      console.log(`   New card IDs:`, newCards.map(c => c.id))
-    }
-    setCardsInternal(newCards)
-  }
+  const [cards, setCards] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -349,27 +338,6 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
   }, [setPickerCardId])
-  
-  // Debug: Log cards state after every update
-  useEffect(() => {
-    console.log(`🎯 cards state updated - Length: ${cards.length}`)
-    if (cards.length > 0) {
-      const cardIds = cards.map(c => c.id)
-      const uniqueIds = new Set(cardIds)
-      if (cardIds.length !== uniqueIds.size) {
-        console.error(`❌ DUPLICATES IN STATE! Total: ${cardIds.length}, Unique: ${uniqueIds.size}`)
-        console.error(`   Card IDs:`, cardIds)
-      } else {
-        console.log(`   ✓ No duplicates in state`)
-        console.log(`   Card IDs:`, cardIds)
-      }
-    }
-  }, [cards])
-  
-  // Debug: Track what causes re-renders
-  useEffect(() => {
-    console.log(`🔍 Props changed - collection:`, collection?.id, `language:`, language)
-  }, [collection, language, user, onBack, onSelectDeck, onShowSubscriptions, onUploadComplete, onLimitError])
 
   useEffect(() => {
     let isMounted = true
@@ -458,7 +426,6 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   }
 
   const loadCollection = async () => {
-    console.log('🔄 loadCollection CALLED')
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -495,13 +462,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       const res = await fetch(`${API_URL}/api/cards/collection/${user.userId}?${params}`)
       const data = await res.json()
       
-      console.log(`   API returned ${data.cards.length} cards`)
-      console.log(`   Card IDs:`, data.cards.map(c => c.id))
-      
       setCards(data.cards)
-      
-      console.log(`   setCards called with ${data.cards.length} cards`)
-      
       setPagination(data.pagination)
     } catch (err) {
       console.error('Error loading collection:', err)
@@ -1330,12 +1291,8 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                     </th>
                   </tr>
                 </thead>
-                <tbody>
-                  {console.log(`📋 Rendering table with ${cards.length} cards`)}
-                  {cards.map((card, index) => {
-                    if (index === 0) console.log(`   First card ID: ${card.id}`)
-                    if (index === cards.length - 1) console.log(`   Last card ID: ${card.id}`)
-                    return (
+                <tbody key={cards.map(c => c.id).join(',')}>
+                  {cards.map((card) => (
                     <tr
                       key={card.id}
                       className={`${card.locked ? 'locked-row' : 'clickable-row'} ${selectAllPages || selectedCardIds.includes(card.id) ? 'selected-row' : ''}`}
@@ -1442,8 +1399,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                           : renderManaCost(card.mana_cost)}
                       </td>
                     </tr>
-                    )
-                  })}
+                  ))}
                 </tbody>
               </table>
             </div>
