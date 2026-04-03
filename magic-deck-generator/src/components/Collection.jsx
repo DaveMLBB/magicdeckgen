@@ -426,6 +426,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   }
 
   const loadCollection = async () => {
+    console.log('🔄 loadCollection CALLED - current cards:', cards.length)
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -462,7 +463,13 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       const res = await fetch(`${API_URL}/api/cards/collection/${user.userId}?${params}`)
       const data = await res.json()
       
+      console.log('   API returned:', data.cards.length, 'cards')
+      console.log('   Before setCards, current cards:', cards.length)
+      
       setCards(data.cards)
+      
+      console.log('   After setCards called')
+      
       setPagination(data.pagination)
     } catch (err) {
       console.error('Error loading collection:', err)
@@ -1292,6 +1299,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   </tr>
                 </thead>
                 <tbody key={cards.map(c => c.id).join(',')}>
+                  {console.log('📋 Rendering tbody with', cards.length, 'cards')}
                   {cards.map((card) => (
                     <tr
                       key={card.id}
