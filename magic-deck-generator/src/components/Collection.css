@@ -1370,6 +1370,12 @@ tr:hover .qty-edit-icon { opacity: 0.6; }
   pointer-events: auto;
 }
 
+/* Lift the active row above all other rows so the popover isn't covered */
+tbody tr.set-picker-active {
+  position: relative;
+  z-index: 100;
+}
+
 @media (max-width: 1024px) {
   .card-preview-tooltip {
     right: 1rem;

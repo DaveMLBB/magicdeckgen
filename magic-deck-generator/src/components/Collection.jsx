@@ -1308,7 +1308,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   {uniqueCards.map((card) => (
                     <tr
                       key={card.id}
-                      className={`${card.locked ? 'locked-row' : 'clickable-row'} ${selectAllPages || selectedCardIds.includes(card.id) ? 'selected-row' : ''}`}
+                      className={`${card.locked ? 'locked-row' : 'clickable-row'} ${selectAllPages || selectedCardIds.includes(card.id) ? 'selected-row' : ''} ${setPickerCardId === card.id ? 'set-picker-active' : ''}`}
                       onMouseEnter={() => !card.locked && handleCardHover(card.name, card.set_code)}
                       onMouseLeave={handleCardLeave}
                       onClick={() => handleCardClick(card)}
