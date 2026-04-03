@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
@@ -11,11 +10,9 @@ if (navigator.userAgent.includes('Firefox')) {
 }
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <HelmetProvider>
-      <BrowserRouter>
-        <AppRouter />
-      </BrowserRouter>
-    </HelmetProvider>
-  </StrictMode>,
+  <HelmetProvider>
+    <BrowserRouter>
+      <AppRouter />
+    </BrowserRouter>
+  </HelmetProvider>,
 )

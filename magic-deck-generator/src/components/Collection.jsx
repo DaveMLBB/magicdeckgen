@@ -20,7 +20,6 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
         unique.push(card)
       }
     }
-    console.log(`🔍 Deduplication: ${cards.length} → ${unique.length} cards`)
     return unique
   }, [cards])
   const [stats, setStats] = useState(null)
