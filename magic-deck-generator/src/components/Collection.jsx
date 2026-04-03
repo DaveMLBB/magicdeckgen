@@ -8,7 +8,16 @@ const API_URL = import.meta.env.PROD
   : 'http://localhost:8000'
 
 function Collection({ user, collection, onBack, onSelectDeck, language, onShowSubscriptions, onUploadComplete, onLimitError }) {
-  const [cards, setCards] = useState([])
+  const [cards, setCardsInternal] = useState([])
+  
+  // Wrapper per tracciare setCards
+  const setCards = (newCards) => {
+    console.log(`📝 setCards called - Current: ${cards.length}, New: ${Array.isArray(newCards) ? newCards.length : 'function'}`)
+    if (Array.isArray(newCards)) {
+      console.log(`   New card IDs:`, newCards.map(c => c.id))
+    }
+    setCardsInternal(newCards)
+  }
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -426,19 +435,19 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   }
 
   const loadCollection = async () => {
+    console.log('🔄 loadCollection CALLED')
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        page_size: '50',
-        sort_by: sortBy,
-        sort_order: sortOrder
-      })
-      
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+      params.append('page_size', '50')
+      params.append('sort_by', sortBy)
+      params.append('sort_order', sortOrder)
+
       if (collection) {
         params.append('collection_id', collection.id.toString())
       }
-      
+
       if (search) {
         params.append('search', search)
       }
@@ -463,7 +472,13 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       const res = await fetch(`${API_URL}/api/cards/collection/${user.userId}?${params}`)
       const data = await res.json()
       
+      console.log(`   API returned ${data.cards.length} cards`)
+      console.log(`   Card IDs:`, data.cards.map(c => c.id))
+      
       setCards(data.cards)
+      
+      console.log(`   setCards called with ${data.cards.length} cards`)
+      
       setPagination(data.pagination)
     } catch (err) {
       console.error('Error loading collection:', err)
