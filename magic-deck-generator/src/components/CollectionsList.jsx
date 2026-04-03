@@ -275,16 +275,6 @@ function CollectionsList({ user, onBack, onSelectCollection, onSelectDeck, langu
                       <span className="stat-value">{collection.total_cards}</span>
                       <span className="stat-label">{t.cards}</span>
                     </div>
-                    {(collection.total_value_eur > 0 || collection.total_value_usd > 0) && (
-                      <div className="stat stat-value-highlight">
-                        <span className="stat-value">
-                          {collection.total_value_eur > 0 
-                            ? `€${collection.total_value_eur.toFixed(2)}`
-                            : `$${collection.total_value_usd.toFixed(2)}`}
-                        </span>
-                        <span className="stat-label">{language === 'it' ? 'Valore' : 'Value'}</span>
-                      </div>
-                    )}
                   </div>
                   <div className="collection-dates">
                     <span>{t.createdOn} {new Date(collection.created_at).toLocaleDateString()}</span>
