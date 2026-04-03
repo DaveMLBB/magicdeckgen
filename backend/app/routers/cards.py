@@ -584,8 +584,8 @@ def get_user_collection(
     # "priority" value (1 = set match, 2 = has price, 3 = any).
     # We achieve this with a subquery that selects the best uuid per name.
 
-    # Build the base Card query with DISTINCT to avoid duplicates from JOINs
-    q = db.query(Card).distinct().filter(Card.user_id == user_id)
+    # Build the base Card query with DISTINCT on Card.id to avoid duplicates
+    q = db.query(Card).distinct(Card.id).filter(Card.user_id == user_id)
 
     if collection_id:
         q = q.filter(Card.collection_id == collection_id)
@@ -811,8 +811,8 @@ def get_collection_stats(
         raise HTTPException(status_code=404, detail="User not found")
     
     # Get all cards (filtered by collection if specified)
-    # Use DISTINCT to avoid duplicates from potential JOINs
-    query = db.query(Card).distinct().filter(Card.user_id == user_id)
+    # Use DISTINCT on Card.id to avoid duplicates
+    query = db.query(Card).distinct(Card.id).filter(Card.user_id == user_id)
     if collection_id:
         query = query.filter(Card.collection_id == collection_id)
     
