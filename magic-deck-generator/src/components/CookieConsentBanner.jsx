@@ -98,11 +98,25 @@ function CookieConsentBanner({ onConsentChange, onPrivacyClick, language = 'en' 
     
     // Send to backend for audit logging
     try {
+      // Get user token if logged in
+      const userData = localStorage.getItem('user')
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      if (userData) {
+        try {
+          const user = JSON.parse(userData)
+          if (user.token) {
+            headers['Authorization'] = `Bearer ${user.token}`
+          }
+        } catch (e) {
+          // Invalid user data, continue without token
+        }
+      }
+
       await fetch(`${API_URL}/api/gdpr/consent`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
           essential: consentDecision.essential,
           analytics: consentDecision.analytics,

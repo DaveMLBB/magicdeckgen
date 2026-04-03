@@ -1552,6 +1552,33 @@ tr:hover .qty-edit-icon { opacity: 0.6; }
   border-color: #667eea;
 }
 
+.set-code-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.set-code-label {
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.set-code-input {
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  width: 90px;
+}
+
+.set-code-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
 .reset-btn {
   padding: 0.45rem 1rem;
   border-radius: 6px;

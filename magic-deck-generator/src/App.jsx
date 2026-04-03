@@ -445,6 +445,13 @@ function App() {
     }
   }, [user?.userId, user?.token])
 
+  // Ricarica il saldo token quando cambia la view (per aggiornare dopo acquisti/consumi)
+  useEffect(() => {
+    if (user?.token && currentView) {
+      loadSubscriptionStatus(user.token)
+    }
+  }, [currentView])
+
   // Carica le carte quando viene selezionato un mazzo pubblico
   useEffect(() => {
     const loadUserDeckCards = async () => {

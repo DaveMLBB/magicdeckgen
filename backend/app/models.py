@@ -3,14 +3,6 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 from datetime import datetime
 
-deck_cards = Table(
-    'deck_cards',
-    Base.metadata,
-    Column('deck_id', Integer, ForeignKey('decks.id')),
-    Column('card_id', Integer, ForeignKey('cards.id')),
-    Column('quantity', Integer, default=1)
-)
-
 class User(Base):
     __tablename__ = "users"
     
@@ -72,16 +64,6 @@ class Card(Base):
     quantity_owned = Column(Integer, default=1)
     user_id = Column(Integer, ForeignKey('users.id'), index=True)  # FK to User
     collection_id = Column(Integer, ForeignKey('card_collections.id'), index=True, nullable=True)  # FK to Collection
-
-class Deck(Base):
-    __tablename__ = "decks"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    archetype = Column(String)  # aggro, control, midrange, combo
-    colors = Column(String)
-    format = Column(String, default="standard")  # standard, modern, commander
-    user_id = Column(Integer, ForeignKey('users.id'), index=True)  # FK verso User
 
 class SavedDeck(Base):
     """Mazzi salvati dall'utente con tutte le carte"""

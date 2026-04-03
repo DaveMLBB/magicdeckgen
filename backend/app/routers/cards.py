@@ -54,6 +54,23 @@ class ColumnMapping(BaseModel):
     card_type: Optional[str] = None
     colors: Optional[str] = None
     rarity: Optional[str] = None
+    set_code: Optional[str] = None
+
+
+def _resolve_set_code(db: Session, name: str, provided_set_code: Optional[str]) -> Optional[str]:
+    from app.models import MTGCard
+    if provided_set_code:
+        s = str(provided_set_code).strip()
+        if s and s.lower() not in ["nan", "none", "null"]:
+            return s
+
+    mtg_row = (
+        db.query(MTGCard.set_code)
+        .filter(MTGCard.name == name)
+        .order_by(MTGCard.released_at.desc().nullslast())
+        .first()
+    )
+    return mtg_row[0] if mtg_row and mtg_row[0] else None
 
 @router.post("/analyze/{user_id}")
 async def analyze_file(user_id: str, file: UploadFile = File(...)):
@@ -358,6 +375,9 @@ async def upload_cards(
             
             rarity_col = column_mapping.get('rarity')
             rarity = str(row[rarity_col]) if rarity_col and rarity_col in df.columns and pd.notna(row[rarity_col]) else None
+
+            set_code_col = column_mapping.get('set_code')
+            set_code = str(row[set_code_col]) if set_code_col and set_code_col in df.columns and pd.notna(row[set_code_col]) else None
             
             # Arricchisci dal database MTG se mancano tipo, mana_cost o colors
             needs_type = not card_type or card_type.lower() in ['unknown', 'nan', 'none', '']
@@ -367,7 +387,12 @@ async def upload_cards(
             name_it = None
             
             if needs_type or needs_mana or needs_colors:
-                mtg_card = db.query(MTGCard).filter(MTGCard.name == name).first()
+                mtg_card = (
+                    db.query(MTGCard)
+                    .filter(MTGCard.name == name)
+                    .order_by(MTGCard.released_at.desc().nullslast())
+                    .first()
+                )
                 if mtg_card:
                     if needs_type:
                         if mtg_card.types:
@@ -386,9 +411,16 @@ async def upload_cards(
             # Se non abbiamo ancora name_it, cercalo comunque
             if not name_it:
                 if not (needs_type or needs_mana or needs_colors):
-                    mtg_card = db.query(MTGCard).filter(MTGCard.name == name).first()
+                    mtg_card = (
+                        db.query(MTGCard)
+                        .filter(MTGCard.name == name)
+                        .order_by(MTGCard.released_at.desc().nullslast())
+                        .first()
+                    )
                     if mtg_card and mtg_card.name_it and mtg_card.name_it != 'None':
                         name_it = mtg_card.name_it
+
+            set_code = _resolve_set_code(db, name, set_code)
             
             # Se ancora non abbiamo un tipo, usa Unknown
             if not card_type or card_type.lower() in ['nan', 'none', '']:
@@ -401,6 +433,7 @@ async def upload_cards(
                 card_type=card_type,
                 colors=colors,
                 rarity=rarity,
+                set_code=set_code,
                 quantity_owned=quantity,
                 user_id=user_id,
                 collection_id=collection_id
@@ -454,7 +487,12 @@ def add_card(user_id: str, card_data: dict, db: Session = Depends(get_db)):
     
     # Cerca la carta nel database MTG per arricchire i dati
     card_name = card_data.get('name')
-    mtg_card = db.query(MTGCard).filter(MTGCard.name == card_name).first()
+    mtg_card = (
+        db.query(MTGCard)
+        .filter(MTGCard.name == card_name)
+        .order_by(MTGCard.released_at.desc().nullslast())
+        .first()
+    )
     
     # Usa i dati dal database MTG se disponibili
     if mtg_card:
@@ -467,6 +505,8 @@ def add_card(user_id: str, card_data: dict, db: Session = Depends(get_db)):
         colors = card_data.get('colors', '')
         mana_cost = card_data.get('mana_cost')
         rarity = card_data.get('rarity')
+
+    set_code = _resolve_set_code(db, card_name, card_data.get('set_code'))
     
     # Verifica se la carta esiste già nella collezione
     collection_id = card_data.get('collection_id')
@@ -479,6 +519,9 @@ def add_card(user_id: str, card_data: dict, db: Session = Depends(get_db)):
     if existing_card:
         # Incrementa la quantità
         existing_card.quantity_owned += card_data.get('quantity_owned', 1)
+
+        if not existing_card.set_code and set_code:
+            existing_card.set_code = set_code
         db.commit()
         return {
             "message": "Card quantity updated",
@@ -493,6 +536,7 @@ def add_card(user_id: str, card_data: dict, db: Session = Depends(get_db)):
             card_type=card_type,
             colors=colors,
             rarity=rarity,
+            set_code=set_code,
             quantity_owned=card_data.get('quantity_owned', 1),
             user_id=user_id,
             collection_id=collection_id
@@ -514,6 +558,7 @@ def get_user_collection(
     colors: Optional[str] = None,
     types: Optional[str] = None,
     rarity: Optional[str] = None,
+    set_code: Optional[str] = None,
     cmc_min: Optional[int] = None,
     cmc_max: Optional[int] = None,
     sort_by: str = Query("name", regex="^(name|quantity|type|mana_cost|price)$"),
@@ -570,6 +615,9 @@ def get_user_collection(
 
     if rarity:
         q = q.filter(Card.rarity == rarity)
+
+    if set_code:
+        q = q.filter(func.lower(Card.set_code) == set_code.lower())
 
     # CMC filter requires joining MTGCard — handle separately
     if cmc_min is not None or cmc_max is not None:

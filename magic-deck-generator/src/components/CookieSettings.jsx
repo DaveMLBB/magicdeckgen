@@ -93,11 +93,16 @@ function CookieSettings({ user, language = 'en', onBack }) {
       localStorage.setItem('cookieConsent', JSON.stringify(consentData))
 
       // Send to backend
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      if (user && user.token) {
+        headers['Authorization'] = `Bearer ${user.token}`
+      }
+
       await fetch(`${API_URL}/api/gdpr/consent`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
           essential: newPreferences.essential,
           analytics: newPreferences.analytics,

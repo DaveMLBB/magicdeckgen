@@ -23,12 +23,14 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   const [filters, setFilters] = useState({
     colors: [],
     types: [],
+    setCode: '',
     cmcMin: '',
     cmcMax: ''
   })
   const [pendingFilters, setPendingFilters] = useState({
     colors: [],
     types: [],
+    setCode: '',
     cmcMin: '',
     cmcMax: ''
   })
@@ -150,6 +152,8 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       filters: 'Filtri',
       hideFilters: 'Nascondi Filtri',
       cmc: 'CMC',
+      setCode: 'Set',
+      setCodePlaceholder: 'es. MOM, LTR...',
       min: 'Min',
       max: 'Max',
       reset: 'Reset',
@@ -248,6 +252,8 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       filters: 'Filters',
       hideFilters: 'Hide Filters',
       cmc: 'CMC',
+      setCode: 'Set',
+      setCodePlaceholder: 'e.g. MOM, LTR...',
       min: 'Min',
       max: 'Max',
       reset: 'Reset',
@@ -432,6 +438,9 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       if (filters.types.length > 0) {
         params.append('types', filters.types.join(','))
       }
+      if (filters.setCode) {
+        params.append('set_code', filters.setCode)
+      }
       if (filters.cmcMin) {
         params.append('cmc_min', filters.cmcMin)
       }
@@ -499,7 +508,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   }
 
   const resetFilters = () => {
-    const empty = { colors: [], types: [], cmcMin: '', cmcMax: '' }
+    const empty = { colors: [], types: [], setCode: '', cmcMin: '', cmcMax: '' }
     setPendingFilters(empty)
     setFilters(empty)
     setPage(1)
@@ -1135,6 +1144,17 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                       onChange={(e) => setPendingFilters({...pendingFilters, cmcMax: e.target.value})}
                       className="cmc-input"
                       min="0"
+                    />
+                  </div>
+                  <div className="set-code-input-wrapper">
+                    <span className="set-code-label">{t.setCode}</span>
+                    <input
+                      type="text"
+                      placeholder={t.setCodePlaceholder}
+                      value={pendingFilters.setCode}
+                      onChange={(e) => setPendingFilters({...pendingFilters, setCode: e.target.value})}
+                      className="set-code-input"
+                      maxLength="5"
                     />
                   </div>
                 </div>
