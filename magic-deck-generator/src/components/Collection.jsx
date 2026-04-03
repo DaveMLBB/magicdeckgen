@@ -9,6 +9,20 @@ const API_URL = import.meta.env.PROD
 
 function Collection({ user, collection, onBack, onSelectDeck, language, onShowSubscriptions, onUploadComplete, onLimitError }) {
   const [cards, setCards] = useState([])
+  
+  // Deduplicate cards to prevent visual duplication
+  const uniqueCards = useMemo(() => {
+    const seen = new Set()
+    const unique = []
+    for (const card of cards) {
+      if (!seen.has(card.id)) {
+        seen.add(card.id)
+        unique.push(card)
+      }
+    }
+    console.log(`🔍 Deduplication: ${cards.length} → ${unique.length} cards`)
+    return unique
+  }, [cards])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -795,7 +809,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       setSelectedCardIds([])
       return
     }
-    const selectableIds = cards.filter(c => !c.locked).map(c => c.id)
+    const selectableIds = uniqueCards.filter(c => !c.locked).map(c => c.id)
     const allCurrentSelected = selectableIds.every(id => selectedCardIds.includes(id))
     if (allCurrentSelected) {
       setSelectedCardIds([])
@@ -1280,7 +1294,7 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                   <tr>
                     <th className="col-check">
                       <input type="checkbox" onChange={toggleSelectAll}
-                        checked={selectAllPages || (cards.filter(c => !c.locked).length > 0 && cards.filter(c => !c.locked).every(c => selectedCardIds.includes(c.id)))}
+                        checked={selectAllPages || (uniqueCards.filter(c => !c.locked).length > 0 && uniqueCards.filter(c => !c.locked).every(c => selectedCardIds.includes(c.id)))}
                       />
                     </th>
                     <th className="col-qty sortable" onClick={() => handleSort('quantity')}>
@@ -1298,9 +1312,9 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                     </th>
                   </tr>
                 </thead>
-                <tbody key={cards.map(c => c.id).join(',')}>
-                  {console.log('📋 Rendering tbody with', cards.length, 'cards')}
-                  {cards.map((card) => (
+                <tbody key={uniqueCards.map(c => c.id).join(',')}>
+                  {console.log('📋 Rendering tbody with', uniqueCards.length, 'cards')}
+                  {uniqueCards.map((card) => (
                     <tr
                       key={card.id}
                       className={`${card.locked ? 'locked-row' : 'clickable-row'} ${selectAllPages || selectedCardIds.includes(card.id) ? 'selected-row' : ''}`}
