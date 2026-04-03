@@ -234,9 +234,10 @@ def get_user_collections(user_id: int, db: Session = Depends(get_db)):
             
             if mtg_card:
                 quantity = card.quantity_owned or 1
+                # Only add EUR OR USD, not both (prefer EUR)
                 if mtg_card.price_eur and mtg_card.price_eur >= 0.02:
                     total_value_eur += mtg_card.price_eur * quantity
-                if mtg_card.price_usd and mtg_card.price_usd >= 0.02:
+                elif mtg_card.price_usd and mtg_card.price_usd >= 0.02:
                     total_value_usd += mtg_card.price_usd * quantity
         
         # Get linked decks
