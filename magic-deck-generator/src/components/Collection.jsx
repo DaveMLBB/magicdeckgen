@@ -897,10 +897,19 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       const res = await fetch(`${API_URL}/api/cards/card/${cardId}/set?set_code=${setCode}`, { method: 'PUT' })
       if (res.ok) {
         const data = await res.json()
-        setCards(prev => prev.map(c => c.id === cardId
-          ? { ...c, set_code: data.set_code, set_name: data.set_name, price_eur: data.price_eur, price_usd: data.price_usd }
-          : c
-        ))
+        setCards(prev => prev.map(c => {
+          if (c.id === cardId) {
+            // Sostituisci completamente i campi per evitare merge issues
+            return {
+              ...c,
+              set_code: data.set_code,
+              set_name: data.set_name,
+              price_eur: data.price_eur ?? null,
+              price_usd: data.price_usd ?? null,
+            }
+          }
+          return c
+        }))
       }
     } catch (err) { console.error(err) }
     setSetPickerCardId(null)
