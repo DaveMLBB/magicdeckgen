@@ -821,6 +821,31 @@ def get_collection_stats(
     total_unique = len(cards)
     total_quantity = sum(card.quantity_owned for card in cards)
     
+    # Calculate total value (EUR preferred, USD fallback)
+    total_value_eur = 0.0
+    total_value_usd = 0.0
+    from app.models import MTGCard
+    
+    for card in cards:
+        # Get price from MTGCard based on set_code
+        mtg_card = None
+        if card.set_code:
+            mtg_card = db.query(MTGCard).filter(
+                MTGCard.name == card.name,
+                MTGCard.set_code == card.set_code
+            ).first()
+        
+        # Fallback to any card with that name if no set match
+        if not mtg_card:
+            mtg_card = db.query(MTGCard).filter(MTGCard.name == card.name).first()
+        
+        if mtg_card:
+            quantity = card.quantity_owned or 1
+            if mtg_card.price_eur and mtg_card.price_eur >= 0.02:
+                total_value_eur += mtg_card.price_eur * quantity
+            if mtg_card.price_usd and mtg_card.price_usd >= 0.02:
+                total_value_usd += mtg_card.price_usd * quantity
+    
     # Count by colors
     colors_count = {}
     for card in cards:
@@ -843,6 +868,8 @@ def get_collection_stats(
     return {
         "total_unique_cards": total_unique,
         "total_cards": total_quantity,
+        "total_value_eur": round(total_value_eur, 2),
+        "total_value_usd": round(total_value_usd, 2),
         "colors_distribution": colors_count,
         "types_distribution": types_count,
         "subscription_type": "token",

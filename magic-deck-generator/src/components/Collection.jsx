@@ -1082,6 +1082,18 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
               <span className="stat-badge">
                 <strong>{stats.total_cards}</strong> {t.totalCards}
               </span>
+              {(stats.total_value_eur > 0 || stats.total_value_usd > 0) && (
+                <>
+                  <span className="stat-separator">·</span>
+                  <span className="stat-badge stat-value">
+                    <strong>
+                      {stats.total_value_eur > 0 
+                        ? `€${stats.total_value_eur.toFixed(2)}`
+                        : `$${stats.total_value_usd.toFixed(2)}`}
+                    </strong> {language === 'it' ? 'Valore' : 'Value'}
+                  </span>
+                </>
+              )}
             </div>
           )}
           <input

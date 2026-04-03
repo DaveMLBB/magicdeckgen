@@ -206,6 +206,7 @@ def get_user_collections(user_id: int, db: Session = Depends(get_db)):
     can_create_more = user.tokens > 0
     
     # Get card count for each collection
+    from app.models import MTGCard
     result = []
     for collection in collections:
         card_count = db.query(func.count(Card.id)).filter(
@@ -215,6 +216,28 @@ def get_user_collections(user_id: int, db: Session = Depends(get_db)):
         total_cards = db.query(func.sum(Card.quantity_owned)).filter(
             Card.collection_id == collection.id
         ).scalar() or 0
+        
+        # Calculate total value
+        cards = db.query(Card).filter(Card.collection_id == collection.id).all()
+        total_value_eur = 0.0
+        total_value_usd = 0.0
+        
+        for card in cards:
+            mtg_card = None
+            if card.set_code:
+                mtg_card = db.query(MTGCard).filter(
+                    MTGCard.name == card.name,
+                    MTGCard.set_code == card.set_code
+                ).first()
+            if not mtg_card:
+                mtg_card = db.query(MTGCard).filter(MTGCard.name == card.name).first()
+            
+            if mtg_card:
+                quantity = card.quantity_owned or 1
+                if mtg_card.price_eur and mtg_card.price_eur >= 0.02:
+                    total_value_eur += mtg_card.price_eur * quantity
+                if mtg_card.price_usd and mtg_card.price_usd >= 0.02:
+                    total_value_usd += mtg_card.price_usd * quantity
         
         # Get linked decks
         deck_ids = db.query(saved_deck_collections.c.deck_id).filter(
@@ -231,6 +254,8 @@ def get_user_collections(user_id: int, db: Session = Depends(get_db)):
             "description": collection.description,
             "card_count": card_count,
             "total_cards": int(total_cards),
+            "total_value_eur": round(total_value_eur, 2),
+            "total_value_usd": round(total_value_usd, 2),
             "created_at": collection.created_at.isoformat(),
             "updated_at": collection.updated_at.isoformat(),
             "linked_decks": linked_decks
