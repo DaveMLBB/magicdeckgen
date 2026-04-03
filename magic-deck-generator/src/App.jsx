@@ -71,10 +71,15 @@ function App() {
   const pathToView = (path) => {
     const p = path.replace(/^\//, '')
     if (!p || p === 'dashboard') return 'dashboard'
+    if (/^collections\/\d+/.test(p)) return 'collection-detail'
     return p
   }
   const currentView = pathToView(location.pathname)
   const setCurrentView = (view) => navigate('/' + (view === 'dashboard' ? '' : view))
+  const collectionIdFromUrl = (() => {
+    const m = location.pathname.match(/^\/collections\/(\d+)/)
+    return m ? parseInt(m[1]) : null
+  })()
   const [selectedCollection, setSelectedCollection] = useState(null)
   const [selectedSavedDeck, setSelectedSavedDeck] = useState(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState(null)
@@ -443,6 +448,16 @@ function App() {
       loadSearchCollections()
     }
   }, [user?.userId, user?.token])
+
+  // Restore collection from URL on refresh (e.g. /collections/48)
+  useEffect(() => {
+    if (collectionIdFromUrl && !selectedCollection && user) {
+      fetch(`${API_URL}/api/collections/${collectionIdFromUrl}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => { if (data) setSelectedCollection(data) })
+        .catch(() => setCurrentView('collections'))
+    }
+  }, [collectionIdFromUrl, user])
 
   // Ricarica il saldo token quando cambia la view (per aggiornare dopo acquisti/consumi)
   useEffect(() => {
@@ -1327,7 +1342,7 @@ function App() {
         <CollectionsList
           user={user}
           onBack={() => setCurrentView('dashboard')}
-          onSelectCollection={(collection) => { setSelectedCollection(collection); setCurrentView('collection-detail') }}
+          onSelectCollection={(collection) => { setSelectedCollection(collection); navigate('/collections/' + collection.id) }}
           onSelectDeck={(deck) => { setSelectedSavedDeck(deck); setCurrentView('saved-deck-detail') }}
           language={language}
           onShowSubscriptions={() => setCurrentView('subscriptions')}
@@ -1336,10 +1351,7 @@ function App() {
       )
     }
     if (currentView === 'collection-detail') {
-      if (!selectedCollection) {
-        setCurrentView('collections')
-        return null
-      }
+      if (!selectedCollection) return null
       return (
         <Collection
           user={user}
