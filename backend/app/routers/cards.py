@@ -584,8 +584,8 @@ def get_user_collection(
     # "priority" value (1 = set match, 2 = has price, 3 = any).
     # We achieve this with a subquery that selects the best uuid per name.
 
-    # Build the base Card query
-    q = db.query(Card).filter(Card.user_id == user_id)
+    # Build the base Card query with DISTINCT to avoid duplicates from JOINs
+    q = db.query(Card).distinct().filter(Card.user_id == user_id)
 
     if collection_id:
         q = q.filter(Card.collection_id == collection_id)
