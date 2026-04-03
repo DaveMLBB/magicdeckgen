@@ -365,6 +365,11 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       }
     }
   }, [cards])
+  
+  // Debug: Track what causes re-renders
+  useEffect(() => {
+    console.log(`🔍 Props changed - collection:`, collection?.id, `language:`, language)
+  }, [collection, language, user, onBack, onSelectDeck, onShowSubscriptions, onUploadComplete, onLimitError])
 
   useEffect(() => {
     let isMounted = true
