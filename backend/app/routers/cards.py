@@ -817,6 +817,14 @@ def get_collection_stats(
     
     cards = query.all()
     
+    # DEBUG: Log card IDs to check for duplicates
+    card_ids = [card.id for card in cards]
+    unique_card_ids = set(card_ids)
+    if len(card_ids) != len(unique_card_ids):
+        print(f"⚠️  WARNING: Duplicate card IDs found in stats query!")
+        print(f"   Total cards: {len(card_ids)}, Unique IDs: {len(unique_card_ids)}")
+        print(f"   Card IDs: {card_ids}")
+    
     # Calculate stats
     total_unique = len(cards)
     total_quantity = sum(card.quantity_owned for card in cards)
