@@ -347,6 +347,22 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
   }, [setPickerCardId])
+  
+  // Debug: Log cards state after every update
+  useEffect(() => {
+    console.log(`🎯 cards state updated - Length: ${cards.length}`)
+    if (cards.length > 0) {
+      const cardIds = cards.map(c => c.id)
+      const uniqueIds = new Set(cardIds)
+      if (cardIds.length !== uniqueIds.size) {
+        console.error(`❌ DUPLICATES IN STATE! Total: ${cardIds.length}, Unique: ${uniqueIds.size}`)
+        console.error(`   Card IDs:`, cardIds)
+      } else {
+        console.log(`   ✓ No duplicates in state`)
+        console.log(`   Card IDs:`, cardIds)
+      }
+    }
+  }, [cards])
 
   useEffect(() => {
     let isMounted = true
