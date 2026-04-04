@@ -215,6 +215,7 @@ export default function PublicCollectionPage() {
                 <th style={s.th}>Qty</th>
                 <th style={s.th}>Name</th>
                 <th style={{ ...s.th, display: 'none' }} className="pc-hide-mobile">Type</th>
+                <th style={s.th}>Type</th>
                 <th style={s.th}>Rarity</th>
                 <th style={s.th}>Set</th>
                 <th style={s.th}>Price</th>
