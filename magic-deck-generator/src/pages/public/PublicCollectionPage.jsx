@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PublicNav from '../../components/public/PublicNav';
+import './PublicPages.css';
 import './PublicDeckPage.css';
 
 const API_URL = import.meta.env.PROD
@@ -108,14 +109,14 @@ export default function PublicCollectionPage() {
   }, [data, search, sortBy, sortDir, filterColors, filterSet]);
 
   if (loading) return (
-    <div style={s.page}>
+    <div className="seo-public-page" style={s.page}>
       <PublicNav />
       <div className="pdp-loading">Loading collection…</div>
     </div>
   );
 
   if (notFound || !data) return (
-    <div style={s.page}>
+    <div className="seo-public-page" style={s.page}>
       <PublicNav />
       <div className="pdp-error">
         <div style={{ fontSize: '2rem', marginBottom: 12 }}>🔒</div>
@@ -129,7 +130,7 @@ export default function PublicCollectionPage() {
   const { collection } = data;
 
   return (
-    <div style={s.page}>
+    <div className="seo-public-page" style={s.page}>
       <PublicNav />
 
       {/* Hero */}
