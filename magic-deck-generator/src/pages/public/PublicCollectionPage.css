@@ -1,0 +1,181 @@
+.public-collection-page {
+  min-height: 100vh;
+  background: #0a0b14;
+  color: #e2e8f0;
+  font-family: 'Inter', sans-serif;
+}
+
+.public-collection-loading,
+.public-collection-notfound {
+  text-align: center;
+  padding: 80px 20px;
+  color: #64748b;
+}
+.public-collection-notfound h2 { color: #e2e8f0; margin-bottom: 8px; }
+.public-collection-back-link {
+  display: inline-block;
+  margin-top: 16px;
+  color: #818cf8;
+  text-decoration: none;
+}
+.public-collection-back-link:hover { text-decoration: underline; }
+
+/* Hero */
+.public-collection-hero {
+  background: linear-gradient(135deg, #1e1b4b 0%, #0f1117 100%);
+  border-bottom: 1px solid rgba(99,102,241,0.2);
+  padding: 48px 20px 36px;
+}
+.public-collection-hero-inner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+.public-collection-meta {
+  margin-bottom: 8px;
+}
+.public-collection-owner {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.public-collection-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 8px;
+}
+.public-collection-desc {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  margin: 0 0 16px;
+}
+.public-collection-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pc-stat {
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+.pc-stat strong { color: #e2e8f0; }
+.pc-stat-sep { color: #334155; }
+.pc-stat-value strong { color: #34d399; }
+
+/* Controls */
+.public-collection-controls {
+  max-width: 900px;
+  margin: 24px auto 0;
+  padding: 0 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.public-collection-search {
+  flex: 1;
+  padding: 10px 14px;
+  background: #16172d;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  outline: none;
+}
+.public-collection-search:focus { border-color: #6366f1; }
+.public-collection-sort {
+  padding: 10px 12px;
+  background: #16172d;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Table */
+.public-collection-table-wrap {
+  max-width: 900px;
+  margin: 20px auto 40px;
+  padding: 0 20px;
+  overflow-x: auto;
+}
+.public-collection-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.public-collection-table thead tr {
+  background: #16172d;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.public-collection-table th {
+  padding: 10px 12px;
+  text-align: left;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pc-row {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.1s;
+}
+.pc-row:hover { background: rgba(255,255,255,0.03); }
+.pc-row td { padding: 9px 12px; }
+
+.pc-qty { color: #94a3b8; font-weight: 600; width: 40px; }
+.pc-name { color: #e2e8f0; font-weight: 500; }
+.pc-type { color: #94a3b8; font-size: 0.82rem; }
+.pc-set { color: #64748b; font-size: 0.78rem; font-weight: 700; }
+
+/* Rarity colors */
+.pc-rarity-mythic .pc-name { color: #fb923c; }
+.pc-rarity-rare .pc-name { color: #fbbf24; }
+.pc-rarity-uncommon .pc-name { color: #94a3b8; }
+
+.pc-rarity { font-size: 0.75rem; color: #64748b; text-transform: capitalize; }
+.pc-rarity-mythic .pc-rarity { color: #fb923c; }
+.pc-rarity-rare .pc-rarity { color: #fbbf24; }
+
+.pc-price-tag {
+  color: #34d399;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.pc-price-usd { color: #60a5fa; }
+.pc-price-none { color: #334155; }
+
+.public-collection-empty {
+  text-align: center;
+  padding: 40px;
+  color: #475569;
+}
+
+/* Footer CTA */
+.public-collection-footer {
+  text-align: center;
+  padding: 40px 20px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.public-collection-cta {
+  display: inline-block;
+  padding: 12px 24px;
+  background: #6366f1;
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 0.15s;
+}
+.public-collection-cta:hover { background: #818cf8; }
+
+@media (max-width: 640px) {
+  .public-collection-title { font-size: 1.4rem; }
+  .public-collection-controls { flex-direction: column; }
+  .public-collection-sort { width: 100%; }
+}

@@ -49,6 +49,8 @@ class CardCollection(Base):
     user_id = Column(Integer, ForeignKey('users.id'), index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_public = Column(Boolean, default=False, nullable=False)
+    share_token = Column(String, nullable=True, index=True)
 
 class Card(Base):
     __tablename__ = "cards"

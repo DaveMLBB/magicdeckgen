@@ -4,6 +4,7 @@ import LandingPage from './pages/public/LandingPage';
 import WelcomePage from './pages/WelcomePage';
 import TryPage from './pages/public/TryPage';
 import PublicDeckPage from './pages/public/PublicDeckPage';
+import PublicCollectionPage from './pages/public/PublicCollectionPage';
 import PublicDecksIndex from './pages/public/PublicDecksIndex';
 import { CedhDeckBuilderEN, CedhDeckBuilderIT } from './pages/public/formats/CedhDeckBuilder';
 import { PremodernDeckBuilderEN, PremodernDeckBuilderIT } from './pages/public/formats/PremodernDeckBuilder';
@@ -100,6 +101,9 @@ function AppRouter() {
       {/* Public Deck Pages - SEO indexable */}
       <Route path="/decks" element={<PublicDecksIndex />} />
       <Route path="/decks/:slug" element={<PublicDeckPage />} />
+
+      {/* Public shared collections */}
+      <Route path="/collection/shared/:token" element={<PublicCollectionPage />} />
 
       {/* Root and all other paths - Protected app */}
       <Route path="/welcome" element={<WelcomePage />} />

@@ -4,8 +4,9 @@ from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional, List
 from app.database import get_db
-from app.models import CardCollection, Card, User, saved_deck_collections, SavedDeck
+from app.models import CardCollection, Card, User, saved_deck_collections, SavedDeck, MTGCard
 from datetime import datetime
+import uuid
 
 router = APIRouter()
 
@@ -234,7 +235,9 @@ def get_user_collections(user_id: int, db: Session = Depends(get_db)):
             "total_cards": int(total_cards),
             "created_at": collection.created_at.isoformat(),
             "updated_at": collection.updated_at.isoformat(),
-            "linked_decks": linked_decks
+            "linked_decks": linked_decks,
+            "is_public": getattr(collection, 'is_public', False),
+            "share_token": getattr(collection, 'share_token', None),
         })
     
     return {
@@ -375,7 +378,130 @@ def get_collection(collection_id: int, db: Session = Depends(get_db)):
         "card_count": card_count,
         "total_cards": int(total_cards),
         "created_at": collection.created_at.isoformat(),
-        "updated_at": collection.updated_at.isoformat()
+        "updated_at": collection.updated_at.isoformat(),
+        "is_public": getattr(collection, 'is_public', False),
+        "share_token": getattr(collection, 'share_token', None),
+    }
+
+@router.post("/{collection_id}/share")
+def share_collection(collection_id: int, db: Session = Depends(get_db)):
+    """Enable public sharing for a collection. Returns the share token."""
+    collection = db.query(CardCollection).filter(CardCollection.id == collection_id).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    if not getattr(collection, 'share_token', None):
+        collection.share_token = str(uuid.uuid4())
+    collection.is_public = True
+    db.commit()
+    return {"share_token": collection.share_token, "is_public": True}
+
+@router.post("/{collection_id}/unshare")
+def unshare_collection(collection_id: int, db: Session = Depends(get_db)):
+    """Disable public sharing for a collection."""
+    collection = db.query(CardCollection).filter(CardCollection.id == collection_id).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    collection.is_public = False
+    db.commit()
+    return {"is_public": False}
+
+@router.get("/public/{token}")
+def get_public_collection(token: str, db: Session = Depends(get_db)):
+    """Get a publicly shared collection by its share token (no auth required)."""
+    collection = db.query(CardCollection).filter(
+        CardCollection.share_token == token,
+        CardCollection.is_public == True
+    ).first()
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found or not public")
+
+    cards_raw = db.query(Card).filter(Card.collection_id == collection.id).all()
+
+    # Fetch prices from MTGCard
+    card_names = list({c.name for c in cards_raw})
+    mtg_rows = db.query(MTGCard).filter(MTGCard.name.in_(card_names)).all()
+
+    def get_valid_price(m):
+        if m.price_eur is not None and m.price_eur >= 0.02:
+            return m.price_eur
+        if m.price_usd is not None and m.price_usd >= 0.02:
+            return m.price_usd
+        return None
+
+    mtg_by_name_set = {}
+    for m in mtg_rows:
+        if not m.set_code:
+            continue
+        key = (m.name, m.set_code.lower())
+        existing = mtg_by_name_set.get(key)
+        if existing is None:
+            mtg_by_name_set[key] = m
+        else:
+            ep = get_valid_price(existing)
+            np_ = get_valid_price(m)
+            if ep is None and np_ is not None:
+                mtg_by_name_set[key] = m
+            elif ep is not None and np_ is not None and np_ < ep:
+                mtg_by_name_set[key] = m
+
+    mtg_by_name = {}
+    for m in mtg_rows:
+        existing = mtg_by_name.get(m.name)
+        if existing is None:
+            mtg_by_name[m.name] = m
+        else:
+            ep = get_valid_price(existing)
+            np_ = get_valid_price(m)
+            if ep is None and np_ is not None:
+                mtg_by_name[m.name] = m
+            elif ep is not None and np_ is not None and np_ < ep:
+                mtg_by_name[m.name] = m
+
+    cards_data = []
+    total_value_eur = 0.0
+    for card in cards_raw:
+        mtg = None
+        if card.set_code:
+            mtg = mtg_by_name_set.get((card.name, card.set_code.lower()))
+        if not mtg:
+            mtg = mtg_by_name.get(card.name)
+
+        price_eur = mtg.price_eur if mtg else None
+        price_usd = mtg.price_usd if mtg else None
+        if price_eur and price_eur >= 0.02:
+            total_value_eur += price_eur * (card.quantity_owned or 1)
+
+        cards_data.append({
+            "id": card.id,
+            "name": card.name,
+            "quantity": card.quantity_owned,
+            "type": (mtg.types or "").split(',')[0].strip() if mtg and mtg.types else card.card_type or "",
+            "colors": mtg.colors if mtg else card.colors or "",
+            "mana_cost": mtg.mana_cost if mtg else card.mana_cost or "",
+            "rarity": mtg.rarity if mtg else card.rarity or "",
+            "set_code": card.set_code or "—",
+            "set_name": mtg.set_name if mtg else None,
+            "price_eur": price_eur,
+            "price_usd": price_usd,
+        })
+
+    # Sort alphabetically
+    cards_data.sort(key=lambda x: x["name"])
+
+    owner = db.query(User).filter(User.id == collection.user_id).first()
+    return {
+        "collection": {
+            "id": collection.id,
+            "name": collection.name,
+            "description": collection.description,
+            "owner": owner.email.split("@")[0] if owner else "Unknown",
+            "total_cards": sum(c["quantity"] for c in cards_data),
+            "total_unique": len(cards_data),
+            "total_value_eur": round(total_value_eur, 2),
+        },
+        "cards": cards_data,
     }
 
 @router.post("/import-deck/{user_id}/{deck_template_id}")

@@ -92,6 +92,12 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  // Share states
+  const [isPublic, setIsPublic] = useState(collection?.is_public || false)
+  const [shareToken, setShareToken] = useState(collection?.share_token || null)
+  const [shareLoading, setShareLoading] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+
   // Edit set states
   const [setPickerCardId, setSetPickerCardId] = useState(null)
   const [setPickerEditions, setSetPickerEditions] = useState([])
@@ -204,6 +210,13 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       exportTXT: 'Testo MTGA/MTGO',
       changeSet: 'Cambia edizione',
       noEditions: 'Nessuna edizione trovata',
+      share: '🔗 Condividi',
+      shareModal: 'Condividi Collezione',
+      shareEnable: 'Abilita link pubblico',
+      shareDisable: 'Disabilita link pubblico',
+      shareCopy: 'Copia Link',
+      shareCopied: '✓ Copiato!',
+      shareDesc: 'Chiunque abbia il link può visualizzare questa collezione in sola lettura.',
     },
     en: {
       title: 'Collection',
@@ -304,6 +317,13 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
       exportTXT: 'MTGA/MTGO Text',
       changeSet: 'Change edition',
       noEditions: 'No editions found',
+      share: '🔗 Share',
+      shareModal: 'Share Collection',
+      shareEnable: 'Enable public link',
+      shareDisable: 'Disable public link',
+      shareCopy: 'Copy Link',
+      shareCopied: '✓ Copied!',
+      shareDesc: 'Anyone with the link can view this collection in read-only mode.',
     }
   }
 
@@ -344,6 +364,11 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
 
   const typeOptions = ['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land']
   const rarityOptions = ['common', 'uncommon', 'rare', 'mythic']
+
+  useEffect(() => {
+    setIsPublic(collection?.is_public || false)
+    setShareToken(collection?.share_token || null)
+  }, [collection?.id])
 
   useEffect(() => {
     if (setPickerCardId === null) return
@@ -940,6 +965,43 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
     setSetPickerCardId(null)
   }
 
+  const [shareCopied, setShareCopied] = useState(false)
+
+  const handleShare = async () => {
+    if (!collection) return
+    setShareLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/api/collections/${collection.id}/share`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        setShareToken(data.share_token)
+        setIsPublic(true)
+        setShowShareModal(true)
+      }
+    } catch (err) { console.error(err) }
+    setShareLoading(false)
+  }
+
+  const handleUnshare = async () => {
+    if (!collection) return
+    setShareLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/api/collections/${collection.id}/unshare`, { method: 'POST' })
+      if (res.ok) {
+        setIsPublic(false)
+      }
+    } catch (err) { console.error(err) }
+    setShareLoading(false)
+  }
+
+  const handleCopyShareLink = () => {
+    const url = `${window.location.origin}/collection/shared/${shareToken}`
+    navigator.clipboard.writeText(url).then(() => {
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    })
+  }
+
   const handleCardHover = (cardName, setCode) => {
     if (!cardName) return
     
@@ -1007,6 +1069,15 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                 }}
               >
                 ✏️
+              </button>
+            )}
+            {collection && (
+              <button
+                className={`share-btn ${isPublic ? 'share-btn-active' : ''}`}
+                onClick={() => isPublic ? setShowShareModal(true) : handleShare()}
+                disabled={shareLoading}
+              >
+                {shareLoading ? '⏳' : t.share}
               </button>
             )}
             <button className="upload-cards-btn" onClick={() => setShowUploadModal(true)}>
@@ -1823,6 +1894,43 @@ function Collection({ user, collection, onBack, onSelectDeck, language, onShowSu
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="modal-overlay" onClick={() => setShowShareModal(false)}>
+          <div className="modal-content share-modal" onClick={e => e.stopPropagation()}>
+            <h2>{t.shareModal}</h2>
+            <p className="share-desc">{t.shareDesc}</p>
+            {isPublic && shareToken ? (
+              <>
+                <div className="share-link-row">
+                  <input
+                    className="share-link-input"
+                    readOnly
+                    value={`${window.location.origin}/collection/shared/${shareToken}`}
+                    onFocus={e => e.target.select()}
+                  />
+                  <button className="share-copy-btn" onClick={handleCopyShareLink}>
+                    {shareCopied ? t.shareCopied : t.shareCopy}
+                  </button>
+                </div>
+                <button
+                  className="share-disable-btn"
+                  onClick={async () => { await handleUnshare(); setShowShareModal(false) }}
+                  disabled={shareLoading}
+                >
+                  {t.shareDisable}
+                </button>
+              </>
+            ) : (
+              <button className="share-enable-btn" onClick={handleShare} disabled={shareLoading}>
+                {shareLoading ? '⏳' : t.shareEnable}
+              </button>
+            )}
+            <button className="modal-close-btn" onClick={() => setShowShareModal(false)}>{t.close}</button>
           </div>
         </div>
       )}
