@@ -1856,3 +1856,103 @@
   transition: background 0.12s;
 }
 .export-menu button:hover { background: rgba(255,255,255,0.08); }
+
+/* ── Deck Share Button ── */
+.deck-share-btn {
+  padding: 8px 14px;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #a78bfa;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.deck-share-btn:hover { background: rgba(99, 102, 241, 0.3); }
+.deck-share-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.deck-share-btn.deck-share-btn-active {
+  background: rgba(99, 102, 241, 0.3);
+  border-color: #818cf8;
+  color: #c4b5fd;
+}
+
+/* ── Deck Share Modal ── */
+.deck-share-modal { max-width: 480px; }
+.deck-share-link-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.deck-share-link-input {
+  flex: 1;
+  padding: 8px 10px;
+  background: #0f1117;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  font-family: monospace;
+  outline: none;
+}
+.deck-share-copy-btn {
+  padding: 8px 14px;
+  background: #6366f1;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.deck-share-copy-btn:hover { background: #818cf8; }
+.deck-share-disable-btn {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background 0.15s;
+}
+.deck-share-disable-btn:hover { background: rgba(239, 68, 68, 0.2); }
+.deck-share-enable-btn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: #6366f1;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background 0.15s;
+}
+.deck-share-enable-btn:hover { background: #818cf8; }
+
+.modal-close-btn {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #64748b;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.modal-close-btn:hover { background: rgba(255,255,255,0.05); }
+
+.modal-subtitle {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}

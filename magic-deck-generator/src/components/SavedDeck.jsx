@@ -70,6 +70,9 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
   const [refreshing, setRefreshing] = useState(false)
   const [isPublic, setIsPublic] = useState(false)
   const [updatingPublic, setUpdatingPublic] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [deckSlug, setDeckSlug] = useState(null)
+  const [shareCopied, setShareCopied] = useState(false)
   const [showCollectionManager, setShowCollectionManager] = useState(false)
   const [userCollections, setUserCollections] = useState([])
   const [selectedCollectionIds, setSelectedCollectionIds] = useState([])
@@ -150,7 +153,15 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
       rarity: 'Rarità',
       set: 'Set',
       artist: 'Artista',
-      legalities: 'Legalità'
+      legalities: 'Legalità',
+      share: '🔗 Condividi',
+      shareModal: 'Condividi Mazzo',
+      shareDesc: 'Chiunque abbia il link può visualizzare questo mazzo in sola lettura.',
+      shareCopy: 'Copia Link',
+      shareCopied: '✓ Copiato!',
+      shareDisable: 'Disabilita condivisione',
+      shareEnable: 'Abilita link pubblico',
+      shareClose: 'Chiudi'
     },
     en: {
       backToDecks: '← Back to Decks',
@@ -211,7 +222,15 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
       rarity: 'Rarity',
       set: 'Set',
       artist: 'Artist',
-      legalities: 'Legalities'
+      legalities: 'Legalities',
+      share: '🔗 Share',
+      shareModal: 'Share Deck',
+      shareDesc: 'Anyone with the link can view this deck in read-only mode.',
+      shareCopy: 'Copy Link',
+      shareCopied: '✓ Copied!',
+      shareDisable: 'Disable sharing',
+      shareEnable: 'Enable public link',
+      shareClose: 'Close'
     }
   }
 
@@ -228,6 +247,7 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
       const data = await res.json()
       setDeckDetails(data)
       setIsPublic(data.is_public || false)
+      setDeckSlug(data.slug || null)
       setSelectedCollectionIds(data.collection_ids || [])
     } catch (err) {
       console.error('Error loading deck details:', err)
@@ -284,21 +304,38 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
     setUpdatingCollections(false)
   }
 
-  const handleTogglePublic = async () => {
+  const handleTogglePublic = async (forcedValue) => {
+    const newValue = forcedValue !== undefined ? forcedValue : !isPublic
     setUpdatingPublic(true)
     try {
       const res = await fetch(
-        `${API_URL}/api/saved-decks/${deck.id}?is_public=${!isPublic}`,
+        `${API_URL}/api/saved-decks/${deck.id}?is_public=${newValue}`,
         { method: 'PUT' }
       )
-      
       if (res.ok) {
-        setIsPublic(!isPublic)
+        const data = await res.json()
+        setIsPublic(newValue)
+        if (data.slug) setDeckSlug(data.slug)
+        if (newValue) setShowShareModal(true)
       }
     } catch (err) {
       console.error('Error updating public status:', err)
     }
     setUpdatingPublic(false)
+  }
+
+  const handleShareBtnClick = () => {
+    if (isPublic && deckSlug) {
+      setShowShareModal(true)
+    } else {
+      handleTogglePublic(true)
+    }
+  }
+
+  const handleCopyShareLink = () => {
+    if (!deckSlug) return
+    navigator.clipboard.writeText(`${window.location.origin}/decks/${deckSlug}`)
+      .then(() => { setShareCopied(true); setTimeout(() => setShareCopied(false), 2000) })
   }
 
   const handleOpenEdit = () => {
@@ -638,6 +675,13 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
             >
               {duplicating ? t.duplicating : `📋 ${t.duplicateDeck}`}
             </button>
+            <button
+              className={`deck-share-btn ${isPublic ? 'deck-share-btn-active' : ''}`}
+              onClick={handleShareBtnClick}
+              disabled={updatingPublic}
+            >
+              {updatingPublic ? '⏳' : t.share}
+            </button>
           </div>
         </div>
 
@@ -929,6 +973,47 @@ function SavedDeck({ user, deck, onBack, language, onLimitError }) {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="modal-overlay" onClick={() => setShowShareModal(false)}>
+          <div className="modal-content deck-share-modal" onClick={e => e.stopPropagation()}>
+            <h2>{t.shareModal}</h2>
+            <p className="modal-subtitle">{t.shareDesc}</p>
+            {isPublic && deckSlug ? (
+              <>
+                <div className="deck-share-link-row">
+                  <input
+                    className="deck-share-link-input"
+                    readOnly
+                    value={`${window.location.origin}/decks/${deckSlug}`}
+                    onFocus={e => e.target.select()}
+                  />
+                  <button className="deck-share-copy-btn" onClick={handleCopyShareLink}>
+                    {shareCopied ? t.shareCopied : t.shareCopy}
+                  </button>
+                </div>
+                <button
+                  className="deck-share-disable-btn"
+                  onClick={() => { handleTogglePublic(false); setShowShareModal(false); }}
+                  disabled={updatingPublic}
+                >
+                  🔒 {t.shareDisable}
+                </button>
+              </>
+            ) : (
+              <button
+                className="deck-share-enable-btn"
+                onClick={() => handleTogglePublic(true)}
+                disabled={updatingPublic}
+              >
+                🌐 {t.shareEnable}
+              </button>
+            )}
+            <button className="modal-close-btn" onClick={() => setShowShareModal(false)}>{t.shareClose}</button>
           </div>
         </div>
       )}

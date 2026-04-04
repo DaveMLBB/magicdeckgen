@@ -435,6 +435,7 @@ def get_deck_details(
         "archetype": deck.archetype,
         "source": deck.source,
         "is_public": deck.is_public,
+        "slug": deck.slug,
         "collection_ids": collection_ids,
         "collection_names": collection_names,
         "completion_percentage": completion,
@@ -499,8 +500,9 @@ def update_deck(
     
     deck.updated_at = datetime.utcnow()
     db.commit()
+    db.refresh(deck)
     
-    return {"message": "Deck updated successfully"}
+    return {"message": "Deck updated successfully", "slug": deck.slug, "is_public": deck.is_public}
 
 @router.put("/{deck_id}/edit")
 def edit_deck(
