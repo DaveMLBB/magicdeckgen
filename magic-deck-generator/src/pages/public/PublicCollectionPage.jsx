@@ -46,6 +46,38 @@ const s = {
   ctaBtn:  { display: 'inline-block', padding: '12px 28px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: '0.95rem' },
 };
 
+function CardPreview({ name, x, y }) {
+  const [imgUrl, setImgUrl] = useState(null);
+  useEffect(() => {
+    if (!name) return;
+    setImgUrl(null);
+    fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)
+      .then(r => r.json())
+      .then(d => {
+        const img = d?.image_uris?.normal || d?.card_faces?.[0]?.image_uris?.normal;
+        if (img) setImgUrl(img);
+      })
+      .catch(() => {});
+  }, [name]);
+  if (!imgUrl) return null;
+  return (
+    <img
+      src={imgUrl}
+      alt={name}
+      style={{
+        position: 'fixed',
+        left: x + 16,
+        top: Math.min(y - 60, window.innerHeight - 340),
+        zIndex: 9999,
+        pointerEvents: 'none',
+        borderRadius: 12,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
+        width: 200,
+      }}
+    />
+  );
+}
+
 export default function PublicCollectionPage() {
   const { token } = useParams();
   const [data, setData]       = useState(null);
@@ -58,6 +90,7 @@ export default function PublicCollectionPage() {
   const [sortDir, setSortDir]     = useState('asc');
   const [filterColors, setFilterColors] = useState([]);  // active color toggles
   const [filterSet, setFilterSet] = useState('');        // set_code
+  const [hover, setHover] = useState({ name: null, x: 0, y: 0 });
 
   useEffect(() => {
     if (!token) return;
@@ -149,6 +182,8 @@ export default function PublicCollectionPage() {
         </div>
       </div>
 
+      {hover.name && <CardPreview name={hover.name} x={hover.x} y={hover.y} />}
+
       {/* Main content */}
       <div style={s.body}>
 
@@ -214,7 +249,6 @@ export default function PublicCollectionPage() {
               <tr>
                 <th style={s.th}>Qty</th>
                 <th style={s.th}>Name</th>
-                <th style={{ ...s.th, display: 'none' }} className="pc-hide-mobile">Type</th>
                 <th style={s.th}>Type</th>
                 <th style={s.th}>Rarity</th>
                 <th style={s.th}>Set</th>
@@ -223,7 +257,13 @@ export default function PublicCollectionPage() {
             </thead>
             <tbody>
               {displayed.map((card, i) => (
-                <tr key={card.id} style={{ ...s.tr, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
+                <tr
+                  key={card.id}
+                  style={{ ...s.tr, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}
+                  onMouseEnter={e => setHover({ name: card.name, x: e.clientX, y: e.clientY })}
+                  onMouseMove={e => setHover(h => ({ ...h, x: e.clientX, y: e.clientY }))}
+                  onMouseLeave={() => setHover({ name: null, x: 0, y: 0 })}
+                >
                   <td style={{ ...s.td, color: '#6366f1', fontWeight: 700, width: 40 }}>{card.quantity}</td>
                   <td style={{ ...s.td, color: RARITY_COLOR[card.rarity] || '#e2e8f0', fontWeight: 500 }}>
                     {card.name}
